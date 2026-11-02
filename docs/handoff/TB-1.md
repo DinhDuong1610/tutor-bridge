@@ -10,7 +10,7 @@
 Đưa repo về nền chung: dòng kết thúc LF, hợp đồng đang dùng, database local, phiên bản công cụ, lệnh trong AGENTS.md.
 
 ## Trạng thái hiện tại
-Đã xong phần việc, còn chờ tạo Issue #1 để mở PR.
+Đã xong phần việc. PR Draft đã mở vào `dev`, chờ Đính viết phần tác giả tự giải thích, Codex rà và Huy duyệt.
 
 ## Lệnh kiểm tra
 ```bash
@@ -31,4 +31,4 @@ git ls-files --eol .githooks/pre-push   # phải là i/lf w/lf
 Huy cần rà các phiên bản này trong PR.
 
 ## Bước kế tiếp
-Sau `gh auth login`: tạo Issue #1, push nhánh, mở PR vào `dev`, xóa file này khi chuyển Ready.
+Đính viết phần tự giải thích trong PR, cho Codex rà theo `review-pr`, xóa file này rồi chuyển Ready.

@@ -4,10 +4,11 @@ Làm một lần khi tạo repo. Đính thực hiện vì là admin (`DinhDuong1
 
 ## Repo
 - [x] Repo private, tên `tutor-bridge`
-- [ ] **Đặt nhánh mặc định là `dev`** (Settings → General), để `Closes #<số>` tự đóng Issue khi merge vào `dev`
-- [ ] Bật Squash merge và Merge commit, tắt Rebase merge. Squash cho `feature/`, `bugfix/`; merge commit cho `release/`, `hotfix/`
-- [ ] Bật tự xóa nhánh sau khi merge. Nhánh `main` và `dev` không bị xóa vì chỉ dùng làm đích
-- [ ] Bật Issues, GitHub Project cho bảng công việc
+- [x] **Đặt nhánh mặc định là `dev`**, để `Closes #<số>` tự đóng Issue khi merge vào `dev`
+- [x] Bật Squash merge và Merge commit, tắt Rebase merge. Squash cho `feature/`, `bugfix/`; merge commit cho `release/`, `hotfix/`
+- [x] Bật tự xóa nhánh sau khi merge. Không dùng `main` hoặc `dev` làm nhánh nguồn của PR
+- [x] Bật Issues, Milestone M0–M7
+- [ ] GitHub Project: cần `gh auth refresh -s project`
 - [ ] Bật 2FA cho tài khoản
 - [ ] Bật Dependabot alerts
 - [ ] Bí mật CI lưu ở GitHub Secrets, không có khóa production

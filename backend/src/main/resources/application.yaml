@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: tutorbridge
+  datasource:
+    url: ${TB_DB_URL:jdbc:postgresql://127.0.0.1:55432/tutorbridge?currentSchema=tutorbridge,public}
+    username: tutorbridge_app
+    password: ${TB_APP_PASSWORD}
+  flyway:
+    # The runtime account cannot change the schema. Migrations run with the owner account only.
+    enabled: false
+    default-schema: public
+    user: tutorbridge_migrator
+    password: ${TB_MIGRATOR_PASSWORD:}

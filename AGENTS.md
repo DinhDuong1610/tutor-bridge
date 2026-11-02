@@ -37,4 +37,10 @@ Tài liệu mới hơn không tự động thắng. Mâu thuẫn giữa các ngu
 Dùng playbook trong [docs/playbooks/](docs/playbooks/README.md): bắt đầu bằng `start-task`, cập nhật `handoff` sau mỗi commit. Agent khác hoặc người khác phải tiếp tục được chỉ từ repo, không cần lịch sử chat.
 
 ## Lệnh
-Chưa có. Sẽ bổ sung khi dựng repo: build, test, lint, chạy local cho từng phần.
+```bash
+# Database local, cần file .env tạo từ .env.example
+docker compose --env-file .env -f infra/compose.yaml up -d --wait
+docker compose --env-file .env -f infra/compose.yaml down
+```
+
+Build, test, lint của từng phần được bổ sung cùng task dựng phần đó.

@@ -23,10 +23,11 @@ Những mục ghi **TBD** sẽ chốt khi dựng repo.
 - ID là UUID do máy chủ sinh. Đề xuất UUIDv7 để chỉ mục ghi tốt hơn: **TBD** khi dựng backend.
 - Migration Flyway chỉ thêm, không sửa file đã merge. Theo thứ tự expand → backfill → validate → enforce.
 - Số migration được cấp trong Issue để tránh trùng.
-- Tài khoản ứng dụng có quyền tối thiểu; không dùng tài khoản sở hữu schema khi chạy.
+- Migration chạy bằng `tutorbridge_migrator`, ứng dụng chạy bằng `tutorbridge_app`, chỉ có quyền đọc ghi dữ liệu. Không dùng tài khoản sở hữu schema khi chạy.
 
 ## Backend
-- Cấu trúc mỗi mô-đun: `api` (công khai), `internal` (service, repository), `web` (controller).
+- Package gốc `com.tutorbridge`. Cấu trúc mỗi mô-đun: `api` (công khai), `internal` (service, repository), `web` (controller). Ranh giới kiểm bằng `ArchitectureTest`.
+- Truy cập dữ liệu bằng Spring JDBC `JdbcClient`, không dùng JPA.
 - Giao dịch đặt ở service. Kiểm quyền trong service, không chỉ ở controller.
 - Lỗi nghiệp vụ dùng kiểu riêng, ánh xạ về Problem tại một chỗ.
 - Không gọi dịch vụ ngoài trong giao dịch (INV-18).

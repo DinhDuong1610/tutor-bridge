@@ -1,0 +1,26 @@
+[
+  {
+    "migration": "001",
+    "file": "001_foundation.sql",
+    "sha256": "57fb4819826ae708006cc36ef37c87800cce6d9d0e3505f919e93bd5fa688d1f",
+    "baseline_bytes_unchanged": true
+  },
+  {
+    "migration": "002",
+    "file": "002_integrity_guards.sql",
+    "sha256": "4ea6f4a276fe769cf7cf79be8688757a14afebcc75be1f9594ff8a10968f1b1e",
+    "baseline_bytes_unchanged": true
+  },
+  {
+    "migration": "003",
+    "file": "003_review_corrections.sql",
+    "sha256": "09b95a0fc4af0ed0978db400fa3f1a87236c599daaf5ae943abb8c9e589c641b",
+    "baseline_bytes_unchanged": true
+  },
+  {
+    "migration": "004",
+    "file": "004_f03_f05_candidate.sql",
+    "sha256": "f2d08b6cc93629d23891007aba1fd8616f451f673b4f68d7c2a7e25129560a5d",
+    "baseline_bytes_unchanged": true
+  }
+]

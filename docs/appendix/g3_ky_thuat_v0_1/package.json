@@ -1,0 +1,1 @@
+{"name":"tutorbridge-g3-unified","version":"0.1.0","private":true,"scripts":{"test:embedded":"node tests/run_embedded.cjs"},"dependencies":{"@electric-sql/pglite":"0.3.14"}}

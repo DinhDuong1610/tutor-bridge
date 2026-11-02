@@ -1,0 +1,6 @@
+{
+  "status": "NOT_EXECUTED",
+  "checked_on": "2026-10-29",
+  "reason": "No Docker or native postgres/initdb; OS namespace maps only uid0 and denies switching to non-root user. Cannot start stock native PostgreSQL under standard supported account.",
+  "harness_tests_are_not_native_evidence": true
+}

@@ -1,0 +1,226 @@
+[
+  {
+    "id": "SQL01",
+    "title": "Two bookings are created per session",
+    "setup": "",
+    "sql": "SELECT pg_temp.assert_true((SELECT count(*)=2 FROM resource_bookings WHERE session_id=pg_temp.tid('lesson1')),'two bookings');",
+    "expectedSqlstate": null,
+    "issue": null
+  },
+  {
+    "id": "SQL02",
+    "title": "Overlapping interval is rejected",
+    "setup": "",
+    "sql": "INSERT INTO lesson_sessions(id,class_id,ordinal,during,state) VALUES(pg_temp.tid('overlap'),pg_temp.tid('class'),20,tstzrange('2030-01-07T11:30Z','2030-01-07T13:00Z','[)'),'SCHEDULED');",
+    "expectedSqlstate": "23P01",
+    "issue": null
+  },
+  {
+    "id": "SQL03",
+    "title": "Adjacent intervals are accepted",
+    "setup": "",
+    "sql": "INSERT INTO lesson_sessions(id,class_id,ordinal,during,state) VALUES(pg_temp.tid('adjacent'),pg_temp.tid('class'),20,tstzrange('2030-01-07T12:30Z','2030-01-07T14:00Z','[)'),'SCHEDULED'); SELECT pg_temp.assert_true((SELECT count(*)=2 FROM resource_bookings WHERE session_id=pg_temp.tid('adjacent')),'adjacent');",
+    "expectedSqlstate": null,
+    "issue": null
+  },
+  {
+    "id": "SQL04",
+    "title": "Cancellation deactivates both bookings",
+    "setup": "",
+    "sql": "UPDATE lesson_sessions SET state='CANCELLED' WHERE id=pg_temp.tid('lesson1'); SELECT pg_temp.assert_true(NOT EXISTS(SELECT 1 FROM resource_bookings WHERE session_id=pg_temp.tid('lesson1') AND active),'cancelled');",
+    "expectedSqlstate": null,
+    "issue": null
+  },
+  {
+    "id": "SQL05",
+    "title": "Conflict rolls back a batch in its subtransaction",
+    "setup": "",
+    "sql": "DO $$BEGIN\n BEGIN\n INSERT INTO lesson_sessions(id,class_id,ordinal,during,state) VALUES(pg_temp.tid('batch-ok'),pg_temp.tid('class'),20,tstzrange('2030-04-01T11:00Z','2030-04-01T12:30Z','[)'),'SCHEDULED');\n INSERT INTO lesson_sessions(id,class_id,ordinal,during,state) VALUES(pg_temp.tid('batch-bad'),pg_temp.tid('class'),21,tstzrange('2030-01-07T11:00Z','2030-01-07T12:30Z','[)'),'SCHEDULED');\n RAISE EXCEPTION 'expected conflict'; EXCEPTION WHEN exclusion_violation THEN NULL; END;\n PERFORM pg_temp.assert_true(NOT EXISTS(SELECT 1 FROM lesson_sessions WHERE id=pg_temp.tid('batch-ok')),'batch rollback'); END $$;",
+    "expectedSqlstate": null,
+    "issue": null
+  },
+  {
+    "id": "SQL06",
+    "title": "A need cannot create a second class",
+    "setup": "",
+    "sql": "INSERT INTO classes SELECT pg_temp.tid('duplicate-class'),originating_need_id,accepted_offer_id,student_id,tutor_id,status,revision,duration_minutes,price_vnd_session,ended_at,created_at FROM classes WHERE id=pg_temp.tid('class');",
+    "expectedSqlstate": "23505",
+    "issue": null
+  },
+  {
+    "id": "SQL07",
+    "title": "Cross-class source in context is rejected",
+    "setup": "",
+    "sql": "INSERT INTO context_sources(context_id,material_version_id,class_id,source_epoch) VALUES(pg_temp.tid('ctx_other'),pg_temp.tid('mv1'),pg_temp.tid('class2'),1);",
+    "expectedSqlstate": "23503",
+    "issue": null
+  },
+  {
+    "id": "SQL08",
+    "title": "READY requires a non-null extracted text count",
+    "setup": "",
+    "sql": "UPDATE material_versions SET extracted_characters=NULL WHERE id=pg_temp.tid('mv1');",
+    "expectedSqlstate": "23514",
+    "issue": "R01"
+  },
+  {
+    "id": "SQL09",
+    "title": "A session cannot move to another class",
+    "setup": "",
+    "sql": "UPDATE lesson_sessions SET class_id=pg_temp.tid('class2'),ordinal=99 WHERE id=pg_temp.tid('lesson2');",
+    "expectedSqlstate": "23514",
+    "issue": "R02"
+  },
+  {
+    "id": "SQL10",
+    "title": "A sixth source INSERT is rejected",
+    "setup": "INSERT INTO context_sources(context_id,material_version_id,class_id,source_epoch) SELECT pg_temp.tid('ctx'),pg_temp.tid('mv'||n),pg_temp.tid('class'),1 FROM generate_series(1,5)n;",
+    "sql": "INSERT INTO context_sources(context_id,material_version_id,class_id,source_epoch) VALUES(pg_temp.tid('ctx'),pg_temp.tid('mv6'),pg_temp.tid('class'),1);",
+    "expectedSqlstate": "23514",
+    "issue": null
+  },
+  {
+    "id": "SQL11",
+    "title": "A sixth source UPDATE is rejected",
+    "setup": "INSERT INTO context_sources(context_id,material_version_id,class_id,source_epoch) SELECT pg_temp.tid('ctx'),pg_temp.tid('mv'||n),pg_temp.tid('class'),1 FROM generate_series(1,5)n;INSERT INTO context_sources VALUES(pg_temp.tid('ctx2'),pg_temp.tid('mv6'),pg_temp.tid('class'),1);",
+    "sql": "UPDATE context_sources SET context_id=pg_temp.tid('ctx') WHERE context_id=pg_temp.tid('ctx2');",
+    "expectedSqlstate": "23514",
+    "issue": "R03"
+  },
+  {
+    "id": "SQL12",
+    "title": "Twenty active source versions are accepted",
+    "setup": "",
+    "sql": "INSERT INTO material_versions(id,material_id,class_id,version,object_key,media_type,size_bytes,sha256,state) SELECT pg_temp.tid('more'||n),pg_temp.tid('mat'),pg_temp.tid('class'),n,'processing-'||n,'application/pdf',10,repeat('b',64),'PROCESSING' FROM generate_series(7,20)n;SELECT pg_temp.assert_true((SELECT count(*)=20 FROM material_versions WHERE class_id=pg_temp.tid('class')),'20 active');",
+    "expectedSqlstate": null,
+    "issue": null
+  },
+  {
+    "id": "SQL13",
+    "title": "A 21st active source version is rejected",
+    "setup": "",
+    "sql": "INSERT INTO material_versions(id,material_id,class_id,version,object_key,media_type,size_bytes,sha256,state) SELECT pg_temp.tid('more'||n),pg_temp.tid('mat'),pg_temp.tid('class'),n,'processing-'||n,'application/pdf',10,repeat('b',64),'PROCESSING' FROM generate_series(7,21)n;",
+    "expectedSqlstate": "23514",
+    "issue": null
+  },
+  {
+    "id": "SQL14",
+    "title": "A plan with 89 minutes cannot be approved",
+    "setup": "UPDATE plan_activities SET minutes=89 WHERE id=pg_temp.tid('activity');",
+    "sql": "UPDATE plan_versions SET status='APPROVED',warnings_resolved=true,approved_by=pg_temp.tid('tutor'),approved_at=now() WHERE id=pg_temp.tid('pv');",
+    "expectedSqlstate": "23514",
+    "issue": null
+  },
+  {
+    "id": "SQL15",
+    "title": "Approved activity content is immutable",
+    "setup": "UPDATE plan_versions SET status='APPROVED',warnings_resolved=true,approved_by=pg_temp.tid('tutor'),approved_at=now() WHERE id=pg_temp.tid('pv');",
+    "sql": "UPDATE plan_activities SET content='Changed after approval' WHERE id=pg_temp.tid('activity');",
+    "expectedSqlstate": "23514",
+    "issue": null
+  },
+  {
+    "id": "SQL16",
+    "title": "Draft cannot be published",
+    "setup": "",
+    "sql": "INSERT INTO plan_publications(plan_id,class_id,plan_version_id,published_by,published_at) VALUES(pg_temp.tid('plan'),pg_temp.tid('class'),pg_temp.tid('pv'),pg_temp.tid('tutor'),now());",
+    "expectedSqlstate": "23514",
+    "issue": null
+  },
+  {
+    "id": "SQL17",
+    "title": "Approved manual plan can be published",
+    "setup": "UPDATE plan_versions SET status='APPROVED',warnings_resolved=true,approved_by=pg_temp.tid('tutor'),approved_at=now() WHERE id=pg_temp.tid('pv');",
+    "sql": "INSERT INTO plan_publications(plan_id,class_id,plan_version_id,published_by,published_at) VALUES(pg_temp.tid('plan'),pg_temp.tid('class'),pg_temp.tid('pv'),pg_temp.tid('tutor'),now());SELECT pg_temp.assert_true((SELECT count(*)=1 FROM plan_publications),'manual publish');",
+    "expectedSqlstate": null,
+    "issue": null
+  },
+  {
+    "id": "SQL18",
+    "title": "Revoked source epoch blocks publication",
+    "setup": "INSERT INTO plan_dependencies(plan_version_id,material_version_id,class_id,source_epoch) VALUES(pg_temp.tid('pv'),pg_temp.tid('mv1'),pg_temp.tid('class'),1);UPDATE plan_versions SET status='APPROVED',warnings_resolved=true,approved_by=pg_temp.tid('tutor'),approved_at=now() WHERE id=pg_temp.tid('pv');UPDATE material_versions SET access_epoch=2,state='REVOKED' WHERE id=pg_temp.tid('mv1');",
+    "sql": "INSERT INTO plan_publications(plan_id,class_id,plan_version_id,published_by,published_at) VALUES(pg_temp.tid('plan'),pg_temp.tid('class'),pg_temp.tid('pv'),pg_temp.tid('tutor'),now());",
+    "expectedSqlstate": "23514",
+    "issue": null
+  },
+  {
+    "id": "SQL19",
+    "title": "Missing derivative grant blocks publication",
+    "setup": "INSERT INTO plan_dependencies(plan_version_id,material_version_id,class_id,source_epoch) VALUES(pg_temp.tid('pv'),pg_temp.tid('mv1'),pg_temp.tid('class'),1);UPDATE plan_versions SET status='APPROVED',warnings_resolved=true,approved_by=pg_temp.tid('tutor'),approved_at=now() WHERE id=pg_temp.tid('pv');UPDATE material_grants SET revoked_at=now() WHERE id=pg_temp.tid('grant');",
+    "sql": "INSERT INTO plan_publications(plan_id,class_id,plan_version_id,published_by,published_at) VALUES(pg_temp.tid('plan'),pg_temp.tid('class'),pg_temp.tid('pv'),pg_temp.tid('tutor'),now());",
+    "expectedSqlstate": "23514",
+    "issue": null
+  },
+  {
+    "id": "SQL20",
+    "title": "Ended class blocks new publication",
+    "setup": "UPDATE plan_versions SET status='APPROVED',warnings_resolved=true,approved_by=pg_temp.tid('tutor'),approved_at=now() WHERE id=pg_temp.tid('pv');UPDATE classes SET status='ENDED',ended_at=now() WHERE id=pg_temp.tid('class');",
+    "sql": "INSERT INTO plan_publications(plan_id,class_id,plan_version_id,published_by,published_at) VALUES(pg_temp.tid('plan'),pg_temp.tid('class'),pg_temp.tid('pv'),pg_temp.tid('tutor'),now());",
+    "expectedSqlstate": "23514",
+    "issue": null
+  },
+  {
+    "id": "SQL21",
+    "title": "Receipt actor command key is unique",
+    "setup": "INSERT INTO command_receipts(id,actor_id,command_type,idempotency_key,payload_sha256,state,created_at,expires_at) VALUES(pg_temp.tid('receipt'),pg_temp.tid('parent'),'SEND','synthetic-key-0001',repeat('a',64),'SUCCEEDED',now(),now()+interval '7 days');",
+    "sql": "INSERT INTO command_receipts SELECT pg_temp.tid('receipt2'),actor_id,command_type,idempotency_key,payload_sha256,state,result_type,result_id,error_code,created_at,expires_at FROM command_receipts WHERE id=pg_temp.tid('receipt');",
+    "expectedSqlstate": "23505",
+    "issue": null
+  },
+  {
+    "id": "SQL22",
+    "title": "Receipt retention cannot be less than 7 days",
+    "setup": "",
+    "sql": "INSERT INTO command_receipts(id,actor_id,command_type,idempotency_key,payload_sha256,state,created_at,expires_at) VALUES(pg_temp.tid('receipt'),pg_temp.tid('parent'),'SEND','synthetic-key-0001',repeat('a',64),'SUCCEEDED',now(),now()+interval '6 days');",
+    "expectedSqlstate": "23514",
+    "issue": null
+  },
+  {
+    "id": "SQL23",
+    "title": "Real AI defaults off",
+    "setup": "",
+    "sql": "SELECT pg_temp.assert_true((SELECT enabled=false FROM ai_policies WHERE version='UNCONFIGURED'),'AI off');",
+    "expectedSqlstate": null,
+    "issue": null
+  },
+  {
+    "id": "SQL24",
+    "title": "Offer snapshot terms cannot change",
+    "setup": "",
+    "sql": "UPDATE class_offers SET goal_snapshot=repeat('Changed goal ',3) WHERE id=pg_temp.tid('offer');",
+    "expectedSqlstate": "23514",
+    "issue": null
+  },
+  {
+    "id": "SQL25",
+    "title": "Duration of a stored session matches its class",
+    "setup": "",
+    "sql": "UPDATE lesson_sessions SET during=tstzrange('2030-01-07T11:00Z','2030-01-07T12:00Z','[)') WHERE id=pg_temp.tid('lesson1');",
+    "expectedSqlstate": "23514",
+    "issue": null
+  },
+  {
+    "id": "SQL26",
+    "title": "Teacher review is mandatory for READY",
+    "setup": "",
+    "sql": "UPDATE material_versions SET teacher_reviewed_at=NULL WHERE id=pg_temp.tid('mv1');",
+    "expectedSqlstate": "23514",
+    "issue": null
+  },
+  {
+    "id": "SQL27",
+    "title": "Cross-class session in a plan is rejected",
+    "setup": "",
+    "sql": "INSERT INTO lesson_plans(id,class_id,session_id) VALUES(pg_temp.tid('wrong-plan'),pg_temp.tid('class2'),pg_temp.tid('lesson2'));",
+    "expectedSqlstate": "23503",
+    "issue": null
+  },
+  {
+    "id": "SQL28",
+    "title": "Answers cannot be released before homework closes",
+    "setup": "",
+    "sql": "INSERT INTO answer_releases(plan_version_id,class_id,released_by,released_at,homework_closed_at) VALUES(pg_temp.tid('pv'),pg_temp.tid('class'),pg_temp.tid('tutor'),now(),now()+interval '1 hour');",
+    "expectedSqlstate": "23514",
+    "issue": null
+  }
+]

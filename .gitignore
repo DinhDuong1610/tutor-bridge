@@ -1,0 +1,30 @@
+# Secrets and local config
+.env
+.env.*
+!.env.example
+secrets/
+*.pem
+*.key
+
+# Local Claude settings
+.claude/settings.local.json
+
+# Build output
+target/
+build/
+dist/
+.next/
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+.gradle/
+
+# Office lock files
+~$*
+
+# Editors and OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

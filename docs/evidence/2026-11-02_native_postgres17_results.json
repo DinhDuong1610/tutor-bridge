@@ -1,0 +1,461 @@
+{
+  "executedAt": "2026-11-02T16:51:05.442684+00:00",
+  "engine": "Native PostgreSQL",
+  "cases": [
+    {
+      "id": "SQL01",
+      "status": "PASS",
+      "actualSqlstate": null,
+      "expectedSqlstate": null
+    },
+    {
+      "id": "SQL02",
+      "status": "PASS",
+      "actualSqlstate": "23P01",
+      "expectedSqlstate": "23P01"
+    },
+    {
+      "id": "SQL03",
+      "status": "PASS",
+      "actualSqlstate": null,
+      "expectedSqlstate": null
+    },
+    {
+      "id": "SQL04",
+      "status": "PASS",
+      "actualSqlstate": null,
+      "expectedSqlstate": null
+    },
+    {
+      "id": "SQL05",
+      "status": "PASS",
+      "actualSqlstate": null,
+      "expectedSqlstate": null
+    },
+    {
+      "id": "SQL06",
+      "status": "PASS",
+      "actualSqlstate": "23505",
+      "expectedSqlstate": "23505"
+    },
+    {
+      "id": "SQL07",
+      "status": "PASS",
+      "actualSqlstate": "23503",
+      "expectedSqlstate": "23503"
+    },
+    {
+      "id": "SQL08",
+      "status": "PASS",
+      "actualSqlstate": "23514",
+      "expectedSqlstate": "23514"
+    },
+    {
+      "id": "SQL09",
+      "status": "PASS",
+      "actualSqlstate": "23514",
+      "expectedSqlstate": "23514"
+    },
+    {
+      "id": "SQL10",
+      "status": "PASS",
+      "actualSqlstate": "23514",
+      "expectedSqlstate": "23514"
+    },
+    {
+      "id": "SQL11",
+      "status": "PASS",
+      "actualSqlstate": "23514",
+      "expectedSqlstate": "23514"
+    },
+    {
+      "id": "SQL12",
+      "status": "PASS",
+      "actualSqlstate": null,
+      "expectedSqlstate": null
+    },
+    {
+      "id": "SQL13",
+      "status": "PASS",
+      "actualSqlstate": "23514",
+      "expectedSqlstate": "23514"
+    },
+    {
+      "id": "SQL14",
+      "status": "PASS",
+      "actualSqlstate": "23514",
+      "expectedSqlstate": "23514"
+    },
+    {
+      "id": "SQL15",
+      "status": "PASS",
+      "actualSqlstate": "23514",
+      "expectedSqlstate": "23514"
+    },
+    {
+      "id": "SQL16",
+      "status": "PASS",
+      "actualSqlstate": "23514",
+      "expectedSqlstate": "23514"
+    },
+    {
+      "id": "SQL17",
+      "status": "PASS",
+      "actualSqlstate": null,
+      "expectedSqlstate": null
+    },
+    {
+      "id": "SQL18",
+      "status": "PASS",
+      "actualSqlstate": "23514",
+      "expectedSqlstate": "23514"
+    },
+    {
+      "id": "SQL19",
+      "status": "PASS",
+      "actualSqlstate": "23514",
+      "expectedSqlstate": "23514"
+    },
+    {
+      "id": "SQL20",
+      "status": "PASS",
+      "actualSqlstate": "23514",
+      "expectedSqlstate": "23514"
+    },
+    {
+      "id": "SQL21",
+      "status": "PASS",
+      "actualSqlstate": "23505",
+      "expectedSqlstate": "23505"
+    },
+    {
+      "id": "SQL22",
+      "status": "PASS",
+      "actualSqlstate": "23514",
+      "expectedSqlstate": "23514"
+    },
+    {
+      "id": "SQL23",
+      "status": "PASS",
+      "actualSqlstate": null,
+      "expectedSqlstate": null
+    },
+    {
+      "id": "SQL24",
+      "status": "PASS",
+      "actualSqlstate": "23514",
+      "expectedSqlstate": "23514"
+    },
+    {
+      "id": "SQL25",
+      "status": "PASS",
+      "actualSqlstate": "23514",
+      "expectedSqlstate": "23514"
+    },
+    {
+      "id": "SQL26",
+      "status": "PASS",
+      "actualSqlstate": "23514",
+      "expectedSqlstate": "23514"
+    },
+    {
+      "id": "SQL27",
+      "status": "PASS",
+      "actualSqlstate": "23503",
+      "expectedSqlstate": "23503"
+    },
+    {
+      "id": "SQL28",
+      "status": "PASS",
+      "actualSqlstate": "23514",
+      "expectedSqlstate": "23514"
+    },
+    {
+      "id": "U01",
+      "status": "PASS",
+      "actualSqlstate": null,
+      "expectedSqlstate": null
+    },
+    {
+      "id": "U02",
+      "status": "PASS",
+      "actualSqlstate": null,
+      "expectedSqlstate": null
+    },
+    {
+      "id": "U03",
+      "status": "PASS",
+      "actualSqlstate": null,
+      "expectedSqlstate": null
+    },
+    {
+      "id": "U04",
+      "status": "PASS",
+      "actualSqlstate": null,
+      "expectedSqlstate": null
+    },
+    {
+      "id": "U05",
+      "status": "PASS",
+      "actualSqlstate": "23514",
+      "expectedSqlstate": "23514"
+    },
+    {
+      "id": "U06",
+      "status": "PASS",
+      "actualSqlstate": null,
+      "expectedSqlstate": null
+    },
+    {
+      "id": "U07",
+      "status": "PASS",
+      "actualSqlstate": null,
+      "expectedSqlstate": null
+    },
+    {
+      "id": "U08",
+      "status": "PASS",
+      "actualSqlstate": null,
+      "expectedSqlstate": null
+    },
+    {
+      "id": "U09",
+      "status": "PASS",
+      "actualSqlstate": "23514",
+      "expectedSqlstate": "23514"
+    },
+    {
+      "id": "U10",
+      "status": "PASS",
+      "actualSqlstate": null,
+      "expectedSqlstate": null
+    },
+    {
+      "id": "U11",
+      "status": "PASS",
+      "actualSqlstate": "23514",
+      "expectedSqlstate": "23514"
+    },
+    {
+      "id": "U12",
+      "status": "PASS",
+      "actualSqlstate": "23514",
+      "expectedSqlstate": "23514"
+    },
+    {
+      "id": "U13",
+      "status": "PASS",
+      "actualSqlstate": "23514",
+      "expectedSqlstate": "23514"
+    },
+    {
+      "id": "U14",
+      "status": "PASS",
+      "actualSqlstate": "23514",
+      "expectedSqlstate": "23514"
+    },
+    {
+      "id": "U15",
+      "status": "PASS",
+      "actualSqlstate": "23505",
+      "expectedSqlstate": "23505"
+    },
+    {
+      "id": "U16",
+      "status": "PASS",
+      "actualSqlstate": "23514",
+      "expectedSqlstate": "23514"
+    },
+    {
+      "id": "U17",
+      "status": "PASS",
+      "actualSqlstate": null,
+      "expectedSqlstate": null
+    },
+    {
+      "id": "U18",
+      "status": "PASS",
+      "actualSqlstate": "23514",
+      "expectedSqlstate": "23514"
+    },
+    {
+      "id": "U19",
+      "status": "PASS",
+      "actualSqlstate": "23514",
+      "expectedSqlstate": "23514"
+    },
+    {
+      "id": "U20",
+      "status": "PASS",
+      "actualSqlstate": null,
+      "expectedSqlstate": null
+    },
+    {
+      "id": "U21",
+      "status": "PASS",
+      "actualSqlstate": "23514",
+      "expectedSqlstate": "23514"
+    },
+    {
+      "id": "U22",
+      "status": "PASS",
+      "actualSqlstate": "23514",
+      "expectedSqlstate": "23514"
+    },
+    {
+      "id": "U23",
+      "status": "PASS",
+      "actualSqlstate": "23514",
+      "expectedSqlstate": "23514"
+    },
+    {
+      "id": "U24",
+      "status": "PASS",
+      "actualSqlstate": "23514",
+      "expectedSqlstate": "23514"
+    },
+    {
+      "id": "U25",
+      "status": "PASS",
+      "actualSqlstate": null,
+      "expectedSqlstate": null
+    },
+    {
+      "id": "U26",
+      "status": "PASS",
+      "actualSqlstate": "23514",
+      "expectedSqlstate": "23514"
+    },
+    {
+      "id": "U27",
+      "status": "PASS",
+      "actualSqlstate": "23514",
+      "expectedSqlstate": "23514"
+    },
+    {
+      "id": "U28",
+      "status": "PASS",
+      "actualSqlstate": "23514",
+      "expectedSqlstate": "23514"
+    },
+    {
+      "id": "U29",
+      "status": "PASS",
+      "actualSqlstate": null,
+      "expectedSqlstate": null
+    },
+    {
+      "id": "U30",
+      "status": "PASS",
+      "actualSqlstate": "23514",
+      "expectedSqlstate": "23514"
+    },
+    {
+      "id": "U31",
+      "status": "PASS",
+      "actualSqlstate": null,
+      "expectedSqlstate": null
+    },
+    {
+      "id": "U32",
+      "status": "PASS",
+      "actualSqlstate": null,
+      "expectedSqlstate": null
+    },
+    {
+      "id": "U33",
+      "status": "PASS",
+      "actualSqlstate": null,
+      "expectedSqlstate": null
+    },
+    {
+      "id": "U34",
+      "status": "PASS",
+      "actualSqlstate": null,
+      "expectedSqlstate": null
+    },
+    {
+      "id": "U35",
+      "status": "PASS",
+      "actualSqlstate": null,
+      "expectedSqlstate": null
+    },
+    {
+      "id": "U36",
+      "status": "PASS",
+      "actualSqlstate": "23514",
+      "expectedSqlstate": "23514"
+    }
+  ],
+  "concurrency": [
+    {
+      "status": "PASS",
+      "actualSqlstate": "23P01",
+      "expectedSqlstate": "23P01",
+      "outcome": "ROLLED_BACK",
+      "lockWaitObserved": true,
+      "sessionPids": [
+        168,
+        169
+      ],
+      "id": "N01_TUTOR"
+    },
+    {
+      "status": "PASS",
+      "actualSqlstate": "23P01",
+      "expectedSqlstate": "23P01",
+      "outcome": "ROLLED_BACK",
+      "lockWaitObserved": true,
+      "sessionPids": [
+        171,
+        172
+      ],
+      "id": "N02_STUDENT"
+    },
+    {
+      "id": "N03_ADJACENT",
+      "status": "PASS",
+      "sessionPids": [
+        174,
+        175
+      ],
+      "method": "Two separate DB sessions, sequential commits; boundary check only"
+    },
+    {
+      "status": "PASS",
+      "actualSqlstate": "23514",
+      "expectedSqlstate": "23514",
+      "outcome": "ROLLED_BACK",
+      "lockWaitObserved": true,
+      "sessionPids": [
+        176,
+        177
+      ],
+      "id": "N04_REVOKE_PUBLISH"
+    },
+    {
+      "status": "PASS",
+      "actualSqlstate": null,
+      "expectedSqlstate": null,
+      "outcome": "COMMITTED",
+      "lockWaitObserved": true,
+      "sessionPids": [
+        179,
+        180
+      ],
+      "id": "N05_ONE_TIME_TOKEN"
+    }
+  ],
+  "limitations": [
+    "Direct DB test sessions only; no Spring Boot replicas or HTTP ACL tests",
+    "Not load, security, Android or restore validation"
+  ],
+  "runtime": {
+    "version": "PostgreSQL 17.11 (Debian 17.11-1.pgdg12+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit",
+    "version_num": "170011"
+  },
+  "counts": {
+    "passed": 69,
+    "total": 69
+  }
+}

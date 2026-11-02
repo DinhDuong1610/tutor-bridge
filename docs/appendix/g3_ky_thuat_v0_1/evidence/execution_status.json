@@ -1,0 +1,13 @@
+{
+  "startedAt": "2026-10-29T07:30:07.118103+00:00",
+  "status": "BLOCKED_OR_FAILED",
+  "steps": [
+    {
+      "name": "harness_tests",
+      "exitCode": 0
+    }
+  ],
+  "nativeExecuted": false,
+  "reason": "INSTALL_AND_START_DOCKER_DESKTOP_FIRST",
+  "finishedAt": "2026-10-29T07:30:07.285035+00:00"
+}

@@ -1,0 +1,47 @@
+{
+  "baseline": "TB G3 07 v0.1",
+  "unchanged_files": [
+    {
+      "file": "sql/004_f03_f05_candidate.sql",
+      "baseline_sha256": "f2d08b6cc93629d23891007aba1fd8616f451f673b4f68d7c2a7e25129560a5d",
+      "bytes_unchanged": true
+    },
+    {
+      "file": "sql/005_identity_support_privacy_candidate.sql",
+      "baseline_sha256": "9882833a8ca0ac9e5a60fc533fde063a4ab683d77b9c6b0a579b10906695d5ac",
+      "bytes_unchanged": true
+    },
+    {
+      "file": "sql/003_review_corrections.sql",
+      "baseline_sha256": "09b95a0fc4af0ed0978db400fa3f1a87236c599daaf5ae943abb8c9e589c641b",
+      "bytes_unchanged": true
+    },
+    {
+      "file": "sql/001_foundation.sql",
+      "baseline_sha256": "57fb4819826ae708006cc36ef37c87800cce6d9d0e3505f919e93bd5fa688d1f",
+      "bytes_unchanged": true
+    },
+    {
+      "file": "sql/002_integrity_guards.sql",
+      "baseline_sha256": "4ea6f4a276fe769cf7cf79be8688757a14afebcc75be1f9594ff8a10968f1b1e",
+      "bytes_unchanged": true
+    },
+    {
+      "file": "api/openapi.json",
+      "baseline_sha256": "0370d06c355f7a8966c333a39004bcb3ed07370de6206339408ea6febd92daff",
+      "bytes_unchanged": true
+    },
+    {
+      "file": "api/openapi.yaml",
+      "baseline_sha256": "c907821bc1b01653c20d8eec02a897b69aafdd64fba2a9534ea2888bf77d9371",
+      "bytes_unchanged": true
+    }
+  ],
+  "new_scope": [
+    "native runner fixes",
+    "Windows launcher",
+    "evidence completeness evaluation",
+    "12 harness regressions"
+  ],
+  "no_new_database_or_api_changes": true
+}

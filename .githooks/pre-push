@@ -1,0 +1,11 @@
+#!/bin/sh
+# GitHub Free does not protect branches on private repos, so block direct pushes locally.
+while read -r local_ref local_sha remote_ref remote_sha; do
+  case "$remote_ref" in
+    refs/heads/main|refs/heads/dev)
+      echo "Blocked: do not push directly to ${remote_ref#refs/heads/}. Open a pull request." >&2
+      exit 1
+      ;;
+  esac
+done
+exit 0

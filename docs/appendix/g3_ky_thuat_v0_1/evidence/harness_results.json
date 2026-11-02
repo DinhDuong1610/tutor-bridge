@@ -1,0 +1,9 @@
+{
+  "executedAt": "2026-10-29T07:30:07.247720+00:00",
+  "scope": "Native runner regression tests only; synthetic/mocked data; no database executed",
+  "testsRun": 12,
+  "failures": 0,
+  "errors": 0,
+  "status": "PASS",
+  "native_database_status": "NOT_EXECUTED"
+}

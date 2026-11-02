@@ -1,0 +1,9 @@
+id,item,status,owner,evidence
+G3-01,Unified OpenAPI structure,PASS_STATIC,Both,evidence/static_validation.json
+G3-02,Migration001to005 fresh embedded,PASS_EMBEDDED,Dinh,evidence/embedded_results.json
+G3-03,Native server concurrency,NOT_RUN,Dinh,evidence/native_status.json
+G3-04,Upgrade existing data and backfill,NOT_RUN,Dinh,
+G3-05,Prototype users min5 target4 independent,NOT_RUN,Both,review/user_testing.csv
+G3-06,Design decisions D35 D16 D07,PENDING_TEAM,Both,review/reconciliation.csv
+G3-07,Hours budget milestones,PENDING_TEAM,Both,
+G3-08,HTTP ACL AI storage restore product checks,PLANNED_DEVELOPMENT,Both,README.md

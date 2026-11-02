@@ -1,0 +1,44 @@
+FR,UC,operationIds,evidence_and_limit,status
+FR-01,UC01,registerAccount,RegistrationInput enum/length; backend pending,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-02,UC01,loginAccount logoutAccount revokeOwnSession,"U01–U05, U31–U32",DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-03,UC02,createStudent patchStudent listStudents,Server owner checks pending,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-04,UC04,createNeedDraft updateNeedDraft confirmNeed,Baseline SQL component checks; HTTP pending,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-05,UC03,saveTutorProfile getOwnTutorProfile,Schema only; backend pending,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-06,UC03,saveTutorProfile sendOffer acceptOffer,Snapshot/price component checks; API pending,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-07,UC03,submitTutorProfile decideVerification readAssignedEvidence,U17–U19,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-08,UC07,replaceTutorCalendar replaceStudentCalendar,Service materialization and conflicts pending,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-09,UC05,createMatchingRun,Algorithm integration pending,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-10,UC05,createMatchingRun,Schedule intersection integration pending,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-11,UC05,createMatchingRun getMatchingRun,S/B evaluation pending,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-12,UC05,getMatchingRun getTutorPublic,Schema and rank constraint only,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-13,UC05,createMatchingRun,Snapshot replay backend pending,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-14,UC05,getMatchingRun,Error contract only,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-15,UC06,sendOffer getOffer,Receipt direct SQL only,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-16,UC06,acceptOffer rejectOffer cancelOffer,Native concurrency and HTTP pending,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-17,UC06 UC07,acceptOffer listSessions,SQL01–SQL06; native pending,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-18,UC04,proposeClassGoal decideClassGoal,API/DB mapping; transaction implementation pending,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-19,UC07,getClass listSessions getPublication,Object ACL backend pending,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-20,UC08,proposeScheduleChange acceptScheduleChange,004 compiles; service integration pending,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-21,UC10,createMaterialUpload completeMaterialUpload,Baseline SQL material limits; storage pending,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-22,UC10,getSourceSegment getMaterialOriginal markMaterialReady,SQL08 and source component checks; extraction pending,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-23,UC10,grantMaterial revokeMaterial,Source revocation component checks; HTTP pending,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-24,UC11,createContext,Context FK/limit direct SQL,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-25,UC11,createAiJob getAiJob,Two-class retrieval HTTP pending,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-26,UC11,createPlanVersion createAiJob,AI real execution/evaluation pending,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-27,UC11,approvePlanVersion,DB approval checks only,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-28,UC11,getPlanDraft getAiJob,Version contract only,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-29,UC11,approvePlanVersion publishPlanVersion,Publication direct SQL; service pending,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-30,UC11,createPlanVersion updatePlanDraft,Manual flow service pending,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-31,UC09,publishLessonLog getCurrentLessonLog,004 compiles; confirmation service pending,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-32,UC09,respondToLessonLog,004 compiles; exact-version service pending,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-33,UC12,issueAssignmentVersion releaseAssignmentAnswer,004 compiles; answer DTO static only,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-34,UC12,submitAssignment reviewSubmission,004 compiles; upload/link ACL pending,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-35,UC13,getClassProgress,Definition in TB G3 05; backend pending,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-36,UC02,inviteStudent acceptStudentInvitation revokeStudentLink,U10–U16; link transaction pending,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-37,All UC,getCommandStatus findCommandStatus,Common Problem/ETag/receipt; HTTP pending,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-38,UC13,getEvaluationMetrics,Event schema; analytics data pending,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-39,UC01,requestRecovery resetPassword completeAdminMfa,"U01–U09,U31–U32; credential/MFA service pending",DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-40,UC14,createSupportCase approveSupportAccess lockAccount listAuditEvents,"U20–U27,U33–U35; HTTP ACL pending",DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-41,UC15,listOwnNotifications markNotificationRead,Outbox/notification DB; dispatcher latency pending,DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-42,UC16,createPrivacyRequest getPrivacyRequest holdMinimalPrivacyData,"U28–U30,U36; actual stores/restore pending",DESIGN_CANDIDATE_NOT_ACCEPTED
+FR-43,UC08,cancelFutureSession endClass,SQL04 cancellation; end-class service pending,DESIGN_CANDIDATE_NOT_ACCEPTED

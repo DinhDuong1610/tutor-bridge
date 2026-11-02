@@ -1,0 +1,986 @@
+[
+  {
+    "method": "GET",
+    "path": "/students",
+    "operationId": "listStudents",
+    "authorization": "PARENT owner; STUDENT self only",
+    "trace": "TX01",
+    "source": "F02_F04"
+  },
+  {
+    "method": "POST",
+    "path": "/students",
+    "operationId": "createStudent",
+    "authorization": "PARENT verified",
+    "trace": "UC02",
+    "source": "F01_F06"
+  },
+  {
+    "method": "GET",
+    "path": "/students/{studentId}/needs",
+    "operationId": "listNeeds",
+    "authorization": "PARENT owner",
+    "trace": "TX01",
+    "source": "F02_F04"
+  },
+  {
+    "method": "POST",
+    "path": "/students/{studentId}/needs",
+    "operationId": "createNeedDraft",
+    "authorization": "PARENT owner",
+    "trace": "TX01",
+    "source": "F02_F04"
+  },
+  {
+    "method": "GET",
+    "path": "/needs/{needId}",
+    "operationId": "getNeed",
+    "authorization": "PARENT owner",
+    "trace": "TX01",
+    "source": "F02_F04"
+  },
+  {
+    "method": "PATCH",
+    "path": "/needs/{needId}",
+    "operationId": "updateNeedDraft",
+    "authorization": "PARENT owner",
+    "trace": "TX01",
+    "source": "F02_F04"
+  },
+  {
+    "method": "POST",
+    "path": "/needs/{needId}/confirm",
+    "operationId": "confirmNeed",
+    "authorization": "PARENT owner",
+    "trace": "TX02",
+    "source": "F02_F04"
+  },
+  {
+    "method": "POST",
+    "path": "/needs/{needId}/matching-runs",
+    "operationId": "createMatchingRun",
+    "authorization": "PARENT owner",
+    "trace": "TX03",
+    "source": "F02_F04"
+  },
+  {
+    "method": "GET",
+    "path": "/matching-runs/{runId}",
+    "operationId": "getMatchingRun",
+    "authorization": "PARENT need owner",
+    "trace": "TX03",
+    "source": "F02_F04"
+  },
+  {
+    "method": "GET",
+    "path": "/tutors/{tutorId}/public-profile",
+    "operationId": "getTutorPublic",
+    "authorization": "Authenticated PARENT; no private evidence/contact",
+    "trace": "TX03",
+    "source": "F02_F04"
+  },
+  {
+    "method": "POST",
+    "path": "/needs/{needId}/offers",
+    "operationId": "sendOffer",
+    "authorization": "PARENT need owner",
+    "trace": "TX04",
+    "source": "F02_F04"
+  },
+  {
+    "method": "GET",
+    "path": "/me/offers",
+    "operationId": "listOffers",
+    "authorization": "PARENT own children or TUTOR recipient",
+    "trace": "TX06",
+    "source": "F02_F04"
+  },
+  {
+    "method": "GET",
+    "path": "/offers/{offerId}",
+    "operationId": "getOffer",
+    "authorization": "PARENT owner or TUTOR recipient",
+    "trace": "TX06",
+    "source": "F02_F04"
+  },
+  {
+    "method": "POST",
+    "path": "/offers/{offerId}/accept",
+    "operationId": "acceptOffer",
+    "authorization": "TUTOR recipient active and approved",
+    "trace": "TX05",
+    "source": "F02_F04"
+  },
+  {
+    "method": "POST",
+    "path": "/offers/{offerId}/reject",
+    "operationId": "rejectOffer",
+    "authorization": "TUTOR recipient",
+    "trace": "TX06",
+    "source": "F02_F04"
+  },
+  {
+    "method": "POST",
+    "path": "/offers/{offerId}/cancel",
+    "operationId": "cancelOffer",
+    "authorization": "PARENT owner",
+    "trace": "TX06",
+    "source": "F02_F04"
+  },
+  {
+    "method": "GET",
+    "path": "/classes/{classId}",
+    "operationId": "getClass",
+    "authorization": "Current class parent/tutor; linked student P1",
+    "trace": "TX15",
+    "source": "F02_F04"
+  },
+  {
+    "method": "GET",
+    "path": "/classes/{classId}/sessions",
+    "operationId": "listSessions",
+    "authorization": "Current class parent/tutor; linked student P1",
+    "trace": "TX15",
+    "source": "F02_F04"
+  },
+  {
+    "method": "GET",
+    "path": "/classes/{classId}/materials",
+    "operationId": "listMaterials",
+    "authorization": "Class tutor; others only granted capabilities",
+    "trace": "TX15",
+    "source": "F02_F04"
+  },
+  {
+    "method": "POST",
+    "path": "/classes/{classId}/material-uploads",
+    "operationId": "createMaterialUpload",
+    "authorization": "Class TUTOR while waiting/active",
+    "trace": "TX07",
+    "source": "F02_F04"
+  },
+  {
+    "method": "POST",
+    "path": "/material-versions/{materialVersionId}/complete-upload",
+    "operationId": "completeMaterialUpload",
+    "authorization": "Owning TUTOR",
+    "trace": "TX07",
+    "source": "F02_F04"
+  },
+  {
+    "method": "GET",
+    "path": "/material-versions/{materialVersionId}",
+    "operationId": "getMaterialVersion",
+    "authorization": "Owner or scoped grant holder",
+    "trace": "TX15",
+    "source": "F02_F04"
+  },
+  {
+    "method": "GET",
+    "path": "/material-versions/{materialVersionId}/segments",
+    "operationId": "listSourceSegments",
+    "authorization": "TUTOR source owner/reviewer or VIEW_ORIGINAL grantee",
+    "trace": "TX15",
+    "source": "F02_F04"
+  },
+  {
+    "method": "GET",
+    "path": "/source-segments/{segmentId}",
+    "operationId": "getSourceSegment",
+    "authorization": "VIEW_ORIGINAL or owning TUTOR",
+    "trace": "TX15",
+    "source": "F02_F04"
+  },
+  {
+    "method": "POST",
+    "path": "/material-versions/{materialVersionId}/ready",
+    "operationId": "markMaterialReady",
+    "authorization": "Owning class TUTOR",
+    "trace": "TX08",
+    "source": "F02_F04"
+  },
+  {
+    "method": "POST",
+    "path": "/material-versions/{materialVersionId}/grants",
+    "operationId": "grantMaterial",
+    "authorization": "Source owner; audience must remain within authorized class/account scope",
+    "trace": "TX08",
+    "source": "F02_F04"
+  },
+  {
+    "method": "POST",
+    "path": "/material-versions/{materialVersionId}/revoke",
+    "operationId": "revokeMaterial",
+    "authorization": "Source owner or scoped deletion operator",
+    "trace": "TX09",
+    "source": "F02_F04"
+  },
+  {
+    "method": "GET",
+    "path": "/classes/{classId}/ai-availability",
+    "operationId": "getAiAvailability",
+    "authorization": "Class TUTOR",
+    "trace": "TX10",
+    "source": "F02_F04"
+  },
+  {
+    "method": "POST",
+    "path": "/classes/{classId}/preparation-contexts",
+    "operationId": "createContext",
+    "authorization": "Class TUTOR while waiting/active",
+    "trace": "TX10",
+    "source": "F02_F04"
+  },
+  {
+    "method": "POST",
+    "path": "/classes/{classId}/ai-jobs",
+    "operationId": "createAiJob",
+    "authorization": "Class TUTOR",
+    "trace": "TX10",
+    "source": "F02_F04"
+  },
+  {
+    "method": "GET",
+    "path": "/ai-jobs/{jobId}",
+    "operationId": "getAiJob",
+    "authorization": "Job TUTOR owner",
+    "trace": "TX11",
+    "source": "F02_F04"
+  },
+  {
+    "method": "POST",
+    "path": "/ai-jobs/{jobId}/cancel",
+    "operationId": "cancelAiJob",
+    "authorization": "Job TUTOR owner",
+    "trace": "TX11",
+    "source": "F02_F04"
+  },
+  {
+    "method": "POST",
+    "path": "/classes/{classId}/sessions/{sessionId}/plan-versions",
+    "operationId": "createPlanVersion",
+    "authorization": "Class TUTOR while waiting/active",
+    "trace": "TX12",
+    "source": "F02_F04"
+  },
+  {
+    "method": "GET",
+    "path": "/plan-versions/{planVersionId}",
+    "operationId": "getPlanDraft",
+    "authorization": "Class TUTOR only",
+    "trace": "TX15",
+    "source": "F02_F04"
+  },
+  {
+    "method": "PATCH",
+    "path": "/plan-versions/{planVersionId}",
+    "operationId": "updatePlanDraft",
+    "authorization": "Class TUTOR only",
+    "trace": "TX12",
+    "source": "F02_F04"
+  },
+  {
+    "method": "POST",
+    "path": "/plan-versions/{planVersionId}/approve",
+    "operationId": "approvePlanVersion",
+    "authorization": "Class TUTOR only",
+    "trace": "TX13",
+    "source": "F02_F04"
+  },
+  {
+    "method": "POST",
+    "path": "/classes/{classId}/sessions/{sessionId}/publication",
+    "operationId": "publishPlanVersion",
+    "authorization": "Class TUTOR while waiting/active",
+    "trace": "TX14",
+    "source": "F02_F04"
+  },
+  {
+    "method": "GET",
+    "path": "/classes/{classId}/sessions/{sessionId}/publication",
+    "operationId": "getPublication",
+    "authorization": "Class parent/tutor; active linked student P1; ADMIN requires scoped case grant",
+    "trace": "TX15",
+    "source": "F02_F04"
+  },
+  {
+    "method": "GET",
+    "path": "/operations/{operationId}",
+    "operationId": "getCommandStatus",
+    "authorization": "Receipt actor only; reauthorize referenced result",
+    "trace": "TX16",
+    "source": "F02_F04"
+  },
+  {
+    "method": "GET",
+    "path": "/operations",
+    "operationId": "findCommandStatus",
+    "authorization": "Receipt actor only",
+    "trace": "TX16",
+    "source": "F02_F04"
+  },
+  {
+    "method": "GET",
+    "path": "/material-versions/{materialVersionId}/original",
+    "operationId": "getMaterialOriginal",
+    "authorization": "VIEW_ORIGINAL for inline; DOWNLOAD_ORIGINAL for attachment",
+    "trace": "TX15",
+    "source": "F02_F04"
+  },
+  {
+    "method": "POST",
+    "path": "/classes/{classId}/schedule-change-requests",
+    "operationId": "proposeScheduleChange",
+    "authorization": "Class parent/tutor WAITING or ACTIVE",
+    "trace": "TX17",
+    "source": "F03_F05"
+  },
+  {
+    "method": "GET",
+    "path": "/classes/{classId}/schedule-change-requests",
+    "operationId": "listScheduleChanges",
+    "authorization": "Class parent/tutor",
+    "trace": "TX17",
+    "source": "F03_F05"
+  },
+  {
+    "method": "GET",
+    "path": "/schedule-change-requests/{requestId}",
+    "operationId": "getScheduleChange",
+    "authorization": "Class parent/tutor",
+    "trace": "TX18",
+    "source": "F03_F05"
+  },
+  {
+    "method": "POST",
+    "path": "/schedule-change-requests/{requestId}/accept",
+    "operationId": "acceptScheduleChange",
+    "authorization": "Counterparty only; not proposer/student/admin",
+    "trace": "TX18",
+    "source": "F03_F05"
+  },
+  {
+    "method": "POST",
+    "path": "/schedule-change-requests/{requestId}/reject",
+    "operationId": "rejectScheduleChange",
+    "authorization": "Counterparty only",
+    "trace": "TX18",
+    "source": "F03_F05"
+  },
+  {
+    "method": "POST",
+    "path": "/schedule-change-requests/{requestId}/cancel",
+    "operationId": "withdrawScheduleChange",
+    "authorization": "Original proposer only",
+    "trace": "TX18",
+    "source": "F03_F05"
+  },
+  {
+    "method": "POST",
+    "path": "/sessions/{sessionId}/cancel",
+    "operationId": "cancelFutureSession",
+    "authorization": "Class parent/tutor",
+    "trace": "TX19",
+    "source": "F03_F05"
+  },
+  {
+    "method": "POST",
+    "path": "/classes/{classId}/end",
+    "operationId": "endClass",
+    "authorization": "Class parent/tutor",
+    "trace": "TX20",
+    "source": "F03_F05"
+  },
+  {
+    "method": "POST",
+    "path": "/sessions/{sessionId}/lesson-log-versions",
+    "operationId": "createLessonLogDraft",
+    "authorization": "Class tutor; session has started; class not ended",
+    "trace": "TX21",
+    "source": "F03_F05"
+  },
+  {
+    "method": "GET",
+    "path": "/sessions/{sessionId}/lesson-log",
+    "operationId": "getCurrentLessonLog",
+    "authorization": "Parent/tutor class scope; parent never sees private draft",
+    "trace": "TX22",
+    "source": "F03_F05"
+  },
+  {
+    "method": "GET",
+    "path": "/lesson-log-versions/{logVersionId}",
+    "operationId": "getLessonLogVersion",
+    "authorization": "Tutor draft owner; parent only published class versions",
+    "trace": "TX21",
+    "source": "F03_F05"
+  },
+  {
+    "method": "PATCH",
+    "path": "/lesson-log-versions/{logVersionId}",
+    "operationId": "updateLessonLogDraft",
+    "authorization": "Class tutor",
+    "trace": "TX21",
+    "source": "F03_F05"
+  },
+  {
+    "method": "POST",
+    "path": "/sessions/{sessionId}/lesson-log/publication",
+    "operationId": "publishLessonLog",
+    "authorization": "Class tutor",
+    "trace": "TX22",
+    "source": "F03_F05"
+  },
+  {
+    "method": "POST",
+    "path": "/sessions/{sessionId}/attendance-decisions",
+    "operationId": "respondToLessonLog",
+    "authorization": "Current parent of class student only",
+    "trace": "TX23",
+    "source": "F03_F05"
+  },
+  {
+    "method": "POST",
+    "path": "/classes/{classId}/sessions/{sessionId}/assignments",
+    "operationId": "createAssignmentDraft",
+    "authorization": "Class tutor; ACTIVE",
+    "trace": "TX24",
+    "source": "F03_F05"
+  },
+  {
+    "method": "GET",
+    "path": "/assignment-versions/{assignmentVersionId}/teacher-draft",
+    "operationId": "getAssignmentTeacherDraft",
+    "authorization": "Class tutor only",
+    "trace": "TX24",
+    "source": "F03_F05"
+  },
+  {
+    "method": "POST",
+    "path": "/assignments/{assignmentId}/versions",
+    "operationId": "createAssignmentVersion",
+    "authorization": "Class tutor; ACTIVE",
+    "trace": "TX24",
+    "source": "F03_F05"
+  },
+  {
+    "method": "POST",
+    "path": "/assignments/{assignmentId}/issue",
+    "operationId": "issueAssignmentVersion",
+    "authorization": "Class tutor; ACTIVE",
+    "trace": "TX24",
+    "source": "F03_F05"
+  },
+  {
+    "method": "GET",
+    "path": "/classes/{classId}/assignments",
+    "operationId": "listAssignments",
+    "authorization": "Class parent/tutor or active linked student",
+    "trace": "TX24",
+    "source": "F03_F05"
+  },
+  {
+    "method": "GET",
+    "path": "/assignments/{assignmentId}",
+    "operationId": "getAssignment",
+    "authorization": "Class parent/tutor or active linked student",
+    "trace": "TX25",
+    "source": "F03_F05"
+  },
+  {
+    "method": "POST",
+    "path": "/assignments/{assignmentId}/submission-image-uploads",
+    "operationId": "prepareSubmissionImage",
+    "authorization": "Correct parent/student; class ACTIVE and assignment OPEN",
+    "trace": "TX25",
+    "source": "F03_F05"
+  },
+  {
+    "method": "POST",
+    "path": "/assignments/{assignmentId}/submissions",
+    "operationId": "submitAssignment",
+    "authorization": "Correct parent or active linked student",
+    "trace": "TX25",
+    "source": "F03_F05"
+  },
+  {
+    "method": "GET",
+    "path": "/assignments/{assignmentId}/submissions",
+    "operationId": "listSubmissions",
+    "authorization": "Tutor class; parent/student only own child attempts",
+    "trace": "TX26",
+    "source": "F03_F05"
+  },
+  {
+    "method": "GET",
+    "path": "/submissions/{submissionId}",
+    "operationId": "getSubmission",
+    "authorization": "Tutor class or submitting child parent/student; current scope",
+    "trace": "TX26",
+    "source": "F03_F05"
+  },
+  {
+    "method": "POST",
+    "path": "/submissions/{submissionId}/review-versions",
+    "operationId": "reviewSubmission",
+    "authorization": "Class tutor; ACTIVE",
+    "trace": "TX26",
+    "source": "F03_F05"
+  },
+  {
+    "method": "POST",
+    "path": "/assignments/{assignmentId}/close",
+    "operationId": "closeAssignment",
+    "authorization": "Class tutor; ACTIVE",
+    "trace": "TX27",
+    "source": "F03_F05"
+  },
+  {
+    "method": "POST",
+    "path": "/assignments/{assignmentId}/answer-releases",
+    "operationId": "releaseAssignmentAnswer",
+    "authorization": "Class tutor; ACTIVE",
+    "trace": "TX28",
+    "source": "F03_F05"
+  },
+  {
+    "method": "GET",
+    "path": "/assignment-versions/{assignmentVersionId}/answer",
+    "operationId": "getReleasedAnswer",
+    "authorization": "Class parent/tutor or active linked student with valid release",
+    "trace": "TX28",
+    "source": "F03_F05"
+  },
+  {
+    "method": "GET",
+    "path": "/students/{studentId}/classes/{classId}/progress",
+    "operationId": "getClassProgress",
+    "authorization": "Current parent or class tutor; student has HS01, not general PH10",
+    "trace": "TX29",
+    "source": "F03_F05"
+  },
+  {
+    "method": "GET",
+    "path": "/me/notifications",
+    "operationId": "listOwnNotifications",
+    "authorization": "Recipient only",
+    "trace": "TX30",
+    "source": "F03_F05"
+  },
+  {
+    "method": "POST",
+    "path": "/notifications/{notificationId}/read",
+    "operationId": "markNotificationRead",
+    "authorization": "Recipient only",
+    "trace": "TX30",
+    "source": "F03_F05"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/evaluation-metrics",
+    "operationId": "getEvaluationMetrics",
+    "authorization": "Analytics/admin aggregate permission only; no default content access",
+    "trace": "TX29",
+    "source": "F03_F05"
+  },
+  {
+    "method": "POST",
+    "path": "/auth/register",
+    "operationId": "registerAccount",
+    "authorization": "public",
+    "trace": "UC01",
+    "source": "F01_F06"
+  },
+  {
+    "method": "POST",
+    "path": "/auth/verify",
+    "operationId": "verifyEmail",
+    "authorization": "public",
+    "trace": "UC01",
+    "source": "F01_F06"
+  },
+  {
+    "method": "POST",
+    "path": "/auth/login",
+    "operationId": "loginAccount",
+    "authorization": "public",
+    "trace": "UC01",
+    "source": "F01_F06"
+  },
+  {
+    "method": "POST",
+    "path": "/auth/recovery",
+    "operationId": "requestRecovery",
+    "authorization": "public",
+    "trace": "UC01",
+    "source": "F01_F06"
+  },
+  {
+    "method": "POST",
+    "path": "/auth/reset",
+    "operationId": "resetPassword",
+    "authorization": "public",
+    "trace": "UC01",
+    "source": "F01_F06"
+  },
+  {
+    "method": "POST",
+    "path": "/auth/logout",
+    "operationId": "logoutAccount",
+    "authorization": "authenticated",
+    "trace": "UC01",
+    "source": "F01_F06"
+  },
+  {
+    "method": "GET",
+    "path": "/me/sessions",
+    "operationId": "listOwnSessions",
+    "authorization": "authenticated",
+    "trace": "UC01",
+    "source": "F01_F06"
+  },
+  {
+    "method": "DELETE",
+    "path": "/me/sessions/{sessionId}",
+    "operationId": "revokeOwnSession",
+    "authorization": "authenticated",
+    "trace": "UC01",
+    "source": "F01_F06"
+  },
+  {
+    "method": "POST",
+    "path": "/me/password",
+    "operationId": "changePassword",
+    "authorization": "authenticated reauthenticated",
+    "trace": "UC01",
+    "source": "F01_F06"
+  },
+  {
+    "method": "PATCH",
+    "path": "/students/{studentId}",
+    "operationId": "patchStudent",
+    "authorization": "owning PARENT",
+    "trace": "UC02",
+    "source": "F01_F06"
+  },
+  {
+    "method": "GET",
+    "path": "/students/{studentId}",
+    "operationId": "getStudentProfile",
+    "authorization": "Owning parent or currently linked student only. TUTOR uses class-scoped DTO, not unrestricted student profile.",
+    "trace": "UC02",
+    "source": "F01_F06"
+  },
+  {
+    "method": "POST",
+    "path": "/students/{studentId}/invitations",
+    "operationId": "inviteStudent",
+    "authorization": "owning PARENT",
+    "trace": "UC02",
+    "source": "F01_F06"
+  },
+  {
+    "method": "POST",
+    "path": "/student-invitations/accept",
+    "operationId": "acceptStudentInvitation",
+    "authorization": "verified invite recipient",
+    "trace": "UC02",
+    "source": "F01_F06"
+  },
+  {
+    "method": "DELETE",
+    "path": "/students/{studentId}/link",
+    "operationId": "revokeStudentLink",
+    "authorization": "owning PARENT",
+    "trace": "UC02",
+    "source": "F01_F06"
+  },
+  {
+    "method": "PUT",
+    "path": "/me/tutor-profile",
+    "operationId": "saveTutorProfile",
+    "authorization": "TUTOR verified",
+    "trace": "UC03",
+    "source": "F01_F06"
+  },
+  {
+    "method": "GET",
+    "path": "/me/tutor-profile",
+    "operationId": "getOwnTutorProfile",
+    "authorization": "Verified TUTOR own data only. New draft starts from profile GET/ETag or If-None-Match: *. Evidence limit 5MiB and up to10 per submission is proposed, pending D07-04.",
+    "trace": "UC03",
+    "source": "F01_F06"
+  },
+  {
+    "method": "POST",
+    "path": "/me/tutor-profile/submit",
+    "operationId": "submitTutorProfile",
+    "authorization": "TUTOR verified",
+    "trace": "UC03",
+    "source": "F01_F06"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/verifications",
+    "operationId": "listAssignedVerifications",
+    "authorization": "assigned VERIFIER",
+    "trace": "UC03",
+    "source": "F01_F06"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/verifications/{verificationId}/decision",
+    "operationId": "decideVerification",
+    "authorization": "assigned VERIFIER",
+    "trace": "UC03",
+    "source": "F01_F06"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/accounts/{accountId}/lock",
+    "operationId": "lockAccount",
+    "authorization": "authorized ADMIN",
+    "trace": "UC14",
+    "source": "F01_F06"
+  },
+  {
+    "method": "POST",
+    "path": "/support/cases",
+    "operationId": "createSupportCase",
+    "authorization": "authenticated",
+    "trace": "UC14",
+    "source": "F01_F06"
+  },
+  {
+    "method": "GET",
+    "path": "/support/cases",
+    "operationId": "listOwnOrAssignedCases",
+    "authorization": "See TB G3 07 reconciliation decisions; server authorization required.",
+    "trace": "UC14",
+    "source": "F01_F06"
+  },
+  {
+    "method": "GET",
+    "path": "/support/cases/{caseId}",
+    "operationId": "getSupportCase",
+    "authorization": "reporter or assigned SUPPORT",
+    "trace": "UC14",
+    "source": "F01_F06"
+  },
+  {
+    "method": "POST",
+    "path": "/support/cases/{caseId}/messages",
+    "operationId": "appendSupportMessage",
+    "authorization": "reporter or assigned SUPPORT",
+    "trace": "UC14",
+    "source": "F01_F06"
+  },
+  {
+    "method": "GET",
+    "path": "/support/cases/{caseId}/messages",
+    "operationId": "listCaseMessages",
+    "authorization": "See TB G3 07 reconciliation decisions; server authorization required.",
+    "trace": "UC14",
+    "source": "F01_F06"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/cases/{caseId}/assign",
+    "operationId": "assignSupportCase",
+    "authorization": "authorized SUPPORT manager",
+    "trace": "UC14",
+    "source": "F01_F06"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/cases/{caseId}/transition",
+    "operationId": "transitionSupportCase",
+    "authorization": "assigned SUPPORT",
+    "trace": "UC14",
+    "source": "F01_F06"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/cases/{caseId}/grant-requests",
+    "operationId": "requestSupportAccess",
+    "authorization": "assigned SUPPORT",
+    "trace": "UC14",
+    "source": "F01_F06"
+  },
+  {
+    "method": "POST",
+    "path": "/support/grant-requests/{grantRequestId}/approve",
+    "operationId": "approveSupportAccess",
+    "authorization": "current authorized grantor",
+    "trace": "UC14",
+    "source": "F01_F06"
+  },
+  {
+    "method": "DELETE",
+    "path": "/support/grants/{grantId}",
+    "operationId": "revokeSupportAccess",
+    "authorization": "grantor or authorized revoker",
+    "trace": "UC14",
+    "source": "F01_F06"
+  },
+  {
+    "method": "POST",
+    "path": "/privacy/requests",
+    "operationId": "createPrivacyRequest",
+    "authorization": "authorized data controller",
+    "trace": "UC16",
+    "source": "F01_F06"
+  },
+  {
+    "method": "GET",
+    "path": "/privacy/requests",
+    "operationId": "listPrivacyRequests",
+    "authorization": "Requester sees only own requests; assigned PRIVACY scope only for operators; no global enumeration.",
+    "trace": "UC16",
+    "source": "F01_F06"
+  },
+  {
+    "method": "GET",
+    "path": "/privacy/requests/{requestId}",
+    "operationId": "getPrivacyRequest",
+    "authorization": "requester or assigned PRIVACY",
+    "trace": "UC16",
+    "source": "F01_F06"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/privacy/{requestId}/hold",
+    "operationId": "holdMinimalPrivacyData",
+    "authorization": "assigned PRIVACY",
+    "trace": "UC16",
+    "source": "F01_F06"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/audit",
+    "operationId": "listAuditEvents",
+    "authorization": "authorized AUDITOR",
+    "trace": "UC14",
+    "source": "F01_F06"
+  },
+  {
+    "method": "POST",
+    "path": "/auth/admin-mfa",
+    "operationId": "completeAdminMfa",
+    "authorization": "Consume first-factor-bound challenge and verify enrolled MFA; issue session only after success. Single-use challenge, rate limit, no secret in receipts.",
+    "trace": "UC01",
+    "source": "F01_F06"
+  },
+  {
+    "method": "POST",
+    "path": "/auth/reauth",
+    "operationId": "reauthenticate",
+    "authorization": "See TB G3 07 reconciliation decisions; server authorization required.",
+    "trace": "UC01",
+    "source": "F01_F06"
+  },
+  {
+    "method": "POST",
+    "path": "/student-invitations/register",
+    "operationId": "registerInvitedStudent",
+    "authorization": "Only a valid unused invitation can create a STUDENT account. Verify target email separately; registration neither consumes invitation nor links child. Accept requires verified recipient; no public STUDENT role selection.",
+    "trace": "UC02",
+    "source": "F01_F06"
+  },
+  {
+    "method": "POST",
+    "path": "/me/tutor-profile/evidence-uploads",
+    "operationId": "createEvidenceUpload",
+    "authorization": "Verified TUTOR own data only. New draft starts from profile GET/ETag or If-None-Match: *. Evidence limit 5MiB and up to10 per submission is proposed, pending D07-04.",
+    "trace": "UC03",
+    "source": "F01_F06"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/verifications/{verificationId}/evidence/{evidenceId}",
+    "operationId": "readAssignedEvidence",
+    "authorization": "See TB G3 07 reconciliation decisions; server authorization required.",
+    "trace": "UC03",
+    "source": "F01_F06"
+  },
+  {
+    "method": "GET",
+    "path": "/support/grants/{grantId}/original",
+    "operationId": "readSupportOriginal",
+    "authorization": "See TB G3 07 reconciliation decisions; server authorization required.",
+    "trace": "UC14",
+    "source": "F01_F06"
+  },
+  {
+    "method": "POST",
+    "path": "/me/tutor-profile/evidence-uploads/{uploadId}/complete",
+    "operationId": "completeEvidenceUpload",
+    "authorization": "TUTOR owner only; verify actual object bytes/hash/MIME and scan in quarantine. Only READY evidence may attach to a submitted immutable profile version; never return public evidence URL.",
+    "trace": "UC03",
+    "source": "F01_F06"
+  },
+  {
+    "method": "POST",
+    "path": "/auth/verification-resend",
+    "operationId": "resendVerification",
+    "authorization": "Generic acknowledgment regardless of account existence; 30min one-time purpose-bound code sent only to stored contact; rate limit by account and source.",
+    "trace": "UC01",
+    "source": "F01_F06"
+  },
+  {
+    "method": "GET",
+    "path": "/support/grant-requests/{grantRequestId}",
+    "operationId": "getSupportGrantRequest",
+    "authorization": "Assigned support requester or current source owner approver only; expose scope/purpose/expiry, no source content before approval.",
+    "trace": "UC14",
+    "source": "F01_F06"
+  },
+  {
+    "method": "GET",
+    "path": "/me/tutor-calendar",
+    "operationId": "getTutorCalendar",
+    "authorization": "Verified TUTOR owns calendar. Immutable calendar version, bounded finite UTC windows, same timezone. Replacement does not cancel existing bookings. Creation If-None-Match: *, update If-Match.",
+    "trace": "UC07",
+    "source": "F01_F06"
+  },
+  {
+    "method": "PUT",
+    "path": "/me/tutor-calendar",
+    "operationId": "replaceTutorCalendar",
+    "authorization": "Verified TUTOR owns calendar. Immutable calendar version, bounded finite UTC windows, same timezone. Replacement does not cancel existing bookings. Creation If-None-Match: *, update If-Match.",
+    "trace": "UC07",
+    "source": "F01_F06"
+  },
+  {
+    "method": "GET",
+    "path": "/students/{studentId}/calendar",
+    "operationId": "getStudentCalendar",
+    "authorization": "Verified owning PARENT only. student owner resolved from principal. Immutable calendar version; bounded finite UTC windows; replacement does not cancel bookings. Creation If-None-Match: *, update If-Match.",
+    "trace": "UC07",
+    "source": "F01_F06"
+  },
+  {
+    "method": "PUT",
+    "path": "/students/{studentId}/calendar",
+    "operationId": "replaceStudentCalendar",
+    "authorization": "Verified owning PARENT only. student owner resolved from principal. Immutable calendar version; bounded finite UTC windows; replacement does not cancel bookings. Creation If-None-Match: *, update If-Match.",
+    "trace": "UC07",
+    "source": "F01_F06"
+  },
+  {
+    "method": "POST",
+    "path": "/classes/{classId}/goal-versions",
+    "operationId": "proposeClassGoal",
+    "authorization": "Class PARENT or TUTOR in WAITING/ACTIVE. If-Match targets class revision. Record actor-side approval; EFFECTIVE only after both current members approve exact version. Preserve prior goal until atomic activation; STUDENT and SUPPORT cannot approve.",
+    "trace": "UC04",
+    "source": "F01_F06"
+  },
+  {
+    "method": "POST",
+    "path": "/classes/{classId}/goal-versions/{goalVersionId}/decision",
+    "operationId": "decideClassGoal",
+    "authorization": "Class PARENT or TUTOR in WAITING/ACTIVE. If-Match targets class revision. Record actor-side approval; EFFECTIVE only after both current members approve exact version. Preserve prior goal until atomic activation; STUDENT and SUPPORT cannot approve.",
+    "trace": "UC04",
+    "source": "F01_F06"
+  }
+]

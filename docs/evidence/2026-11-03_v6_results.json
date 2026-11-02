@@ -1,0 +1,242 @@
+{
+    "date":  "2026-11-03",
+    "engine":  "PostgreSQL 17.11 with pgvector (image pgvector/pgvector:pg17)",
+    "scope":  "Direct DB sessions only; no Spring, HTTP, load or pgvector performance testing",
+    "upgrade_v5_to_v6":  {
+                             "control_before":  {
+                                                    "mode":  "before",
+                                                    "receipt":  true,
+                                                    "outbox":  true,
+                                                    "rows":  {
+                                                                 "accounts":  7,
+                                                                 "students":  1,
+                                                                 "tutor_profiles":  2,
+                                                                 "need_versions":  2
+                                                             }
+                                                },
+                             "checks":  {
+                                            "passed":  18,
+                                            "total":  18,
+                                            "receipts":  1,
+                                            "outbox":  1,
+                                            "cases":  [
+                                                          {
+                                                              "id":  "V01_extension",
+                                                              "status":  "PASS",
+                                                              "detail":  ""
+                                                          },
+                                                          {
+                                                              "id":  "V02_tables",
+                                                              "status":  "PASS",
+                                                              "detail":  ""
+                                                          },
+                                                          {
+                                                              "id":  "V03_defaults_unchanged",
+                                                              "status":  "PASS",
+                                                              "detail":  ""
+                                                          },
+                                                          {
+                                                              "id":  "V04_no_fk_to_short_lived",
+                                                              "status":  "PASS",
+                                                              "detail":  ""
+                                                          },
+                                                          {
+                                                              "id":  "V05_policy_can_scale",
+                                                              "status":  "PASS",
+                                                              "detail":  "sqlstate=None expected=None"
+                                                          },
+                                                          {
+                                                              "id":  "V06_policy_rejects_zero",
+                                                              "status":  "PASS",
+                                                              "detail":  "sqlstate=23514 expected=23514"
+                                                          },
+                                                          {
+                                                              "id":  "V07_slots_can_scale",
+                                                              "status":  "PASS",
+                                                              "detail":  "sqlstate=None expected=None"
+                                                          },
+                                                          {
+                                                              "id":  "V08_slot_rejects_zero",
+                                                              "status":  "PASS",
+                                                              "detail":  "sqlstate=23514 expected=23514"
+                                                          },
+                                                          {
+                                                              "id":  "V09_grade_can_expand",
+                                                              "status":  "PASS",
+                                                              "detail":  "sqlstate=None expected=None"
+                                                          },
+                                                          {
+                                                              "id":  "V10_grade_out_of_range",
+                                                              "status":  "PASS",
+                                                              "detail":  "sqlstate=23514 expected=23514"
+                                                          },
+                                                          {
+                                                              "id":  "V11_subject_can_expand",
+                                                              "status":  "PASS",
+                                                              "detail":  "sqlstate=None expected=None"
+                                                          },
+                                                          {
+                                                              "id":  "V12_subject_format",
+                                                              "status":  "PASS",
+                                                              "detail":  "sqlstate=23514 expected=23514"
+                                                          },
+                                                          {
+                                                              "id":  "V13_rows_students",
+                                                              "status":  "PASS",
+                                                              "detail":  ""
+                                                          },
+                                                          {
+                                                              "id":  "V13_rows_tutor_profiles",
+                                                              "status":  "PASS",
+                                                              "detail":  ""
+                                                          },
+                                                          {
+                                                              "id":  "V13_rows_need_versions",
+                                                              "status":  "PASS",
+                                                              "detail":  ""
+                                                          },
+                                                          {
+                                                              "id":  "V16_cosine_computable",
+                                                              "status":  "PASS",
+                                                              "detail":  "1.0"
+                                                          },
+                                                          {
+                                                              "id":  "V17_dimension_guard",
+                                                              "status":  "PASS",
+                                                              "detail":  "23514"
+                                                          },
+                                                          {
+                                                              "id":  "V18_one_active_config",
+                                                              "status":  "PASS",
+                                                              "detail":  "23505"
+                                                          }
+                                                      ]
+                                        },
+                             "purge_after":  {
+                                                 "mode":  "after",
+                                                 "receipt":  true,
+                                                 "outbox":  true,
+                                                 "rows":  {
+                                                              "accounts":  7,
+                                                              "students":  1,
+                                                              "tutor_profiles":  2,
+                                                              "need_versions":  2
+                                                          }
+                                             }
+                         },
+    "fresh_v1_to_v6":  {
+                           "native":  {
+                                          "passed":  69,
+                                          "total":  69
+                                      },
+                           "checks":  {
+                                          "passed":  18,
+                                          "total":  18,
+                                          "receipts":  0,
+                                          "outbox":  0,
+                                          "cases":  [
+                                                        {
+                                                            "id":  "V01_extension",
+                                                            "status":  "PASS",
+                                                            "detail":  ""
+                                                        },
+                                                        {
+                                                            "id":  "V02_tables",
+                                                            "status":  "PASS",
+                                                            "detail":  ""
+                                                        },
+                                                        {
+                                                            "id":  "V03_defaults_unchanged",
+                                                            "status":  "PASS",
+                                                            "detail":  ""
+                                                        },
+                                                        {
+                                                            "id":  "V04_no_fk_to_short_lived",
+                                                            "status":  "PASS",
+                                                            "detail":  ""
+                                                        },
+                                                        {
+                                                            "id":  "V05_policy_can_scale",
+                                                            "status":  "PASS",
+                                                            "detail":  "sqlstate=None expected=None"
+                                                        },
+                                                        {
+                                                            "id":  "V06_policy_rejects_zero",
+                                                            "status":  "PASS",
+                                                            "detail":  "sqlstate=23514 expected=23514"
+                                                        },
+                                                        {
+                                                            "id":  "V07_slots_can_scale",
+                                                            "status":  "PASS",
+                                                            "detail":  "sqlstate=None expected=None"
+                                                        },
+                                                        {
+                                                            "id":  "V08_slot_rejects_zero",
+                                                            "status":  "PASS",
+                                                            "detail":  "sqlstate=23514 expected=23514"
+                                                        },
+                                                        {
+                                                            "id":  "V09_grade_can_expand",
+                                                            "status":  "PASS",
+                                                            "detail":  "sqlstate=None expected=None"
+                                                        },
+                                                        {
+                                                            "id":  "V10_grade_out_of_range",
+                                                            "status":  "PASS",
+                                                            "detail":  "sqlstate=23514 expected=23514"
+                                                        },
+                                                        {
+                                                            "id":  "V11_subject_can_expand",
+                                                            "status":  "PASS",
+                                                            "detail":  "sqlstate=None expected=None"
+                                                        },
+                                                        {
+                                                            "id":  "V12_subject_format",
+                                                            "status":  "PASS",
+                                                            "detail":  "sqlstate=23514 expected=23514"
+                                                        },
+                                                        {
+                                                            "id":  "V13_rows_students",
+                                                            "status":  "PASS",
+                                                            "detail":  ""
+                                                        },
+                                                        {
+                                                            "id":  "V13_rows_tutor_profiles",
+                                                            "status":  "PASS",
+                                                            "detail":  ""
+                                                        },
+                                                        {
+                                                            "id":  "V13_rows_need_versions",
+                                                            "status":  "PASS",
+                                                            "detail":  ""
+                                                        },
+                                                        {
+                                                            "id":  "V16_cosine_computable",
+                                                            "status":  "PASS",
+                                                            "detail":  "1.0"
+                                                        },
+                                                        {
+                                                            "id":  "V17_dimension_guard",
+                                                            "status":  "PASS",
+                                                            "detail":  "23514"
+                                                        },
+                                                        {
+                                                            "id":  "V18_one_active_config",
+                                                            "status":  "PASS",
+                                                            "detail":  "23505"
+                                                        }
+                                                    ]
+                                      },
+                           "purge":  {
+                                         "mode":  "after",
+                                         "receipt":  true,
+                                         "outbox":  true,
+                                         "rows":  {
+                                                      "accounts":  7,
+                                                      "students":  1,
+                                                      "tutor_profiles":  2,
+                                                      "need_versions":  2
+                                                  }
+                                     }
+                       }
+}

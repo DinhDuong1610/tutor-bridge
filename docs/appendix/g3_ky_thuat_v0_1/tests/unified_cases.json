@@ -1,0 +1,254 @@
+[
+  {
+    "id": "U01",
+    "title": "Fresh active parent session is valid",
+    "setup": "",
+    "sql": "INSERT INTO auth_sessions(id,account_id,token_digest,expires_at) VALUES(pg_temp.tid('test-session'),pg_temp.tid('parent'),'test-session-digest',now()+interval '7 days');SELECT pg_temp.assert_true(valid_session('test-session-digest'),'fresh session');",
+    "expectedSqlstate": null
+  },
+  {
+    "id": "U02",
+    "title": "Locked account invalidates existing session",
+    "setup": "INSERT INTO auth_sessions(id,account_id,token_digest,expires_at) VALUES(pg_temp.tid('test-session'),pg_temp.tid('parent'),'test-session-digest',now()+interval '7 days');",
+    "sql": "UPDATE accounts SET status='LOCKED' WHERE id=pg_temp.tid('parent'); SELECT pg_temp.assert_true(NOT valid_session('test-session-digest'),'locked'); SELECT pg_temp.assert_true((SELECT auth_epoch=2 FROM accounts WHERE id=pg_temp.tid('parent')),'epoch increment');",
+    "expectedSqlstate": null
+  },
+  {
+    "id": "U03",
+    "title": "Idle expiry is independent of absolute expiry",
+    "setup": "INSERT INTO auth_sessions(id,account_id,token_digest,expires_at) VALUES(pg_temp.tid('test-session'),pg_temp.tid('parent'),'test-session-digest',now()+interval '7 days');",
+    "sql": "UPDATE auth_sessions SET last_seen_at=now()-interval '25 hours' WHERE id=pg_temp.tid('test-session'); SELECT pg_temp.assert_true(NOT valid_session('test-session-digest'),'idle');",
+    "expectedSqlstate": null
+  },
+  {
+    "id": "U04",
+    "title": "Old epoch denies a session even without revoked_at",
+    "setup": "INSERT INTO auth_sessions(id,account_id,token_digest,expires_at) VALUES(pg_temp.tid('test-session'),pg_temp.tid('parent'),'test-session-digest',now()+interval '7 days');",
+    "sql": "UPDATE accounts SET auth_epoch=2 WHERE id=pg_temp.tid('parent'); SELECT pg_temp.assert_true(NOT valid_session('test-session-digest'),'epoch');",
+    "expectedSqlstate": null
+  },
+  {
+    "id": "U05",
+    "title": "Auth epoch cannot decrease",
+    "setup": "",
+    "sql": "UPDATE accounts SET auth_epoch=0 WHERE id=pg_temp.tid('parent');",
+    "expectedSqlstate": "23514"
+  },
+  {
+    "id": "U06",
+    "title": "Challenge consume returns account once",
+    "setup": "INSERT INTO auth_challenges(id,account_id,purpose,token_digest,expires_at) VALUES(pg_temp.tid('challenge'),pg_temp.tid('parent'),'RESET_PASSWORD',repeat('d',64),now()+interval '15 minutes');",
+    "sql": "SELECT pg_temp.assert_true(consume_auth_challenge(repeat('d',64),'RESET_PASSWORD')=pg_temp.tid('parent'),'first consume'); SELECT pg_temp.assert_true(consume_auth_challenge(repeat('d',64),'RESET_PASSWORD') IS NULL,'replay');",
+    "expectedSqlstate": null
+  },
+  {
+    "id": "U07",
+    "title": "Wrong purpose cannot consume challenge",
+    "setup": "INSERT INTO auth_challenges(id,account_id,purpose,token_digest,expires_at) VALUES(pg_temp.tid('challenge'),pg_temp.tid('parent'),'RESET_PASSWORD',repeat('d',64),now()+interval '15 minutes');",
+    "sql": "SELECT pg_temp.assert_true(consume_auth_challenge(repeat('d',64),'VERIFY_EMAIL') IS NULL,'purpose'); SELECT pg_temp.assert_true((SELECT consumed_at IS NULL FROM auth_challenges WHERE id=pg_temp.tid('challenge')),'unconsumed');",
+    "expectedSqlstate": null
+  },
+  {
+    "id": "U08",
+    "title": "Expired challenge cannot be consumed",
+    "setup": "INSERT INTO auth_challenges(id,account_id,purpose,token_digest,created_at,expires_at) VALUES(pg_temp.tid('challenge'),pg_temp.tid('parent'),'RESET_PASSWORD',repeat('d',64),now()-interval '30 minutes',now()-interval '15 minutes');",
+    "sql": "SELECT pg_temp.assert_true(consume_auth_challenge(repeat('d',64),'RESET_PASSWORD') IS NULL,'expired');",
+    "expectedSqlstate": null
+  },
+  {
+    "id": "U09",
+    "title": "Reset challenge TTL over fifteen minutes is rejected",
+    "setup": "",
+    "sql": "INSERT INTO auth_challenges(id,account_id,purpose,token_digest,expires_at) VALUES(pg_temp.tid('challenge'),pg_temp.tid('parent'),'RESET_PASSWORD',repeat('d',64),now()+interval '16 minutes');",
+    "expectedSqlstate": "23514"
+  },
+  {
+    "id": "U10",
+    "title": "Correct verified student invitation accepted",
+    "setup": "INSERT INTO student_invitations(id,student_id,parent_id,target_email_digest,token_digest,expires_at,state) VALUES(pg_temp.tid('invite'),pg_temp.tid('student'),pg_temp.tid('parent'),'student-email-digest',repeat('e',64),now()+interval '24 hours','PENDING');",
+    "sql": "UPDATE student_invitations SET state='ACCEPTED',accepted_by=pg_temp.tid('student-account'),accepted_at=statement_timestamp() WHERE id=pg_temp.tid('invite');",
+    "expectedSqlstate": null
+  },
+  {
+    "id": "U11",
+    "title": "Wrong student email cannot accept invitation",
+    "setup": "INSERT INTO student_invitations(id,student_id,parent_id,target_email_digest,token_digest,expires_at,state) VALUES(pg_temp.tid('invite'),pg_temp.tid('student'),pg_temp.tid('parent'),'student-email-digest',repeat('e',64),now()+interval '24 hours','PENDING');",
+    "sql": "UPDATE accounts SET email_digest='wrong-digest' WHERE id=pg_temp.tid('student-account');UPDATE student_invitations SET state='ACCEPTED',accepted_by=pg_temp.tid('student-account'),accepted_at=statement_timestamp() WHERE id=pg_temp.tid('invite');",
+    "expectedSqlstate": "23514"
+  },
+  {
+    "id": "U12",
+    "title": "Parent role cannot receive student link",
+    "setup": "INSERT INTO student_invitations(id,student_id,parent_id,target_email_digest,token_digest,expires_at,state) VALUES(pg_temp.tid('invite'),pg_temp.tid('student'),pg_temp.tid('parent'),'student-email-digest',repeat('e',64),now()+interval '24 hours','PENDING');",
+    "sql": "UPDATE student_invitations SET state='ACCEPTED',accepted_by=pg_temp.tid('parent'),accepted_at=statement_timestamp() WHERE id=pg_temp.tid('invite');",
+    "expectedSqlstate": "23514"
+  },
+  {
+    "id": "U13",
+    "title": "Invitation cannot be attached to another parent",
+    "setup": "",
+    "sql": "INSERT INTO student_invitations(id,student_id,parent_id,target_email_digest,token_digest,expires_at,state) VALUES(pg_temp.tid('invite'),pg_temp.tid('student'),pg_temp.tid('parent-other'),'student-email-digest',repeat('e',64),now()+interval '24 hours','PENDING');",
+    "expectedSqlstate": "23514"
+  },
+  {
+    "id": "U14",
+    "title": "Invitation over twenty four hours is rejected",
+    "setup": "",
+    "sql": "INSERT INTO student_invitations(id,student_id,parent_id,target_email_digest,token_digest,expires_at,state) VALUES(pg_temp.tid('invite'),pg_temp.tid('student'),pg_temp.tid('parent'),'student-email-digest',repeat('e',64),now()+interval '25 hours','PENDING');",
+    "expectedSqlstate": "23514"
+  },
+  {
+    "id": "U15",
+    "title": "Pending invitation is unique per child",
+    "setup": "INSERT INTO student_invitations(id,student_id,parent_id,target_email_digest,token_digest,expires_at,state) VALUES(pg_temp.tid('invite'),pg_temp.tid('student'),pg_temp.tid('parent'),'student-email-digest',repeat('e',64),now()+interval '24 hours','PENDING');",
+    "sql": "INSERT INTO student_invitations(id,student_id,parent_id,target_email_digest,token_digest,expires_at,state) VALUES(pg_temp.tid('invite2'),pg_temp.tid('student'),pg_temp.tid('parent'),'student-email-digest',repeat('f',64),now()+interval '24 hours','PENDING');",
+    "expectedSqlstate": "23505"
+  },
+  {
+    "id": "U16",
+    "title": "Accepted invitation cannot be reopened",
+    "setup": "INSERT INTO student_invitations(id,student_id,parent_id,target_email_digest,token_digest,expires_at,state) VALUES(pg_temp.tid('invite'),pg_temp.tid('student'),pg_temp.tid('parent'),'student-email-digest',repeat('e',64),now()+interval '24 hours','PENDING');UPDATE student_invitations SET state='ACCEPTED',accepted_by=pg_temp.tid('student-account'),accepted_at=statement_timestamp() WHERE id=pg_temp.tid('invite');",
+    "sql": "UPDATE student_invitations SET state='PENDING',accepted_by=NULL,accepted_at=NULL WHERE id=pg_temp.tid('invite');",
+    "expectedSqlstate": "23514"
+  },
+  {
+    "id": "U17",
+    "title": "Assigned independent verifier accepted",
+    "setup": "",
+    "sql": "INSERT INTO tutor_verifications(id,profile_id,scope,status,evidence_key,reviewed_by,assigned_to,reviewed_at) VALUES(pg_temp.tid('verification'),pg_temp.tid('profile'),'MATH8_ALGEBRA','VERIFIED','private-synthetic',pg_temp.tid('verifier'),pg_temp.tid('verifier'),now());",
+    "expectedSqlstate": null
+  },
+  {
+    "id": "U18",
+    "title": "Tutor cannot verify own profile",
+    "setup": "",
+    "sql": "INSERT INTO tutor_verifications(id,profile_id,scope,status,evidence_key,reviewed_by,assigned_to,reviewed_at) VALUES(pg_temp.tid('verification'),pg_temp.tid('profile'),'MATH8_ALGEBRA','VERIFIED','private-synthetic',pg_temp.tid('tutor'),pg_temp.tid('tutor'),now());",
+    "expectedSqlstate": "23514"
+  },
+  {
+    "id": "U19",
+    "title": "Unassigned verifier is rejected",
+    "setup": "",
+    "sql": "INSERT INTO tutor_verifications(id,profile_id,scope,status,evidence_key,reviewed_by,assigned_to,reviewed_at) VALUES(pg_temp.tid('verification'),pg_temp.tid('profile'),'MATH8_ALGEBRA','VERIFIED','private-synthetic',pg_temp.tid('verifier'),pg_temp.tid('support'),now());",
+    "expectedSqlstate": "23514"
+  },
+  {
+    "id": "U20",
+    "title": "Owner can grant limited source access to assigned support",
+    "setup": "INSERT INTO support_cases(id,reporter_id,category,description,state,assignee_id) VALUES(pg_temp.tid('case'),pg_temp.tid('parent'),'PRIVACY','Synthetic case','IN_PROGRESS',pg_temp.tid('support'));INSERT INTO support_grant_requests(id,case_id,requester_id,material_version_id,purpose,requested_until,state) VALUES(pg_temp.tid('greq'),pg_temp.tid('case'),pg_temp.tid('support'),pg_temp.tid('mv1'),'Inspect source',now()+interval '2 hours','APPROVED');",
+    "sql": "INSERT INTO support_access_grants(id,request_id,grantee_id,approved_by,capability,expires_at) VALUES(pg_temp.tid('gaccess'),pg_temp.tid('greq'),pg_temp.tid('support'),pg_temp.tid('tutor'),'VIEW_ORIGINAL',now()+interval '1 hour');",
+    "expectedSqlstate": null
+  },
+  {
+    "id": "U21",
+    "title": "Support grant cannot exceed twenty four hours",
+    "setup": "INSERT INTO support_cases(id,reporter_id,category,description,state,assignee_id) VALUES(pg_temp.tid('case'),pg_temp.tid('parent'),'PRIVACY','Synthetic case','IN_PROGRESS',pg_temp.tid('support'));INSERT INTO support_grant_requests(id,case_id,requester_id,material_version_id,purpose,requested_until,state) VALUES(pg_temp.tid('greq'),pg_temp.tid('case'),pg_temp.tid('support'),pg_temp.tid('mv1'),'Inspect source',now()+interval '2 hours','APPROVED');",
+    "sql": "INSERT INTO support_access_grants(id,request_id,grantee_id,approved_by,capability,expires_at) VALUES(pg_temp.tid('gaccess'),pg_temp.tid('greq'),pg_temp.tid('support'),pg_temp.tid('tutor'),'VIEW_ORIGINAL',now()+interval '25 hours');",
+    "expectedSqlstate": "23514"
+  },
+  {
+    "id": "U22",
+    "title": "Support cannot grant access to itself",
+    "setup": "INSERT INTO support_cases(id,reporter_id,category,description,state,assignee_id) VALUES(pg_temp.tid('case'),pg_temp.tid('parent'),'PRIVACY','Synthetic case','IN_PROGRESS',pg_temp.tid('support'));INSERT INTO support_grant_requests(id,case_id,requester_id,material_version_id,purpose,requested_until,state) VALUES(pg_temp.tid('greq'),pg_temp.tid('case'),pg_temp.tid('support'),pg_temp.tid('mv1'),'Inspect source',now()+interval '2 hours','APPROVED');",
+    "sql": "INSERT INTO support_access_grants(id,request_id,grantee_id,approved_by,capability,expires_at) VALUES(pg_temp.tid('gaccess'),pg_temp.tid('greq'),pg_temp.tid('support'),pg_temp.tid('support'),'VIEW_ORIGINAL',now()+interval '1 hour');",
+    "expectedSqlstate": "23514"
+  },
+  {
+    "id": "U23",
+    "title": "Revoked source cannot receive new support grant",
+    "setup": "INSERT INTO support_cases(id,reporter_id,category,description,state,assignee_id) VALUES(pg_temp.tid('case'),pg_temp.tid('parent'),'PRIVACY','Synthetic case','IN_PROGRESS',pg_temp.tid('support'));INSERT INTO support_grant_requests(id,case_id,requester_id,material_version_id,purpose,requested_until,state) VALUES(pg_temp.tid('greq'),pg_temp.tid('case'),pg_temp.tid('support'),pg_temp.tid('mv1'),'Inspect source',now()+interval '2 hours','APPROVED');UPDATE material_versions SET state='REVOKED' WHERE id=pg_temp.tid('mv1');",
+    "sql": "INSERT INTO support_access_grants(id,request_id,grantee_id,approved_by,capability,expires_at) VALUES(pg_temp.tid('gaccess'),pg_temp.tid('greq'),pg_temp.tid('support'),pg_temp.tid('tutor'),'VIEW_ORIGINAL',now()+interval '1 hour');",
+    "expectedSqlstate": "23514"
+  },
+  {
+    "id": "U24",
+    "title": "Approved grant scope cannot be changed",
+    "setup": "INSERT INTO support_cases(id,reporter_id,category,description,state,assignee_id) VALUES(pg_temp.tid('case'),pg_temp.tid('parent'),'PRIVACY','Synthetic case','IN_PROGRESS',pg_temp.tid('support'));INSERT INTO support_grant_requests(id,case_id,requester_id,material_version_id,purpose,requested_until,state) VALUES(pg_temp.tid('greq'),pg_temp.tid('case'),pg_temp.tid('support'),pg_temp.tid('mv1'),'Inspect source',now()+interval '2 hours','APPROVED');INSERT INTO support_access_grants(id,request_id,grantee_id,approved_by,capability,expires_at) VALUES(pg_temp.tid('gaccess'),pg_temp.tid('greq'),pg_temp.tid('support'),pg_temp.tid('tutor'),'VIEW_ORIGINAL',now()+interval '1 hour');",
+    "sql": "UPDATE support_access_grants SET expires_at=expires_at+interval '10 minutes' WHERE id=pg_temp.tid('gaccess');",
+    "expectedSqlstate": "23514"
+  },
+  {
+    "id": "U25",
+    "title": "Support grant can be revoked once",
+    "setup": "INSERT INTO support_cases(id,reporter_id,category,description,state,assignee_id) VALUES(pg_temp.tid('case'),pg_temp.tid('parent'),'PRIVACY','Synthetic case','IN_PROGRESS',pg_temp.tid('support'));INSERT INTO support_grant_requests(id,case_id,requester_id,material_version_id,purpose,requested_until,state) VALUES(pg_temp.tid('greq'),pg_temp.tid('case'),pg_temp.tid('support'),pg_temp.tid('mv1'),'Inspect source',now()+interval '2 hours','APPROVED');INSERT INTO support_access_grants(id,request_id,grantee_id,approved_by,capability,expires_at) VALUES(pg_temp.tid('gaccess'),pg_temp.tid('greq'),pg_temp.tid('support'),pg_temp.tid('tutor'),'VIEW_ORIGINAL',now()+interval '1 hour');",
+    "sql": "UPDATE support_access_grants SET revoked_at=statement_timestamp() WHERE id=pg_temp.tid('gaccess'); SELECT pg_temp.assert_true((SELECT revoked_at IS NOT NULL FROM support_access_grants WHERE id=pg_temp.tid('gaccess')),'revoked');",
+    "expectedSqlstate": null
+  },
+  {
+    "id": "U26",
+    "title": "Support case cannot jump from processing straight to closed",
+    "setup": "INSERT INTO support_cases(id,reporter_id,category,description,state,assignee_id) VALUES(pg_temp.tid('case'),pg_temp.tid('parent'),'PRIVACY','Synthetic case','IN_PROGRESS',pg_temp.tid('support'));",
+    "sql": "UPDATE support_cases SET state='CLOSED',resolution='Done' WHERE id=pg_temp.tid('case');",
+    "expectedSqlstate": "23514"
+  },
+  {
+    "id": "U27",
+    "title": "Resolution cannot be null",
+    "setup": "INSERT INTO support_cases(id,reporter_id,category,description,state,assignee_id) VALUES(pg_temp.tid('case'),pg_temp.tid('parent'),'PRIVACY','Synthetic case','IN_PROGRESS',pg_temp.tid('support'));",
+    "sql": "UPDATE support_cases SET state='RESOLVED',resolution=NULL WHERE id=pg_temp.tid('case');",
+    "expectedSqlstate": "23514"
+  },
+  {
+    "id": "U28",
+    "title": "Incomplete stores cannot be reported as purged",
+    "setup": "INSERT INTO deletion_ledger(id,subject_type,subject_digest,requested_at,active_due_at) VALUES(pg_temp.tid('del'),'MATERIAL_VERSION',repeat('a',64),now(),now()+interval '7 days'); INSERT INTO privacy_requests(id,requester_id,scope,subject_id,state,blocked_at,active_due_at,deletion_ledger_id) VALUES(pg_temp.tid('privacy'),pg_temp.tid('tutor'),'MATERIAL_VERSION',pg_temp.tid('mv1'),'BLOCKED_PENDING_PURGE',now(),now()+interval '7 days',pg_temp.tid('del'));",
+    "sql": "UPDATE privacy_requests SET state='ACTIVE_STORES_PURGED' WHERE id=pg_temp.tid('privacy');",
+    "expectedSqlstate": "23514"
+  },
+  {
+    "id": "U29",
+    "title": "All six store results allow active-store completion",
+    "setup": "INSERT INTO deletion_ledger(id,subject_type,subject_digest,requested_at,active_due_at) VALUES(pg_temp.tid('del'),'MATERIAL_VERSION',repeat('a',64),now(),now()+interval '7 days'); INSERT INTO privacy_requests(id,requester_id,scope,subject_id,state,blocked_at,active_due_at,deletion_ledger_id) VALUES(pg_temp.tid('privacy'),pg_temp.tid('tutor'),'MATERIAL_VERSION',pg_temp.tid('mv1'),'BLOCKED_PENDING_PURGE',now(),now()+interval '7 days',pg_temp.tid('del'));",
+    "sql": "INSERT INTO privacy_store_tasks(request_id,store,state,evidence_ref,completed_at) SELECT pg_temp.tid('privacy'),unnest(ARRAY['DB_CONTENT','OBJECTS_AND_VERSIONS','SEGMENTS','RETRIEVAL_INDEX','CACHE','DERIVATIVES']),'SUCCEEDED','test-evidence',now(); UPDATE privacy_requests SET state='ACTIVE_STORES_PURGED' WHERE id=pg_temp.tid('privacy');",
+    "expectedSqlstate": null
+  },
+  {
+    "id": "U30",
+    "title": "Minimal hold review cannot exceed thirty days",
+    "setup": "INSERT INTO deletion_ledger(id,subject_type,subject_digest,requested_at,active_due_at) VALUES(pg_temp.tid('del'),'MATERIAL_VERSION',repeat('a',64),now(),now()+interval '7 days'); INSERT INTO privacy_requests(id,requester_id,scope,subject_id,state,blocked_at,active_due_at,deletion_ledger_id) VALUES(pg_temp.tid('privacy'),pg_temp.tid('tutor'),'MATERIAL_VERSION',pg_temp.tid('mv1'),'BLOCKED_PENDING_PURGE',now(),now()+interval '7 days',pg_temp.tid('del'));",
+    "sql": "INSERT INTO privacy_minimal_holds(id,request_id,approved_by,minimal_scope,reason,review_at,notified_at) VALUES(pg_temp.tid('hold'),pg_temp.tid('privacy'),pg_temp.tid('support'),'Minimal metadata','Dispute',now()+interval '31 days',now());",
+    "expectedSqlstate": "23514"
+  },
+  {
+    "id": "U31",
+    "title": "Admin session without enrolled MFA is invalid",
+    "setup": "",
+    "sql": "INSERT INTO auth_sessions(id,account_id,token_digest,expires_at,admin_mfa_verified_at) VALUES(pg_temp.tid('admin-session'),pg_temp.tid('support'),'admin-digest',now()+interval '12 hours',now()); SELECT pg_temp.assert_true(NOT valid_session('admin-digest'),'no enrollment');",
+    "expectedSqlstate": null
+  },
+  {
+    "id": "U32",
+    "title": "Admin session with MFA enrollment is valid",
+    "setup": "",
+    "sql": "INSERT INTO admin_mfa_enrollments VALUES(pg_temp.tid('support'),'synthetic-handle',now(),NULL); INSERT INTO auth_sessions(id,account_id,token_digest,expires_at,admin_mfa_verified_at) VALUES(pg_temp.tid('admin-session'),pg_temp.tid('support'),'admin-digest',now()+interval '12 hours',now()); SELECT pg_temp.assert_true(valid_session('admin-digest'),'enrolled admin');",
+    "expectedSqlstate": null
+  },
+  {
+    "id": "U33",
+    "title": "Current grant authorizes only assigned support actor",
+    "setup": "INSERT INTO support_cases(id,reporter_id,category,description,state,assignee_id) VALUES(pg_temp.tid('case'),pg_temp.tid('parent'),'PRIVACY','Synthetic case','IN_PROGRESS',pg_temp.tid('support'));INSERT INTO support_grant_requests(id,case_id,requester_id,material_version_id,purpose,requested_until,state) VALUES(pg_temp.tid('greq'),pg_temp.tid('case'),pg_temp.tid('support'),pg_temp.tid('mv1'),'Inspect source',now()+interval '2 hours','APPROVED');INSERT INTO support_access_grants(id,request_id,grantee_id,approved_by,capability,expires_at) VALUES(pg_temp.tid('gaccess'),pg_temp.tid('greq'),pg_temp.tid('support'),pg_temp.tid('tutor'),'VIEW_ORIGINAL',now()+interval '1 hour');",
+    "sql": "SELECT pg_temp.assert_true(valid_support_grant(pg_temp.tid('gaccess'),pg_temp.tid('support')),'valid grant'); SELECT pg_temp.assert_true(NOT valid_support_grant(pg_temp.tid('gaccess'),pg_temp.tid('verifier')),'other actor');",
+    "expectedSqlstate": null
+  },
+  {
+    "id": "U34",
+    "title": "Source revocation denies an already issued grant",
+    "setup": "INSERT INTO support_cases(id,reporter_id,category,description,state,assignee_id) VALUES(pg_temp.tid('case'),pg_temp.tid('parent'),'PRIVACY','Synthetic case','IN_PROGRESS',pg_temp.tid('support'));INSERT INTO support_grant_requests(id,case_id,requester_id,material_version_id,purpose,requested_until,state) VALUES(pg_temp.tid('greq'),pg_temp.tid('case'),pg_temp.tid('support'),pg_temp.tid('mv1'),'Inspect source',now()+interval '2 hours','APPROVED');INSERT INTO support_access_grants(id,request_id,grantee_id,approved_by,capability,expires_at) VALUES(pg_temp.tid('gaccess'),pg_temp.tid('greq'),pg_temp.tid('support'),pg_temp.tid('tutor'),'VIEW_ORIGINAL',now()+interval '1 hour');",
+    "sql": "UPDATE material_versions SET state='REVOKED' WHERE id=pg_temp.tid('mv1'); SELECT pg_temp.assert_true(NOT valid_support_grant(pg_temp.tid('gaccess'),pg_temp.tid('support')),'revoked source');",
+    "expectedSqlstate": null
+  },
+  {
+    "id": "U35",
+    "title": "Expired grant is not valid on next read",
+    "setup": "INSERT INTO support_cases(id,reporter_id,category,description,state,assignee_id) VALUES(pg_temp.tid('case'),pg_temp.tid('parent'),'PRIVACY','Synthetic case','IN_PROGRESS',pg_temp.tid('support'));INSERT INTO support_grant_requests(id,case_id,requester_id,material_version_id,purpose,requested_until,state) VALUES(pg_temp.tid('greq'),pg_temp.tid('case'),pg_temp.tid('support'),pg_temp.tid('mv1'),'Inspect source',now()+interval '2 hours','APPROVED');INSERT INTO support_access_grants(id,request_id,grantee_id,approved_by,capability,granted_at,expires_at) VALUES(pg_temp.tid('gaccess'),pg_temp.tid('greq'),pg_temp.tid('support'),pg_temp.tid('tutor'),'VIEW_ORIGINAL',now()-interval '2 hours',now()-interval '1 hour');",
+    "sql": "SELECT pg_temp.assert_true(NOT valid_support_grant(pg_temp.tid('gaccess'),pg_temp.tid('support')),'expired grant');",
+    "expectedSqlstate": null
+  },
+  {
+    "id": "U36",
+    "title": "Six store results alone cannot close privacy request",
+    "setup": "INSERT INTO deletion_ledger(id,subject_type,subject_digest,requested_at,active_due_at) VALUES(pg_temp.tid('del'),'MATERIAL_VERSION',repeat('a',64),now(),now()+interval '7 days'); INSERT INTO privacy_requests(id,requester_id,scope,subject_id,state,blocked_at,active_due_at,deletion_ledger_id) VALUES(pg_temp.tid('privacy'),pg_temp.tid('tutor'),'MATERIAL_VERSION',pg_temp.tid('mv1'),'BLOCKED_PENDING_PURGE',now(),now()+interval '7 days',pg_temp.tid('del'));INSERT INTO privacy_store_tasks(request_id,store,state,evidence_ref,completed_at) SELECT pg_temp.tid('privacy'),unnest(ARRAY['DB_CONTENT','OBJECTS_AND_VERSIONS','SEGMENTS','RETRIEVAL_INDEX','CACHE','DERIVATIVES']),'SUCCEEDED','test-evidence',now();",
+    "sql": "UPDATE privacy_requests SET state='CLOSED',closed_at=now() WHERE id=pg_temp.tid('privacy');",
+    "expectedSqlstate": "23514"
+  }
+]

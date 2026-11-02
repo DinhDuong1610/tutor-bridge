@@ -1,0 +1,550 @@
+{
+  "engine": "PGlite embedded PostgreSQL",
+  "executedAt": "2026-10-29T07:12:23.793Z",
+  "migrations": [
+    {
+      "file": "001_foundation.sql",
+      "status": "PASS"
+    },
+    {
+      "file": "002_integrity_guards.sql",
+      "status": "PASS"
+    },
+    {
+      "file": "003_review_corrections.sql",
+      "status": "PASS"
+    },
+    {
+      "file": "004_f03_f05_candidate.sql",
+      "status": "PASS"
+    },
+    {
+      "file": "005_identity_support_privacy_candidate.sql",
+      "status": "PASS"
+    }
+  ],
+  "cases": [
+    {
+      "id": "SQL01",
+      "title": "Two bookings are created per session",
+      "status": "PASS",
+      "expectedSqlstate": null,
+      "actualSqlstate": null,
+      "stage": "action"
+    },
+    {
+      "id": "SQL02",
+      "title": "Overlapping interval is rejected",
+      "status": "PASS",
+      "expectedSqlstate": "23P01",
+      "actualSqlstate": "23P01",
+      "stage": "action"
+    },
+    {
+      "id": "SQL03",
+      "title": "Adjacent intervals are accepted",
+      "status": "PASS",
+      "expectedSqlstate": null,
+      "actualSqlstate": null,
+      "stage": "action"
+    },
+    {
+      "id": "SQL04",
+      "title": "Cancellation deactivates both bookings",
+      "status": "PASS",
+      "expectedSqlstate": null,
+      "actualSqlstate": null,
+      "stage": "action"
+    },
+    {
+      "id": "SQL05",
+      "title": "Conflict rolls back a batch in its subtransaction",
+      "status": "PASS",
+      "expectedSqlstate": null,
+      "actualSqlstate": null,
+      "stage": "action"
+    },
+    {
+      "id": "SQL06",
+      "title": "A need cannot create a second class",
+      "status": "PASS",
+      "expectedSqlstate": "23505",
+      "actualSqlstate": "23505",
+      "stage": "action"
+    },
+    {
+      "id": "SQL07",
+      "title": "Cross-class source in context is rejected",
+      "status": "PASS",
+      "expectedSqlstate": "23503",
+      "actualSqlstate": "23503",
+      "stage": "action"
+    },
+    {
+      "id": "SQL08",
+      "title": "READY requires a non-null extracted text count",
+      "status": "PASS",
+      "expectedSqlstate": "23514",
+      "actualSqlstate": "23514",
+      "stage": "action"
+    },
+    {
+      "id": "SQL09",
+      "title": "A session cannot move to another class",
+      "status": "PASS",
+      "expectedSqlstate": "23514",
+      "actualSqlstate": "23514",
+      "stage": "action"
+    },
+    {
+      "id": "SQL10",
+      "title": "A sixth source INSERT is rejected",
+      "status": "PASS",
+      "expectedSqlstate": "23514",
+      "actualSqlstate": "23514",
+      "stage": "action"
+    },
+    {
+      "id": "SQL11",
+      "title": "A sixth source UPDATE is rejected",
+      "status": "PASS",
+      "expectedSqlstate": "23514",
+      "actualSqlstate": "23514",
+      "stage": "action"
+    },
+    {
+      "id": "SQL12",
+      "title": "Twenty active source versions are accepted",
+      "status": "PASS",
+      "expectedSqlstate": null,
+      "actualSqlstate": null,
+      "stage": "action"
+    },
+    {
+      "id": "SQL13",
+      "title": "A 21st active source version is rejected",
+      "status": "PASS",
+      "expectedSqlstate": "23514",
+      "actualSqlstate": "23514",
+      "stage": "action"
+    },
+    {
+      "id": "SQL14",
+      "title": "A plan with 89 minutes cannot be approved",
+      "status": "PASS",
+      "expectedSqlstate": "23514",
+      "actualSqlstate": "23514",
+      "stage": "action"
+    },
+    {
+      "id": "SQL15",
+      "title": "Approved activity content is immutable",
+      "status": "PASS",
+      "expectedSqlstate": "23514",
+      "actualSqlstate": "23514",
+      "stage": "action"
+    },
+    {
+      "id": "SQL16",
+      "title": "Draft cannot be published",
+      "status": "PASS",
+      "expectedSqlstate": "23514",
+      "actualSqlstate": "23514",
+      "stage": "action"
+    },
+    {
+      "id": "SQL17",
+      "title": "Approved manual plan can be published",
+      "status": "PASS",
+      "expectedSqlstate": null,
+      "actualSqlstate": null,
+      "stage": "action"
+    },
+    {
+      "id": "SQL18",
+      "title": "Revoked source epoch blocks publication",
+      "status": "PASS",
+      "expectedSqlstate": "23514",
+      "actualSqlstate": "23514",
+      "stage": "action"
+    },
+    {
+      "id": "SQL19",
+      "title": "Missing derivative grant blocks publication",
+      "status": "PASS",
+      "expectedSqlstate": "23514",
+      "actualSqlstate": "23514",
+      "stage": "action"
+    },
+    {
+      "id": "SQL20",
+      "title": "Ended class blocks new publication",
+      "status": "PASS",
+      "expectedSqlstate": "23514",
+      "actualSqlstate": "23514",
+      "stage": "action"
+    },
+    {
+      "id": "SQL21",
+      "title": "Receipt actor command key is unique",
+      "status": "PASS",
+      "expectedSqlstate": "23505",
+      "actualSqlstate": "23505",
+      "stage": "action"
+    },
+    {
+      "id": "SQL22",
+      "title": "Receipt retention cannot be less than 7 days",
+      "status": "PASS",
+      "expectedSqlstate": "23514",
+      "actualSqlstate": "23514",
+      "stage": "action"
+    },
+    {
+      "id": "SQL23",
+      "title": "Real AI defaults off",
+      "status": "PASS",
+      "expectedSqlstate": null,
+      "actualSqlstate": null,
+      "stage": "action"
+    },
+    {
+      "id": "SQL24",
+      "title": "Offer snapshot terms cannot change",
+      "status": "PASS",
+      "expectedSqlstate": "23514",
+      "actualSqlstate": "23514",
+      "stage": "action"
+    },
+    {
+      "id": "SQL25",
+      "title": "Duration of a stored session matches its class",
+      "status": "PASS",
+      "expectedSqlstate": "23514",
+      "actualSqlstate": "23514",
+      "stage": "action"
+    },
+    {
+      "id": "SQL26",
+      "title": "Teacher review is mandatory for READY",
+      "status": "PASS",
+      "expectedSqlstate": "23514",
+      "actualSqlstate": "23514",
+      "stage": "action"
+    },
+    {
+      "id": "SQL27",
+      "title": "Cross-class session in a plan is rejected",
+      "status": "PASS",
+      "expectedSqlstate": "23503",
+      "actualSqlstate": "23503",
+      "stage": "action"
+    },
+    {
+      "id": "SQL28",
+      "title": "Answers cannot be released before homework closes",
+      "status": "PASS",
+      "expectedSqlstate": "23514",
+      "actualSqlstate": "23514",
+      "stage": "action"
+    },
+    {
+      "id": "U01",
+      "title": "Fresh active parent session is valid",
+      "status": "PASS",
+      "expectedSqlstate": null,
+      "actualSqlstate": null,
+      "stage": "action"
+    },
+    {
+      "id": "U02",
+      "title": "Locked account invalidates existing session",
+      "status": "PASS",
+      "expectedSqlstate": null,
+      "actualSqlstate": null,
+      "stage": "action"
+    },
+    {
+      "id": "U03",
+      "title": "Idle expiry is independent of absolute expiry",
+      "status": "PASS",
+      "expectedSqlstate": null,
+      "actualSqlstate": null,
+      "stage": "action"
+    },
+    {
+      "id": "U04",
+      "title": "Old epoch denies a session even without revoked_at",
+      "status": "PASS",
+      "expectedSqlstate": null,
+      "actualSqlstate": null,
+      "stage": "action"
+    },
+    {
+      "id": "U05",
+      "title": "Auth epoch cannot decrease",
+      "status": "PASS",
+      "expectedSqlstate": "23514",
+      "actualSqlstate": "23514",
+      "stage": "action"
+    },
+    {
+      "id": "U06",
+      "title": "Challenge consume returns account once",
+      "status": "PASS",
+      "expectedSqlstate": null,
+      "actualSqlstate": null,
+      "stage": "action"
+    },
+    {
+      "id": "U07",
+      "title": "Wrong purpose cannot consume challenge",
+      "status": "PASS",
+      "expectedSqlstate": null,
+      "actualSqlstate": null,
+      "stage": "action"
+    },
+    {
+      "id": "U08",
+      "title": "Expired challenge cannot be consumed",
+      "status": "PASS",
+      "expectedSqlstate": null,
+      "actualSqlstate": null,
+      "stage": "action"
+    },
+    {
+      "id": "U09",
+      "title": "Reset challenge TTL over fifteen minutes is rejected",
+      "status": "PASS",
+      "expectedSqlstate": "23514",
+      "actualSqlstate": "23514",
+      "stage": "action"
+    },
+    {
+      "id": "U10",
+      "title": "Correct verified student invitation accepted",
+      "status": "PASS",
+      "expectedSqlstate": null,
+      "actualSqlstate": null,
+      "stage": "action"
+    },
+    {
+      "id": "U11",
+      "title": "Wrong student email cannot accept invitation",
+      "status": "PASS",
+      "expectedSqlstate": "23514",
+      "actualSqlstate": "23514",
+      "stage": "action"
+    },
+    {
+      "id": "U12",
+      "title": "Parent role cannot receive student link",
+      "status": "PASS",
+      "expectedSqlstate": "23514",
+      "actualSqlstate": "23514",
+      "stage": "action"
+    },
+    {
+      "id": "U13",
+      "title": "Invitation cannot be attached to another parent",
+      "status": "PASS",
+      "expectedSqlstate": "23514",
+      "actualSqlstate": "23514",
+      "stage": "action"
+    },
+    {
+      "id": "U14",
+      "title": "Invitation over twenty four hours is rejected",
+      "status": "PASS",
+      "expectedSqlstate": "23514",
+      "actualSqlstate": "23514",
+      "stage": "action"
+    },
+    {
+      "id": "U15",
+      "title": "Pending invitation is unique per child",
+      "status": "PASS",
+      "expectedSqlstate": "23505",
+      "actualSqlstate": "23505",
+      "stage": "action"
+    },
+    {
+      "id": "U16",
+      "title": "Accepted invitation cannot be reopened",
+      "status": "PASS",
+      "expectedSqlstate": "23514",
+      "actualSqlstate": "23514",
+      "stage": "action"
+    },
+    {
+      "id": "U17",
+      "title": "Assigned independent verifier accepted",
+      "status": "PASS",
+      "expectedSqlstate": null,
+      "actualSqlstate": null,
+      "stage": "action"
+    },
+    {
+      "id": "U18",
+      "title": "Tutor cannot verify own profile",
+      "status": "PASS",
+      "expectedSqlstate": "23514",
+      "actualSqlstate": "23514",
+      "stage": "action"
+    },
+    {
+      "id": "U19",
+      "title": "Unassigned verifier is rejected",
+      "status": "PASS",
+      "expectedSqlstate": "23514",
+      "actualSqlstate": "23514",
+      "stage": "action"
+    },
+    {
+      "id": "U20",
+      "title": "Owner can grant limited source access to assigned support",
+      "status": "PASS",
+      "expectedSqlstate": null,
+      "actualSqlstate": null,
+      "stage": "action"
+    },
+    {
+      "id": "U21",
+      "title": "Support grant cannot exceed twenty four hours",
+      "status": "PASS",
+      "expectedSqlstate": "23514",
+      "actualSqlstate": "23514",
+      "stage": "action"
+    },
+    {
+      "id": "U22",
+      "title": "Support cannot grant access to itself",
+      "status": "PASS",
+      "expectedSqlstate": "23514",
+      "actualSqlstate": "23514",
+      "stage": "action"
+    },
+    {
+      "id": "U23",
+      "title": "Revoked source cannot receive new support grant",
+      "status": "PASS",
+      "expectedSqlstate": "23514",
+      "actualSqlstate": "23514",
+      "stage": "action"
+    },
+    {
+      "id": "U24",
+      "title": "Approved grant scope cannot be changed",
+      "status": "PASS",
+      "expectedSqlstate": "23514",
+      "actualSqlstate": "23514",
+      "stage": "action"
+    },
+    {
+      "id": "U25",
+      "title": "Support grant can be revoked once",
+      "status": "PASS",
+      "expectedSqlstate": null,
+      "actualSqlstate": null,
+      "stage": "action"
+    },
+    {
+      "id": "U26",
+      "title": "Support case cannot jump from processing straight to closed",
+      "status": "PASS",
+      "expectedSqlstate": "23514",
+      "actualSqlstate": "23514",
+      "stage": "action"
+    },
+    {
+      "id": "U27",
+      "title": "Resolution cannot be null",
+      "status": "PASS",
+      "expectedSqlstate": "23514",
+      "actualSqlstate": "23514",
+      "stage": "action"
+    },
+    {
+      "id": "U28",
+      "title": "Incomplete stores cannot be reported as purged",
+      "status": "PASS",
+      "expectedSqlstate": "23514",
+      "actualSqlstate": "23514",
+      "stage": "action"
+    },
+    {
+      "id": "U29",
+      "title": "All six store results allow active-store completion",
+      "status": "PASS",
+      "expectedSqlstate": null,
+      "actualSqlstate": null,
+      "stage": "action"
+    },
+    {
+      "id": "U30",
+      "title": "Minimal hold review cannot exceed thirty days",
+      "status": "PASS",
+      "expectedSqlstate": "23514",
+      "actualSqlstate": "23514",
+      "stage": "action"
+    },
+    {
+      "id": "U31",
+      "title": "Admin session without enrolled MFA is invalid",
+      "status": "PASS",
+      "expectedSqlstate": null,
+      "actualSqlstate": null,
+      "stage": "action"
+    },
+    {
+      "id": "U32",
+      "title": "Admin session with MFA enrollment is valid",
+      "status": "PASS",
+      "expectedSqlstate": null,
+      "actualSqlstate": null,
+      "stage": "action"
+    },
+    {
+      "id": "U33",
+      "title": "Current grant authorizes only assigned support actor",
+      "status": "PASS",
+      "expectedSqlstate": null,
+      "actualSqlstate": null,
+      "stage": "action"
+    },
+    {
+      "id": "U34",
+      "title": "Source revocation denies an already issued grant",
+      "status": "PASS",
+      "expectedSqlstate": null,
+      "actualSqlstate": null,
+      "stage": "action"
+    },
+    {
+      "id": "U35",
+      "title": "Expired grant is not valid on next read",
+      "status": "PASS",
+      "expectedSqlstate": null,
+      "actualSqlstate": null,
+      "stage": "action"
+    },
+    {
+      "id": "U36",
+      "title": "Six store results alone cannot close privacy request",
+      "status": "PASS",
+      "expectedSqlstate": "23514",
+      "actualSqlstate": "23514",
+      "stage": "action"
+    }
+  ],
+  "limitations": [
+    "Single embedded session; not native PostgreSQL server",
+    "Direct DB assertions; no HTTP authorization, backend, user or load tests"
+  ],
+  "version": "PostgreSQL 17.5 on aarch64-unknown-linux-gnu, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit",
+  "tables": 77,
+  "counts": {
+    "passed": 64,
+    "total": 64
+  }
+}

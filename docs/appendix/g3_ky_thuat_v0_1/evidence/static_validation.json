@@ -1,0 +1,17 @@
+{
+  "openapi": "VALID_3_1_1",
+  "operations": 123,
+  "paths": 108,
+  "schemas": 138,
+  "resolved_refs": 1594,
+  "unique_operation_ids": true,
+  "schema_boundary_examples_passed": 8,
+  "sql_statements": {
+    "001_foundation.sql": 69,
+    "002_integrity_guards.sql": 33,
+    "003_review_corrections.sql": 9,
+    "004_f03_f05_candidate.sql": 34,
+    "005_identity_support_privacy_candidate.sql": 52
+  },
+  "limitations": "Structural validation and sample payload checks; no generated-client or HTTP backend execution."
+}

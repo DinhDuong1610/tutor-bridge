@@ -11,3 +11,6 @@ spring:
     default-schema: public
     user: tutorbridge_migrator
     password: ${TB_MIGRATOR_PASSWORD:}
+logging:
+  pattern:
+    correlation: "[%X{traceId:-}] "

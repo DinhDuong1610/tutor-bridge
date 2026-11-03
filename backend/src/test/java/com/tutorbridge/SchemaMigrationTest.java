@@ -8,28 +8,10 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 
-/** Migrates as tutorbridge_migrator and runs as tutorbridge_app, as deployed. */
-@SpringBootTest
-class SchemaMigrationTest {
+class SchemaMigrationTest extends IntegrationTest {
 
     private static final String INSUFFICIENT_PRIVILEGE = "42501";
-
-    @Autowired
-    JdbcClient jdbc;
-
-    @DynamicPropertySource
-    static void database(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", PostgresTestSupport::jdbcUrl);
-        registry.add("spring.datasource.password", () -> PostgresTestSupport.APP_PASSWORD);
-        registry.add("spring.flyway.enabled", () -> "true");
-        registry.add("spring.flyway.password", () -> PostgresTestSupport.MIGRATOR_PASSWORD);
-    }
 
     @Test
     void migrations_create_all_eighty_tables() {

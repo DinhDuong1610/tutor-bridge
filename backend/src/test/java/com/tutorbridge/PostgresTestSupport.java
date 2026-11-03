@@ -6,10 +6,10 @@ import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.MountableFile;
 
 /** One PostgreSQL per test JVM, provisioned by the same script as local development. */
-final class PostgresTestSupport {
+public final class PostgresTestSupport {
 
     static final String MIGRATOR_PASSWORD = UUID.randomUUID().toString();
-    static final String APP_PASSWORD = UUID.randomUUID().toString();
+    public static final String APP_PASSWORD = UUID.randomUUID().toString();
 
     static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(
                     DockerImageName.parse("pgvector/pgvector:pg17").asCompatibleSubstituteFor("postgres"))
@@ -25,7 +25,7 @@ final class PostgresTestSupport {
 
     private PostgresTestSupport() {}
 
-    static String jdbcUrl() {
+    public static String jdbcUrl() {
         return POSTGRES.getJdbcUrl() + "&currentSchema=tutorbridge,public";
     }
 }

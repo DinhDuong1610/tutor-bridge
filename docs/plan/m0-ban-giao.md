@@ -1,6 +1,6 @@
 # Bàn giao sau M0
 
-Viết ngày 03/11/2026, khi M0 vào `dev`. Dành cho Huy khi vào repo, và cho mọi agent. Nội dung lấy từ các file handoff đã xóa của TB-1, TB-3, TB-4, TB-7, TB-2, TB-5; chi tiết từng phần ở PR #25 đến #30.
+Viết ngày 03/11/2026, khi M0 vào `dev`. Dành cho Huy khi vào repo, và cho mọi agent. Nội dung lấy từ các file handoff đã xóa của TB-1, TB-3, TB-4, TB-7, TB-2, TB-5; chi tiết từng phần ở PR #25 đến #29 và #31.
 
 ## Đã có trên `dev`
 | Phần | Nội dung | PR |
@@ -10,7 +10,7 @@ Viết ngày 03/11/2026, khi M0 vào `dev`. Dành cho Huy khi vào repo, và cho
 | Platform | Problem, traceId, receipt, outbox có lease, phân trang con trỏ | #28 |
 | TX05 | Chốt lớp nguyên tử, test đồng thời qua hai bản ứng dụng | #29 |
 | CI | `repo.yml`, `backend.yml`, Dependabot | #26 |
-| Ứng dụng | API client sinh từ OpenAPI, khung Expo SDK 57, khung Next.js 16.4, `frontend.yml` | #30 |
+| Ứng dụng | API client sinh từ OpenAPI, khung Expo SDK 57, khung Next.js 16.4, `frontend.yml` | #31 |
 
 Theo OP-14, đợt M0 là ngoại lệ: agent viết phần tác giả, merge không qua duyệt chéo, Huy không cần rà lại. **Từ PR sau, quy trình Git áp dụng đầy đủ:** người làm và người duyệt khác nhau, tác giả tự viết phần giải thích.
 
@@ -47,6 +47,9 @@ Mã lỗi đang dùng: `IDEMPOTENCY_KEY_INVALID`, `IDEMPOTENCY_KEY_REUSED`, `CUR
 - **Migration:** số tiếp theo là V9, Đính cấp trong Issue. V1–V6 bị khóa bằng `BaselineMigrationsTest`, migration đã merge bị khóa bằng `immutable-history`.
 - **`vector`** không phải extension trusted: môi trường thật phải cài bằng superuser trước V6.
 - **Mobile:** cài phụ thuộc bằng `npx expo install`. Mobile dùng TypeScript 6, web và client dùng 5.9 vì công cụ sinh client chưa hỗ trợ 6.
+
+## PR của Dependabot
+Dependabot mở PR cập nhật hằng tuần vào `dev`, không cần phần tác giả. Người duyệt kiểm CI và ghi chú phát hành, rồi squash merge. PR #30 (`setup-gradle` 6.4.1) đang chờ duyệt.
 
 ## Giới hạn của bằng chứng hiện có
 - TX05 mới kiểm ở tầng service, qua hai Spring context trong một JVM. Kiểm qua HTTP và hai tiến trình thuộc TB-19, TB-23.

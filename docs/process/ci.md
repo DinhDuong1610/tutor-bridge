@@ -9,7 +9,7 @@ Dặn agent bằng tài liệu là chưa đủ. CI chặn những gì bắt bu�
 | `immutable-history` | Sửa `docs/appendix/`, `docs/source-docx/` hoặc migration đã merge | Có, `repo.yml` |
 | `no-handoff` | Còn file `docs/handoff/TB-*.md` khi PR đã Ready | Có, `repo.yml`, chỉ khi PR không phải Draft |
 | `secrets-scan` | Khóa, mật khẩu, token trong code | Có, gitleaks trên các commit của PR |
-| `pr-format` | Tiêu đề thiếu mã TB hoặc thiếu phần tác giả giải thích | Có, `repo.yml` |
+| `pr-format` | Tiêu đề thiếu mã TB hoặc thiếu phần tác giả giải thích | Có, `repo.yml`. Bỏ qua PR của Dependabot |
 | `backend-build` | Build, lint, unit test | Có, `backend.yml`. Lint là cảnh báo trình biên dịch tính như lỗi |
 | `backend-integration` | Test trên PostgreSQL thật, image `pgvector/pgvector:pg17` | Có, cùng job `backend-build` |
 | `migration-check` | Áp được từ DB trống và từ phiên bản trước | Một phần: từ DB trống. Từ phiên bản trước làm khi có bản phát hành đầu |

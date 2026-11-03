@@ -4,7 +4,7 @@
 
 ## Trạng thái
 
-Đã hoàn thành 7 nhóm tài liệu. Repo: https://github.com/DinhDuong1610/tutor-bridge, làm việc trên nhánh `dev`. Chưa có mã sản phẩm; bước tiếp theo là M0 của Lát 1.
+Đã hoàn thành 7 nhóm tài liệu. Repo: https://github.com/DinhDuong1610/tutor-bridge, làm việc trên nhánh `dev`. Đã xong M0 của Lát 1, xem [bàn giao](plan/m0-ban-giao.md). Bước tiếp theo là TB-06 và M2.
 
 | Nhóm | Nội dung | Vị trí | Trạng thái |
 |---|---|---|---|
@@ -35,7 +35,7 @@ Tài liệu mới hơn không tự động thắng. Khi các nguồn đã xác n
 | [context/](context/) | Bất biến, bản đồ mô-đun, phạm vi Lát 1, thuật ngữ, quy ước code |
 | [playbooks/](playbooks/README.md) | 6 quy trình dùng chung, gọi được từ Claude và Codex |
 | [process/](process/git-workflow.md) | Quy trình Git, review, CI, thiết lập GitHub |
-| [plan/](plan/lat-1-ke-hoach.md) | Kế hoạch Lát 1: mốc, Issue, ước lượng |
+| [plan/](plan/lat-1-ke-hoach.md) | Kế hoạch Lát 1: mốc, Issue, ước lượng; [bàn giao sau M0](plan/m0-ban-giao.md) |
 | [design/](design/README.md) | Kiến trúc, đường mở rộng, F01–F06, API, dữ liệu |
 | [decisions/adr/](decisions/adr/) | Quyết định kiến trúc ADR-0001 đến ADR-0006 |
 | [appendix/g3_ky_thuat_v0_1/](appendix/g3_ky_thuat_v0_1/) | OpenAPI, từ điển dữ liệu, ERD, SQL, truy vết FR. Giữ nguyên bản, không sửa tay |

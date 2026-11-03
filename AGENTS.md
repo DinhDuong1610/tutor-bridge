@@ -54,4 +54,4 @@ SPRING_PROFILES_ACTIVE=local ./gradlew bootRun
 
 Đổi `infra/db-init/` thì cần tạo lại DB local bằng `down -v`, vì script chỉ chạy trên thư mục dữ liệu trống.
 
-Build, test, lint của phần còn lại được bổ sung cùng task dựng phần đó.
+Kiểm tra của CI chạy được trên máy, xem [docs/process/ci.md](docs/process/ci.md). Build, test, lint của phần còn lại được bổ sung cùng task dựng phần đó.

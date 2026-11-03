@@ -54,4 +54,13 @@ SPRING_PROFILES_ACTIVE=local ./gradlew bootRun
 
 Đổi `infra/db-init/` thì cần tạo lại DB local bằng `down -v`, vì script chỉ chạy trên thư mục dữ liệu trống.
 
+```bash
+# Mobile, web, API client: Node 26, cài từ thư mục gốc
+npm ci
+npm run lint && npm run typecheck && npm test
+npm run generate:api                       # sau khi đổi contracts/openapi.yaml
+npm run start --workspace @tutorbridge/mobile
+npm run dev --workspace @tutorbridge/web
+```
+
 Kiểm tra của CI chạy được trên máy, xem [docs/process/ci.md](docs/process/ci.md). Build, test, lint của phần còn lại được bổ sung cùng task dựng phần đó.

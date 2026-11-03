@@ -8,8 +8,8 @@ Nền tảng kết nối phụ huynh với gia sư và quản lý việc học k
 | `contracts/` | OpenAPI đang dùng | Có |
 | `infra/` | Docker Compose cho máy phát triển | Có |
 | `docs/` | Yêu cầu, thiết kế, quy trình | Có |
-| `backend/` | Spring Boot, migration Flyway | TB-03 |
-| `mobile/`, `web/`, `packages/` | React Native, Next.js, API client | TB-05 |
+| `backend/` | Spring Boot, migration Flyway | Có |
+| `mobile/`, `web/`, `packages/` | React Native, Next.js, API client | Có |
 | `ai-worker/` | Python worker | Sau Lát 1 |
 
 ## Phiên bản

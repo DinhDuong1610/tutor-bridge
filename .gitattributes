@@ -10,3 +10,6 @@
 *.jpeg binary
 *.pdf binary
 *.zip binary
+
+# Generated from contracts/openapi.yaml
+packages/api-client/src/schema.d.ts linguist-generated=true

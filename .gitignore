@@ -33,3 +33,12 @@ Thumbs.db
 .gradle/
 backend/build/
 backend/bin/
+
+# Node, Expo, Next.js
+node_modules/
+.expo/
+mobile/dist/
+web/.next/
+web/out/
+*.tsbuildinfo
+next-env.d.ts

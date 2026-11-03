@@ -18,3 +18,13 @@ updates:
     commit-message:
       prefix: ci
     open-pull-requests-limit: 5
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    target-branch: dev
+    commit-message:
+      prefix: build
+      include: scope
+    open-pull-requests-limit: 5

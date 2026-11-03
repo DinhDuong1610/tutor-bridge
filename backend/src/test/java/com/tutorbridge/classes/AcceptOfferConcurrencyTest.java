@@ -3,6 +3,7 @@ package com.tutorbridge.classes;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import com.tutorbridge.Concurrently;
 import com.tutorbridge.IntegrationTest;
 import com.tutorbridge.PostgresTestSupport;
 import com.tutorbridge.TutorBridgeApplication;
@@ -79,7 +80,7 @@ class AcceptOfferConcurrencyTest extends IntegrationTest {
     }
 
     private CompletableFuture<Outcome> submit(AcceptOffer api, Tutor tutor, UUID offer, String key) {
-        return CompletableFuture.supplyAsync(() -> {
+        return Concurrently.supply(() -> {
             try {
                 return new Outcome(api.accept(tutor.id(), offer, 1, key), null);
             } catch (ApiException e) {
@@ -233,7 +234,7 @@ class AcceptOfferConcurrencyTest extends IntegrationTest {
             awaitWaiters(1);
 
             // The command holds the need and waits for the account, the rival now does the reverse.
-            CompletableFuture<Void> rivalWaits = CompletableFuture.runAsync(() -> {
+            CompletableFuture<Void> rivalWaits = Concurrently.run(() -> {
                 try (var cycle = rival.prepareStatement("update learning_needs set revision = revision where id = ?")) {
                     cycle.setObject(1, need.id());
                     cycle.execute();

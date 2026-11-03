@@ -10,7 +10,7 @@ Làm một lần khi tạo repo. Đính thực hiện vì là admin (`DinhDuong1
 - [x] Bật Issues, Milestone M0–M7
 - [ ] GitHub Project: cần `gh auth refresh -s project`
 - [ ] Bật 2FA cho tài khoản
-- [ ] Bật Dependabot alerts
+- [ ] Bật Dependabot alerts. Cập nhật phiên bản đã cấu hình ở `.github/dependabot.yml`
 - [ ] Bí mật CI lưu ở GitHub Secrets, không có khóa production
 
 ## Commit đầu tiên

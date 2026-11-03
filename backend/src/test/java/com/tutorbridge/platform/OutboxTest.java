@@ -2,6 +2,7 @@ package com.tutorbridge.platform;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.tutorbridge.Concurrently;
 import com.tutorbridge.IntegrationTest;
 import com.tutorbridge.platform.api.Outbox;
 import com.tutorbridge.platform.api.OutboxQueue;
@@ -72,7 +73,7 @@ class OutboxTest extends IntegrationTest {
         IntStream.range(0, 40).forEach(i -> publish("event-" + i));
 
         var claims = IntStream.range(0, 4)
-                .mapToObj(i -> CompletableFuture.supplyAsync(() -> tx.execute(s -> queue.claim(40, LEASE))))
+                .mapToObj(i -> Concurrently.supply(() -> tx.execute(s -> queue.claim(40, LEASE))))
                 .toList();
         var ids = claims.stream().map(CompletableFuture::join).flatMap(List::stream).map(ClaimedEvent::id).toList();
 

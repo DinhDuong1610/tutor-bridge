@@ -3,6 +3,7 @@ package com.tutorbridge.platform;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.tutorbridge.Concurrently;
 import com.tutorbridge.IntegrationTest;
 import com.tutorbridge.platform.api.ApiException;
 import com.tutorbridge.platform.api.CommandReceipts;
@@ -136,7 +137,7 @@ class CommandReceiptsTest extends IntegrationTest {
         CountDownLatch firstInserted = new CountDownLatch(1);
         CountDownLatch finishFirst = new CountDownLatch(1);
 
-        CompletableFuture<Receipt> first = CompletableFuture.supplyAsync(() -> tx.execute(s -> {
+        CompletableFuture<Receipt> first = Concurrently.supply(() -> tx.execute(s -> {
             Receipt receipt = receipts.begin(actor, COMMAND, key, PAYLOAD);
             firstInserted.countDown();
             await(finishFirst);
@@ -144,7 +145,7 @@ class CommandReceiptsTest extends IntegrationTest {
             return receipt;
         }));
         firstInserted.await(10, TimeUnit.SECONDS);
-        CompletableFuture<Receipt> second = CompletableFuture.supplyAsync(
+        CompletableFuture<Receipt> second = Concurrently.supply(
                 () -> tx.execute(s -> receipts.begin(actor, COMMAND, key, PAYLOAD)));
 
         assertThat(second).isNotCompleted();
@@ -164,14 +165,14 @@ class CommandReceiptsTest extends IntegrationTest {
         CountDownLatch firstInserted = new CountDownLatch(1);
         CountDownLatch finishFirst = new CountDownLatch(1);
 
-        CompletableFuture<Void> first = CompletableFuture.runAsync(() -> tx.executeWithoutResult(s -> {
+        CompletableFuture<Void> first = Concurrently.run(() -> tx.executeWithoutResult(s -> {
             receipts.begin(actor, COMMAND, key, PAYLOAD);
             firstInserted.countDown();
             await(finishFirst);
             s.setRollbackOnly();
         }));
         firstInserted.await(10, TimeUnit.SECONDS);
-        CompletableFuture<Receipt> second = CompletableFuture.supplyAsync(
+        CompletableFuture<Receipt> second = Concurrently.supply(
                 () -> tx.execute(s -> receipts.begin(actor, COMMAND, key, PAYLOAD)));
         Thread.sleep(300);
         finishFirst.countDown();

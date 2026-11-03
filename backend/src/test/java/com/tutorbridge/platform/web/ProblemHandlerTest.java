@@ -59,6 +59,22 @@ class ProblemHandlerTest {
     MockMvc mvc;
 
     @Test
+    void every_problem_has_the_fields_the_contract_requires() throws Exception {
+        for (var request : new org.springframework.test.web.servlet.RequestBuilder[] {
+            get("/probe/business"), get("/probe/crash"), post("/probe/ok"), get("/probe/missing"),
+            post("/probe/body").contentType(MediaType.APPLICATION_JSON).content("{broken"),
+        }) {
+            mvc.perform(request)
+                    .andExpect(jsonPath("$.type").isString())
+                    .andExpect(jsonPath("$.title").isString())
+                    .andExpect(jsonPath("$.status").isNumber())
+                    .andExpect(jsonPath("$.code").isString())
+                    .andExpect(jsonPath("$.detail").isString())
+                    .andExpect(jsonPath("$.traceId").isString());
+        }
+    }
+
+    @Test
     void business_failure_keeps_its_status_and_stable_code() throws Exception {
         mvc.perform(get("/probe/business"))
                 .andExpect(status().isConflict())

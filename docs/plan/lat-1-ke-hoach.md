@@ -35,10 +35,10 @@ Người phụ trách là đề xuất, Đính chốt khi chia việc. Mã `TB-`
 | Mã | Mốc | Việc | Phụ thuộc | Giờ | Người | API | Màn hình |
 |---|---|---|---|---|---|---|---|
 | TB-01 | M0 | Monorepo, `contracts/`, Docker Compose, chốt phiên bản, cập nhật lệnh trong AGENTS.md | | 6–10 | Đính | | |
-| TB-02 | M0 | CI ngày đầu, hook, kiểm `skills-sync` | TB-01 | 6–10 | Huy | | |
+| TB-02 | M0 | CI ngày đầu, hook, kiểm `skills-sync` | TB-01 | 6–10 | Đính | | |
 | TB-03 | M0 | Khung backend, Flyway V1–V6, Testcontainers, test kiến trúc, tài khoản DB quyền tối thiểu | TB-01 | 12–20 | Đính | | |
 | TB-04 | M0 | Platform: Problem, traceId, receipt, outbox, phân trang con trỏ | TB-03 | 16–24 | Đính | | |
-| TB-05 | M0 | Khung mobile, web, API client sinh từ OpenAPI | TB-01 | 12–20 | Huy | | |
+| TB-05 | M0 | Khung mobile, web, API client sinh từ OpenAPI | TB-01 | 12–20 | Đính | | |
 | TB-06 | M0 | Diễn tập: Claude làm dở, Codex tiếp, người kia review; sửa playbook theo chỗ vướng | TB-02 | 3–5 | Cả hai | | |
 | TB-07 | M1 | TX05 ở tầng service, test đồng thời qua hai bản API | TB-04 | 24–36 | Đính | | |
 | TB-08 | M2 | Đăng ký, xác minh, đăng nhập, phiên; ADR băm mật khẩu | TB-04 | 20–30 | Huy | `registerAccount`, `verifyEmail`, `resendVerification`, `loginAccount`, `logoutAccount`, `listOwnSessions`, `revokeOwnSession` | |

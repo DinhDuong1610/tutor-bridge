@@ -7,10 +7,13 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:?set in .env}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env}
       POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+      TB_MIGRATOR_PASSWORD: ${TB_MIGRATOR_PASSWORD:?set in .env}
+      TB_APP_PASSWORD: ${TB_APP_PASSWORD:?set in .env}
     ports:
       - "127.0.0.1:${POSTGRES_PORT:-55432}:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
+      - ./db-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 2s

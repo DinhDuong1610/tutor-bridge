@@ -43,4 +43,15 @@ docker compose --env-file .env -f infra/compose.yaml up -d --wait
 docker compose --env-file .env -f infra/compose.yaml down
 ```
 
-Build, test, lint của từng phần được bổ sung cùng task dựng phần đó.
+```bash
+# Backend, cần Docker cho Testcontainers. Lần đầu Gradle tự tải JDK 25
+cd backend && ./gradlew test
+
+# Chạy local: migration bằng tài khoản migrator, ứng dụng bằng tutorbridge_app
+set -a; . ../.env; set +a
+SPRING_PROFILES_ACTIVE=local ./gradlew bootRun
+```
+
+Đổi `infra/db-init/` thì cần tạo lại DB local bằng `down -v`, vì script chỉ chạy trên thư mục dữ liệu trống.
+
+Build, test, lint của phần còn lại được bổ sung cùng task dựng phần đó.

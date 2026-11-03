@@ -20,6 +20,7 @@ Người làm và người duyệt luôn khác nhau.
 | `bugfix/TB-<số>-<mô-tả>` | `dev` | `dev` | Squash | Ngắn |
 | `release/v<x.y.z>` | `dev` | `main`, rồi về `dev` | Merge commit | Vài ngày |
 | `hotfix/TB-<số>-<mô-tả>` | `main` | `main`, rồi về `dev` | Merge commit | Ngắn |
+| `sync/v<x.y.z>` | `main` | `dev` | Merge commit | Một PR |
 
 - Không commit trực tiếp lên `main` hoặc `dev`.
 - `<số>` là số Issue thật trên GitHub.
@@ -60,12 +61,14 @@ Agent thêm dòng đồng tác giả theo cấu hình của công cụ. Tác gi�
 1. Huy tách `release/v<x.y.z>` từ `dev`. Nhánh này chỉ nhận sửa lỗi và cập nhật phiên bản, không thêm tính năng.
 2. Kiểm bằng chứng, cả hai duyệt PR vào `main`, merge bằng merge commit.
 3. Huy tag `v<x.y.z>` trên `main`.
-4. Mở PR đưa `main` về `dev`, merge bằng merge commit.
+4. Đưa `main` về `dev` qua nhánh trung gian `sync/v<x.y.z>` tách từ `main`, merge bằng merge commit.
+
+Không mở PR trực tiếp từ `main`: repo bật tự xóa nhánh sau merge, nên nhánh nguồn của PR có thể bị xóa.
 
 ## Sửa khẩn
 1. Tách `hotfix/TB-<số>-<mô-tả>` từ `main`, tăng số PATCH.
 2. Qua PR và review như thường, merge vào `main`, tag.
-3. Mở PR đưa `main` về `dev`.
+3. Đưa `main` về `dev` qua nhánh `sync/v<x.y.z>`.
 
 ## Tránh xung đột khi cùng làm backend và mobile
 - **Chia theo lát dọc, không theo tầng.** Một lát có một chủ từ API tới màn hình.

@@ -97,6 +97,7 @@ Bản Markdown của sổ TB HS 02 (42 mục), dùng làm nguồn tra cứu khi 
 | OP-11 | Chọn embedding model và số chiều vector cho điểm s | ADR-0006, XC07 | Huy | Chặn dùng S; Lát 1 chạy với B |
 | OP-12 | Đã đóng 03/11/2026: dùng GitHub Free (CR-010) | CR-005b, CR-010 | Đính | Không |
 | OP-13 | Đã có username Đính `DinhDuong1610`. Còn thiếu username Huy; thêm Huy làm collaborator trước PR code đầu tiên | CR-010 | Đính | Chặn review chéo |
+| OP-14 | Đã đóng 03/11/2026: Đính quyết định đợt M0 (TB-1, TB-3, TB-4, TB-7, TB-2, TB-5) "vì đây là phần nền tảng nên lần này là ngoại lệ": agent viết phần tác giả tự giải thích theo yêu cầu của Đính, merge vào `dev` không qua duyệt chéo, "không cần rà lại". Từ PR sau áp dụng lại đầy đủ [quy trình Git](../process/git-workflow.md) | CR-010 | Đính | Không |
 | OP-05 | Lịch phỏng vấn và người phụ trách, hoặc ghi nhận chấp nhận rủi ro | XC03 | Đính, Huy | Chặn G5 |
 | OP-06 | Giữ hay đổi tiêu chí thử 5 người | XC05 | Đính, Huy | Chặn G5 |
 | OP-07 | Người duyệt Toán, người rà dữ liệu trẻ em, người xác minh và hỗ trợ, trần tiền AI | XC07, XC08, XC10 | Đính, Huy | Chặn dữ liệu thật và AI thật (GATE02, GATE03) |

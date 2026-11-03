@@ -1,0 +1,71 @@
+# API client, mobile and web. One job, so dependencies install once per run on GitHub Free.
+name: frontend
+
+on:
+  pull_request:
+    branches: [dev, main]
+    paths: &frontend-paths
+      - contracts/openapi.yaml
+      - packages/**
+      - mobile/**
+      - web/**
+      - package.json
+      - package-lock.json
+      - .npmrc
+      - .node-version
+      - scripts/ci/client-sync.sh
+      - .github/workflows/frontend.yml
+  push:
+    branches: [dev]
+    paths: *frontend-paths
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - run: npm ci
+
+      # Every check runs even after one fails, so the author sees all problems at once.
+      - name: client-sync
+        if: ${{ !cancelled() }}
+        run: sh scripts/ci/client-sync.sh
+
+      - name: api-client
+        if: ${{ !cancelled() }}
+        run: |
+          npm run typecheck --workspace @tutorbridge/api-client
+          npm run test --workspace @tutorbridge/api-client
+
+      - name: mobile-build
+        if: ${{ !cancelled() }}
+        working-directory: mobile
+        run: |
+          npm run lint
+          npm run typecheck
+          npm run test -- --ci
+          npm run bundle
+
+      - name: web-build
+        if: ${{ !cancelled() }}
+        working-directory: web
+        run: |
+          npm run lint
+          npm run typecheck
+          npm run build

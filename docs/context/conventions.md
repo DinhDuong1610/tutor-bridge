@@ -6,7 +6,7 @@ Những mục ghi **TBD** sẽ chốt khi dựng repo.
 - Code, tên biến, commit tiếng Anh. Giao diện, thông báo lỗi người dùng, tài liệu tiếng Việt.
 - Ghi mã liên quan ở test và PR, không rải trong code. Comment chỉ giải thích lý do không hiển nhiên.
 - Làm đúng phạm vi task. Không refactor ngoài lề.
-- Phiên bản khóa trong build và CI. Java 25 LTS, Spring Boot 4.1, Node.js 26 LTS, Python 3.14, Expo SDK 57. Next.js: **TBD**, chốt ở TB-05. Kiểm tra lại bản vá mới nhất khi dựng từng phần.
+- Phiên bản khóa trong build và CI. Java 25 LTS, Spring Boot 4.1, Node.js 26 LTS, Python 3.14, Expo SDK 57, Next.js 16.4, React 19.2 dùng chung cho mobile và web. Kiểm tra lại bản vá mới nhất khi dựng từng phần.
 
 ## API
 - Prefix `/api/v1`. `contracts/openapi.yaml` là nguồn chuẩn; code khớp hợp đồng, không ngược lại.
@@ -33,7 +33,10 @@ Những mục ghi **TBD** sẽ chốt khi dựng repo.
 - Không gọi dịch vụ ngoài trong giao dịch (INV-18).
 
 ## Mobile và web
-- Dùng API client sinh từ OpenAPI, không viết tay.
+- npm workspaces: `packages/*`, `mobile`, `web`. Cài phụ thuộc mobile bằng `npx expo install` để đúng bản SDK.
+- Dùng `@tutorbridge/api-client`, sinh từ OpenAPI bằng `openapi-typescript` và gọi qua `openapi-fetch`. Không sửa `schema.d.ts` bằng tay; đổi hợp đồng thì chạy `npm run generate:api`.
+- Web gọi API ở phía máy chủ (`server-only`). Mobile chỉ dùng biến `EXPO_PUBLIC_`, không chứa bí mật.
+- Điều hướng mobile: **TBD** ở TB-10. Hướng dẫn của Expo đề xuất Expo Router.
 - Mỗi màn hình có đủ: tải, rỗng, lỗi trường, lỗi hệ thống, hết phiên, mất quyền.
 - Lệnh ghi có: đang gửi, đã xác nhận, chưa rõ kết quả, thử lại an toàn.
 - Giữ dữ liệu đã nhập khi lỗi. Không chỉ dùng màu để phân biệt trạng thái.
@@ -47,7 +50,7 @@ Những mục ghi **TBD** sẽ chốt khi dựng repo.
 ## Kiểm thử
 | Mức | Dùng khi | Công cụ |
 |---|---|---|
-| Unit | Logic thuần: tính điểm, giá, lịch | Theo ngôn ngữ |
+| Unit | Logic thuần: tính điểm, giá, lịch | JUnit; Jest với `jest-expo` cho mobile; Vitest cho `packages/` |
 | Tích hợp | Service, giao dịch, ràng buộc DB | PostgreSQL thật qua Testcontainers, image `pgvector/pgvector:pg17` |
 | Hợp đồng | Code khớp OpenAPI | **TBD** |
 | Đồng thời | TX05, đổi lịch, thu hồi | Nhiều kết nối, hai bản API |

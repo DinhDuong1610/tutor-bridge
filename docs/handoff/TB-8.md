@@ -2,8 +2,8 @@
 
 - **Chủ task:** Huy
 - **Nhánh:** `feature/TB-8-account-sessions`
-- **Agent đang làm:** Claude (Claude Code), chưa viết code
-- **Cập nhật lần cuối:** 04/11/2026, chưa có commit trên nhánh (tách từ `dev` tại `2412c20`)
+- **Agent đang làm:** Claude (Claude Code), chưa viết code nghiệp vụ
+- **Cập nhật lần cuối:** 04/11/2026, sau commit `3722fa8` (tách từ `dev` tại `2412c20`)
 - **Mã liên quan:** FR-01, FR-02; UC01; AC-UC01-01, AC-UC01-02, AC-UC01-03, AC-UC01-04; INV-01, INV-03, INV-06, INV-18, INV-20, INV-21, INV-63, INV-80, INV-83; ADR-0004
 
 ## Mục tiêu
@@ -50,7 +50,7 @@ Phụ huynh và gia sư tự đăng ký, xác minh email, đăng nhập bằng p
 - Phản hồi có `Cache-Control: private, no-store`.
 
 ## Trạng thái hiện tại
-Đã chạy `start-task` và tạo nhánh. Chưa viết code. Đang chờ trả lời các câu hỏi dưới đây.
+Đã chạy `start-task`, tạo nhánh, viết bản nháp `docs/decisions/adr/0008-bam-mat-khau.md` (thuật toán đã chọn, tham số TBD). Chưa viết code. Đang chờ Đính trả lời Q1, Q2, Q4 đến Q8.
 
 ## Lệnh kiểm tra
 ```bash
@@ -63,6 +63,9 @@ cd backend && ./gradlew test  # mong đợi: toàn bộ test đạt
 Chưa chạy test trên nhánh này vì chưa có thay đổi code.
 
 ## Quyết định đã chọn
+- Huy, 04/11/2026, Q3: băm mật khẩu bằng Argon2id. Ghi trong ADR-0008. Tham số chưa đo.
+- Huy, 04/11/2026, Q9: `contract-check` dùng validator kiểm request và response thật trong test tích hợp backend (đề xuất `swagger-request-validator`), cộng `oasdiff` trên CI để bắt thay đổi phá vỡ của `contracts/openapi.yaml`. Cập nhật `docs/process/ci.md` khi dựng.
+- Huy, 04/11/2026: push nhánh và mở Draft PR vào `dev` để Đính xem câu hỏi.
 - Huy, 04/11/2026: bỏ qua OP-05 (cổng phỏng vấn) để làm TB-8. OP-05 có hai người phụ trách là Đính và Huy; sổ quyết định chưa được cập nhật. OP-06 chưa được nhắc tới.
 
 ## Câu hỏi còn mở
@@ -70,13 +73,12 @@ Chưa chạy test trên nhánh này vì chưa có thay đổi code.
 |---|---|---|
 | Q1 | Lệnh xác thực công khai có cần `Idempotency-Key` không? Nếu có thì receipt lưu thế nào khi chưa có actor: đổi `actor_id` cho phép null, hay tách bảng? `logoutAccount`, `revokeOwnSession` có actor: có thêm header vào OpenAPI không? Thiếu khóa trả 422 (code hiện tại) hay 428 (`10-hop-dong-api.md` ghi "thiếu điều kiện trả 428")? | Đính, Huy |
 | Q2 | Có cấp V9 cho TB-8 không? Nội dung đề xuất: `auth_sessions.device_label`, bảng chấp thuận điều khoản (tài khoản, phiên bản, thời điểm), bảng đếm lần thử theo tài khoản và theo nguồn | Đính |
-| Q3 | Thuật toán băm mật khẩu và tham số cho ADR-0008 (ứng viên: Argon2id, bcrypt). Tham số phải đo trên máy chạy, không ghi số chưa đo | Huy |
+| Q3 | Đã chọn Argon2id. Còn lại: tham số `m`, `t`, `p` đo trên máy chạy; có dùng pepper không; có chuẩn hóa Unicode mật khẩu không (xem ADR-0008) | Tham số: Huy. Pepper, Unicode: Đính, Huy |
 | Q4 | Email: chuẩn hóa thế nào (cắt khoảng trắng, chữ thường)? `email_digest` dùng HMAC với khóa bí mật hay hash thường? Khóa mã hóa `email_ciphertext` lấy từ đâu? Lát 1 gửi email qua đâu (đề xuất: hộp thư local như Mailpit trong `infra/compose.yaml`, không dùng nhà cung cấp thật)? | Đính, Huy |
 | Q5 | Tài khoản `UNVERIFIED` có đăng nhập được không? (OpenAPI nói không, F01 ngụ ý có) | Đính, Huy |
 | Q6 | Ngưỡng giới hạn cho `registerAccount` và `resendVerification` | Đính, Huy |
 | Q7 | Đăng nhập của ADMIN (trả `AdminMfaChallenge`) thuộc TB-8 hay TB-13? Đề xuất: TB-8 chặn ADMIN đăng nhập, TB-13 mở | Đính |
 | Q8 | Danh sách `termsVersion` hợp lệ lấy từ đâu (cấu hình)? Hiện chưa có văn bản điều khoản nào | Đính, Huy |
-| Q9 | Công cụ `contract-check` (bàn giao M0 đặt hạn TB-08) | Huy |
 
 ## Bước kế tiếp
-Khi có câu trả lời cho Q1, Q2, Q3: chạy playbook `contract-change` cho PR 1 (ADR-0008, V9, OpenAPI). Q4 đến Q8 cần trước PR 2 và PR 3.
+Khi có câu trả lời cho Q1, Q2: chạy playbook `contract-change` cho PR 1 (ADR-0008, V9, OpenAPI). Q4 đến Q8 cần trước PR 2 và PR 3.

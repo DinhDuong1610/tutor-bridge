@@ -12,11 +12,7 @@ if ! git cat-file -e "$base:$spec" 2>/dev/null; then
   echo "contract-check: $spec does not exist at $base, nothing to compare"
   exit 0
 fi
-if git diff --quiet "$base" -- "$spec"; then
-  echo "contract-check: $spec unchanged"
-  exit 0
-fi
-
+# Runs even when the spec is unchanged, so every PR proves the tool itself still works.
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 git show "$base:$spec" > "$tmp/base.yaml"

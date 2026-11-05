@@ -32,7 +32,7 @@ Theo OP-14, đợt M0 là ngoại lệ: agent viết phần tác giả, merge kh
 | Outbox thử tối đa bao nhiêu lần, xử lý sự kiện lỗi mãi | Thử lại không giới hạn | Đính | TB-21 |
 | Mục tiêu đầu của lớp | `EFFECTIVE`, vì gửi đề nghị là phụ huynh đã đồng ý (BR05) | Đính | Trước TB-19 |
 | `PREFERRED` có tính là rảnh không | Có | Đính | Trước TB-15 |
-| Công cụ kiểm hợp đồng (`contract-check`) | TBD | Huy | TB-08 |
+| Công cụ kiểm hợp đồng (`contract-check`) | Huy chốt 04/11/2026: validator trong test tích hợp backend, cộng `oasdiff` trên CI. `oasdiff` đã có trong `repo.yml` | Huy | TB-08 |
 | UUIDv7 | TBD, đang dùng UUIDv4 | Đính | Trước khi có dữ liệu thật |
 | Tên gói Android, thư viện điều hướng | TBD; Expo đề xuất Expo Router | Huy | TB-10 |
 | `lock_timeout` cho giao dịch | Chưa đặt | Đính | Khi có số đo tải |

@@ -3,7 +3,7 @@
 - **Chủ task:** Huy
 - **Nhánh:** `feature/TB-8-account-sessions`
 - **Agent đang làm:** Claude (Claude Code), chưa viết code nghiệp vụ
-- **Cập nhật lần cuối:** 04/11/2026, sau commit `3722fa8` (tách từ `dev` tại `2412c20`)
+- **Cập nhật lần cuối:** 06/11/2026, rebase lên `dev` tại `8c045d9` (sau nền backend #64)
 - **Mã liên quan:** FR-01, FR-02; UC01; AC-UC01-01, AC-UC01-02, AC-UC01-03, AC-UC01-04; INV-01, INV-03, INV-06, INV-18, INV-20, INV-21, INV-63, INV-80, INV-83; ADR-0004
 
 ## Mục tiêu
@@ -12,7 +12,7 @@ Phụ huynh và gia sư tự đăng ký, xác minh email, đăng nhập bằng p
 ## Kết quả start-task
 - Issue #8 đủ chủ task, mã UC/FR, tiêu chí xong.
 - Trong phạm vi Lát 1: FR-01, FR-02 và cả bảy thao tác có trong `docs/context/r0a-scope.md`.
-- Backend chưa có tầng HTTP, xác thực hay controller nào. TB-8 là task đầu dựng bộ lọc xác thực phiên và controller đầu tiên.
+- Ngày 06/11/2026 nền backend (#64, ADR-0010) đã có Spring Security, bộ lọc bearer và cookie, `Actor`, giao diện `SessionResolver`, `PublicEndpoints`, tầng web dùng chung và `HttpTest`. TB-8 không dựng bộ lọc riêng.
 - Ước tính vượt xa 400 dòng logic, nên đề xuất chia nhỏ (xem Kế hoạch).
 
 ## Chỗ hợp đồng, schema và tài liệu chưa khớp
@@ -29,14 +29,14 @@ Phụ huynh và gia sư tự đăng ký, xác minh email, đăng nhập bằng p
 Đề xuất chia Issue #8 thành 3 PR. Đính chốt việc chia, Đính cấp số migration.
 - [ ] **PR 1, theo `contract-change`:** ADR-0008 băm mật khẩu; migration V9 (nếu được cấp) cho `deviceLabel`, chấp thuận điều khoản, bộ đếm giới hạn; sửa OpenAPI theo câu trả lời Q1. PR riêng, merge trước code.
 - [ ] **PR 2, theo `implement-slice`:** `registerAccount`, `verifyEmail`, `resendVerification`. Gửi email qua outbox, không gửi trong giao dịch (INV-18).
-- [ ] **PR 3, theo `implement-slice`:** bộ lọc xác thực bearer tra `auth_sessions` và `auth_epoch` mỗi yêu cầu (ADR-0004), `loginAccount`, `logoutAccount`, `listOwnSessions`, `revokeOwnSession`.
+- [ ] **PR 3, theo `implement-slice`:** `SessionResolver` trong `identity` tra `auth_sessions` và `auth_epoch` mỗi yêu cầu (ADR-0004, ADR-0010; điều kiện theo hàm `valid_session` của V5), bean `PublicEndpoints` cho các thao tác công khai, `loginAccount`, `logoutAccount`, `listOwnSessions`, `revokeOwnSession`.
 
 ### File dự kiến đụng
 - `docs/decisions/adr/0008-bam-mat-khau.md` (mới)
 - `backend/src/main/resources/db/migration/V9__*.sql` (mới, chờ cấp số)
 - `contracts/openapi.yaml` và `packages/` sinh lại nếu Q1 đổi hợp đồng
 - `backend/src/main/java/com/tutorbridge/identity/{api,internal,web}/`
-- `backend/src/main/java/com/tutorbridge/platform/web/` cho bộ lọc xác thực dùng chung
+- Không đụng `platform/web`: bộ lọc đã có ở nền (ADR-0010)
 - `backend/build.gradle*` nếu thêm thư viện băm mật khẩu
 - Test trong `backend/src/test/java/com/tutorbridge/identity/`
 
@@ -50,7 +50,7 @@ Phụ huynh và gia sư tự đăng ký, xác minh email, đăng nhập bằng p
 - Phản hồi có `Cache-Control: private, no-store`.
 
 ## Trạng thái hiện tại
-Đã chạy `start-task`, tạo nhánh, viết bản nháp `docs/decisions/adr/0008-bam-mat-khau.md` (thuật toán đã chọn, tham số TBD). Chưa viết code. Đang chờ Đính trả lời Q1, Q2, Q4 đến Q8.
+Đã chạy `start-task`, viết bản nháp ADR-0008 (thuật toán đã chọn, tham số TBD). Ngày 06/11/2026 rebase lên `dev`, cập nhật theo nền backend. Chưa viết code: PR 1 chờ Q1, Q2; PR 2 chờ Q4–Q8; PR 3 chờ Q5, Q7, Q11. Q10 chờ Huy.
 
 ## Lệnh kiểm tra
 ```bash
@@ -64,9 +64,9 @@ Chưa chạy test trên nhánh này vì chưa có thay đổi code.
 
 ## Quyết định đã chọn
 - Huy, 04/11/2026, Q3: băm mật khẩu bằng Argon2id. Ghi trong ADR-0008. Tham số chưa đo.
-- Huy, 04/11/2026, Q9: `contract-check` dùng validator kiểm request và response thật trong test tích hợp backend (đề xuất `swagger-request-validator`), cộng `oasdiff` trên CI để bắt thay đổi phá vỡ của `contracts/openapi.yaml`. Cập nhật `docs/process/ci.md` khi dựng.
+- Huy, 04/11/2026, Q9: `oasdiff` trên CI chặn đổi hợp đồng phá vỡ (đã merge ở #40). Phần kiểm phản hồi khớp hợp đồng trong test: nền dùng `Contract.matches()` trên `com.networknt:json-schema-validator` thay cho `swagger-request-validator` vì hợp đồng là OpenAPI 3.1 (agent chọn ở B3, Đính duyệt 06/11/2026). Test HTTP của TB-8 dùng `Contract.matches()`.
 - Huy, 04/11/2026: push nhánh và mở Draft PR vào `dev` để Đính xem câu hỏi.
-- Huy, 04/11/2026: bỏ qua OP-05 (cổng phỏng vấn) để làm TB-8. OP-05 có hai người phụ trách là Đính và Huy; sổ quyết định chưa được cập nhật. OP-06 chưa được nhắc tới.
+- Huy, 04/11/2026: bỏ qua OP-05 (cổng phỏng vấn) để làm TB-8. Đính đóng OP-05, OP-06 bằng chấp nhận rủi ro ngày 06/11/2026 (sổ quyết định ghi "Huy chưa xác nhận").
 
 ## Câu hỏi còn mở
 | # | Câu hỏi | Ai trả lời |
@@ -79,6 +79,8 @@ Chưa chạy test trên nhánh này vì chưa có thay đổi code.
 | Q6 | Ngưỡng giới hạn cho `registerAccount` và `resendVerification` | Đính, Huy |
 | Q7 | Đăng nhập của ADMIN (trả `AdminMfaChallenge`) thuộc TB-8 hay TB-13? Đề xuất: TB-8 chặn ADMIN đăng nhập, TB-13 mở | Đính |
 | Q8 | Danh sách `termsVersion` hợp lệ lấy từ đâu (cấu hình)? Hiện chưa có văn bản điều khoản nào | Đính, Huy |
+| Q10 | ADR-0010 mục 1 (nền dựng khung xác thực, TB-8 chỉ viết `SessionResolver`) ghi "cần Huy đồng ý". Huy đồng ý chưa? | Huy |
+| Q11 | `SessionResolver`: digest token tính thế nào (SHA-256 hay HMAC có khóa, mã hóa hex hay base64url)? Cập nhật `last_seen_at` cho hạn 24 giờ không hoạt động mỗi yêu cầu hay theo chu kỳ (mỗi yêu cầu thêm một lần ghi)? Liên quan Q4 | Đính, Huy |
 
 ## Bước kế tiếp
 Khi có câu trả lời cho Q1, Q2: chạy playbook `contract-change` cho PR 1 (ADR-0008, V9, OpenAPI). Q4 đến Q8 cần trước PR 2 và PR 3.

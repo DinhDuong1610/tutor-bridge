@@ -38,7 +38,7 @@ Theo [CR-012](../decisions/change-requests.md):
 
 - **Chủ trì kiến trúc:** Đính cho backend Spring, Next.js và React Native; Huy cho AI Python. Người chủ trì duyệt quyết định kiến trúc của phần mình (XC01). Cả hai vẫn cùng code backend và React Native (CR-001).
 - **Tách backend và giao diện.** Chức năng có cả API và màn hình thành hai Issue. Issue giao diện phụ thuộc Issue backend và dùng API client sinh từ hợp đồng, nên có thể giao cho người khác.
-- **Mã tạm:** Issue backend giữ mã `TB-` cũ, trùng số Issue đã có trên GitHub. Issue giao diện mới có mã tạm `GD-<số TB>`, Issue nền có mã `NEN-MB`, `NEN-WEB`. Số thật do GitHub cấp khi tạo.
+- **Số Issue:** Issue giao diện đã tạo ngày 06/11/2026: GD-11 = #67, GD-13 = #68, GD-15 = #69, GD-16 = #70, GD-17 = #71, GD-19 = #72, GD-20 = #73, GD-21 = #74, GD-22 = #75. Mã cũ: Issue backend giữ mã `TB-` cũ, trùng số Issue đã có trên GitHub. Issue giao diện mới có mã tạm `GD-<số TB>`, Issue nền có mã `NEN-MB`, `NEN-WEB`. Số thật do GitHub cấp khi tạo.
 
 ## Module nền
 Đính quyết định ngày 06/11/2026: dựng xong nền cho backend, mobile, web trước khi chia lại Issue chức năng, để Issue sau chỉ thêm chức năng. Mỗi module là một Issue và một PR nhỏ, làm lần lượt theo bảng. Quyết định thư viện ở [ADR-0009](../decisions/adr/0009-nen-giao-dien.md) và [ADR-0010](../decisions/adr/0010-nen-backend.md).
@@ -76,33 +76,33 @@ Giờ của Issue backend có dấu `*` là ước lượng cũ cho cả API l�
 | TB-05 | M0 | Khung mobile, web, API client sinh từ OpenAPI | TB-01 | 12–20 | Đính | | |
 | TB-06 | M0 | Diễn tập: Claude làm dở, Codex tiếp, người kia review; sửa playbook theo chỗ vướng | TB-02 | 3–5 | Cả hai | | |
 | TB-07 | M1 | TX05 ở tầng service, test đồng thời qua hai bản API | TB-04 | 24–36 | Đính | | |
-| NEN-BE | M2 | Nền backend: module B1–B4 | TB-04 | Chưa ước lượng | Đính | | |
-| NEN-MB | M2 | Nền mobile: module M1–M5; viết lại `mobile/AGENTS.md` | TB-05 | Chưa ước lượng | Đính | | |
+| NEN-BE | M2 | Nền backend: module B1–B4 | TB-04 | Xong (#64) | Đính | | |
+| NEN-MB | M2 | Nền mobile: module M1–M5; viết lại `mobile/AGENTS.md` | TB-05 | Xong (#65) | Đính | | |
 | TB-08 | M2 | Đăng ký, xác minh, đăng nhập, phiên; ADR băm mật khẩu; viết `SessionResolver` cho khung của B2 | TB-04; B2 cho phần phiên | 20–30 | Huy | `registerAccount`, `verifyEmail`, `resendVerification`, `loginAccount`, `logoutAccount`, `listOwnSessions`, `revokeOwnSession` | |
 | TB-09 | M2 | Khôi phục, đổi mật khẩu, tái xác thực | TB-08 | 12–18 | Huy | `requestRecovery`, `resetPassword`, `changePassword`, `reauthenticate` | |
 | TB-10 | M2 | Màn hình tài khoản | NEN-MB, TB-09 | 16–24 | Huy | | AUTH01, AUTH02, AUTH03, AUTH04, AUTH05, AUTH06 |
 | TB-11 | M3 | API hồ sơ con | TB-08 | 10–16 * | Đính | `listStudents`, `createStudent`, `getStudentProfile`, `patchStudent` | |
-| GD-11 | M3 | Màn hình hồ sơ con | TB-11, NEN-MB | Trong TB-11 | Huy | | PH02 |
+| #67 (GD-11) | M3 | Màn hình hồ sơ con | TB-11, NEN-MB | Trong TB-11 | Huy | | PH02 |
 | TB-12 | M3 | Hồ sơ gia sư, gửi duyệt, tải minh chứng, kho tệp local | TB-08 | 20–30 | Huy | `saveTutorProfile`, `getOwnTutorProfile`, `submitTutorProfile`, `createEvidenceUpload`, `completeEvidenceUpload` | |
-| NEN-WEB | M3 | Nền web quản trị: module W1–W3; viết lại `web/AGENTS.md` | TB-05 | Chưa ước lượng | Đính | | |
+| NEN-WEB | M3 | Nền web quản trị: module W1–W3; viết lại `web/AGENTS.md` | TB-05 | Xong (#66) | Đính | | |
 | TB-13 | M3 | API quản trị xác minh, MFA | TB-12 | 24–36 * | Đính | `completeAdminMfa`, `listAssignedVerifications`, `decideVerification`, `readAssignedEvidence` | |
-| GD-13 | M3 | Web quản trị xác minh | TB-13, NEN-WEB | Trong TB-13 | Đính | | AD01, AD03, AD04 |
+| #68 (GD-13) | M3 | Web quản trị xác minh | TB-13, NEN-WEB | Trong TB-13 | Đính | | AD01, AD03, AD04 |
 | TB-14 | M3 | Màn hình hồ sơ gia sư, trang chủ hai vai trò | TB-10, TB-12 | 12–18 | Huy | | PH01, GS01, GS02, GS03 |
 | TB-15 | M4 | API lịch rảnh, ngoại lệ, sinh cửa sổ UTC | TB-11 | 24–36 * | Đính | `getTutorCalendar`, `replaceTutorCalendar`, `getStudentCalendar`, `replaceStudentCalendar` | |
-| GD-15 | M4 | Màn hình lịch rảnh | TB-15, NEN-MB | Trong TB-15 | Huy | | GS04 |
+| #69 (GD-15) | M4 | Màn hình lịch rảnh | TB-15, NEN-MB | Trong TB-15 | Huy | | GS04 |
 | TB-16 | M4 | API nhu cầu có phiên bản | TB-15 | 20–30 * | Đính | `listNeeds`, `createNeedDraft`, `getNeed`, `updateNeedDraft`, `confirmNeed` | |
-| GD-16 | M4 | Màn hình nhu cầu | TB-16, GD-11 | Trong TB-16 | Huy | | PH03, PH04, PH05 |
+| #70 (GD-16) | M4 | Màn hình nhu cầu | TB-16, #67 | Trong TB-16 | Huy | | PH03, PH04, PH05 |
 | TB-17 | M5 | API lọc cứng, giao lịch, xếp hạng B, lưu lượt gợi ý | TB-12, TB-16 | 28–40 * | Huy | `createMatchingRun`, `getMatchingRun`, `getTutorPublic` | |
-| GD-17 | M5 | Màn hình gợi ý gia sư | TB-17, GD-16 | Trong TB-17 | Đính | | PH06, PH07 |
+| #71 (GD-17) | M5 | Màn hình gợi ý gia sư | TB-17, #70 | Trong TB-17 | Đính | | PH06, PH07 |
 | TB-18 | M6 | Gửi, từ chối, hủy, hết hạn đề nghị | TB-17 | 16–24 | Đính | `sendOffer`, `listOffers`, `getOffer`, `rejectOffer`, `cancelOffer` | |
 | TB-19 | M6 | Nối `acceptOffer` vào HTTP | TB-07, TB-18 | 16–24 * | Huy | `acceptOffer` | |
-| GD-19 | M6 | Màn hình đề nghị | TB-19, GD-17 | Trong TB-19 | Đính | | PH08, PH09, GS05 |
+| #72 (GD-19) | M6 | Màn hình đề nghị | TB-19, #71 | Trong TB-19 | Đính | | PH08, PH09, GS05 |
 | TB-20 | M6 | API xem lớp và buổi | TB-19 | 10–16 * | Huy | `getClass`, `listSessions` | |
-| GD-20 | M6 | Màn hình lớp và buổi | TB-20, GD-19 | Trong TB-20 | Huy | | CL01, CL02 |
+| #73 (GD-20) | M6 | Màn hình lớp và buổi | TB-20, #72 | Trong TB-20 | Huy | | CL01, CL02 |
 | TB-21 | M6 | Bộ phát thông báo, API hộp thông báo | TB-18 | 12–18 * | Đính | `listOwnNotifications`, `markNotificationRead` | |
-| GD-21 | M6 | Màn hình hộp thông báo | TB-21, NEN-MB | Trong TB-21 | Huy | | COM01 |
+| #74 (GD-21) | M6 | Màn hình hộp thông báo | TB-21, NEN-MB | Trong TB-21 | Huy | | COM01 |
 | TB-22 | M6 | API tra trạng thái lệnh | TB-19 | 8–12 * | Huy | `getCommandStatus`, `findCommandStatus` | |
-| GD-22 | M6 | Xử lý chưa rõ kết quả trên app bằng tra trạng thái lệnh | TB-22, GD-19 | Trong TB-22 | Đính | | |
+| #75 (GD-22) | M6 | Xử lý chưa rõ kết quả trên app bằng tra trạng thái lệnh | TB-22, #72 | Trong TB-22 | Đính | | |
 | TB-23 | M7 | Ca quyền trên mọi API, AT01–AT04, hai bản API | TB-22, các Issue GD của M6 | 16–24 | Cả hai | | |
 | TB-24 | M7 | Job dọn receipt và outbox theo lô | TB-04 | 6–10 | Đính | | |
 

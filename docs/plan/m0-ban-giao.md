@@ -2,7 +2,7 @@
 
 Viết ngày 03/11/2026, khi M0 vào `dev`. Dành cho Huy khi vào repo, và cho mọi agent. Nội dung lấy từ các file handoff đã xóa của TB-1, TB-3, TB-4, TB-7, TB-2, TB-5; chi tiết từng phần ở PR #25 đến #29 và #31.
 
-**Cập nhật 06/11/2026 (#42):** OP-05, OP-06 đóng bằng chấp nhận rủi ro; OP-13 đã xong. Theo CR-012, Đính chủ trì kiến trúc backend, Next.js, React Native, Huy chủ trì AI; chức năng tách Issue backend và Issue giao diện, thêm hai Issue nền `NEN-MB`, `NEN-WEB`. Xem [kế hoạch Lát 1](lat-1-ke-hoach.md).
+**Cập nhật 06/11/2026:** OP-05, OP-06 đóng bằng chấp nhận rủi ro; OP-13 đã xong. Theo CR-012, Đính chủ trì kiến trúc backend, Next.js, React Native, Huy chủ trì AI; chức năng tách Issue backend và Issue giao diện (#67–#75). Phần nền backend, mobile, web đã vào `dev` (#63–#66). Xem [kế hoạch Lát 1](lat-1-ke-hoach.md).
 
 ## Đã có trên `dev`
 | Phần | Nội dung | PR |
@@ -13,6 +13,11 @@ Viết ngày 03/11/2026, khi M0 vào `dev`. Dành cho Huy khi vào repo, và cho
 | TX05 | Chốt lớp nguyên tử, test đồng thời qua hai bản ứng dụng | #29 |
 | CI | `repo.yml`, `backend.yml`, Dependabot | #26 |
 | Ứng dụng | API client sinh từ OpenAPI, khung Expo SDK 57, khung Next.js 16.4, `frontend.yml` | #31 |
+| CI thêm | `contract-check` bằng oasdiff; Dependabot bỏ qua gói Expo khóa phiên bản (Huy) | #40, #41 |
+| Kế hoạch, quyết định | CR-012, OP-05, OP-06, OP-15, ADR-0009, ADR-0010, quy ước theo phần | #63 |
+| Nền backend | Gói `@tutorbridge/shared`; tầng web dùng chung; Spring Security tối thiểu với `SessionResolver`; `HttpTest`, `Contract.matches()`; health, log JSON, `Clock`, `LocalSeed` | #64 |
+| Nền mobile | Expo Router, `call`, `useCommand`, phiên trong `expo-secure-store`, `QueryScreen`, form, `mockApi`, test mẫu | #65 |
+| Nền web | Tailwind, shadcn/ui, cookie `tb_session`, `adminApi`, `proxy.ts`, `load`, `runCommand`, test mẫu; rà soát toàn bộ nền | #66 |
 
 Phần nền sau M0 cũng merge theo ngoại lệ OP-15 (06/11/2026). Theo OP-14, đợt M0 là ngoại lệ: agent viết phần tác giả, merge không qua duyệt chéo, Huy không cần rà lại. **Từ PR sau, quy trình Git áp dụng đầy đủ:** người làm và người duyệt khác nhau, tác giả tự viết phần giải thích.
 
@@ -28,7 +33,7 @@ Phần nền sau M0 cũng merge theo ngoại lệ OP-15 (06/11/2026). Theo OP-14
 | Việc | Hiện tại | Người chốt | Hạn |
 |---|---|---|---|
 | ADR-0007 khóa tài nguyên bằng khóa tư vấn | Đề xuất | Đính | Trước TB-15 |
-| Danh mục mã lỗi | Mã tự đặt trong `platform` và `classes`, xem dưới | Đính, Huy | Trước TB-10 và `NEN-MB` |
+| Danh mục mã lỗi | Mã tự đặt trong `platform` và `classes`, xem dưới | Đính, Huy | Trước TB-10 |
 | Thiếu `Idempotency-Key` | Trả 422; hợp đồng chỉ nói 428 cho `If-Match` | Đính, Huy | Trước TB-08 |
 | Quyền trên bảng chỉ thêm như `audit_events` | `tutorbridge_app` ghi đồng đều | Đính | Trước TB-23 |
 | Outbox thử tối đa bao nhiêu lần, xử lý sự kiện lỗi mãi | Thử lại không giới hạn | Đính | TB-21 |
@@ -52,20 +57,23 @@ Mã lỗi đang dùng: `IDEMPOTENCY_KEY_INVALID`, `IDEMPOTENCY_KEY_REUSED`, `CUR
 - **Mobile:** cài phụ thuộc bằng `npx expo install`. Từ #50: Testing Library 13 thay cho 14 (bản 14 kéo React 19.3 vào gốc, sinh hai bản React), và `overrides` ở gốc giữ một bản React 19.2.3 cho cả workspace. Mobile dùng TypeScript 6, web và client dùng 5.9 vì công cụ sinh client chưa hỗ trợ 6.
 
 ## PR của Dependabot
-Dependabot mở PR cập nhật hằng tuần vào `dev`, không cần phần tác giả. Người duyệt kiểm CI và ghi chú phát hành, rồi squash merge. Ngày 04/11/2026 Huy đã merge #30, #33, #38 và đóng #34–#37 vì lệch Expo SDK 57 hoặc TypeScript đã khóa. `.github/dependabot.yml` bỏ qua các gói Expo quản lý và bản chính của TypeScript; nâng chúng trong task nâng SDK riêng.
+Dependabot mở PR cập nhật hằng tuần vào `dev`, không cần phần tác giả. Người duyệt kiểm CI và ghi chú phát hành, rồi squash merge. Ngày 04/11/2026 Huy đã merge #30, #33, #38 và đóng #34–#37 vì lệch Expo SDK 57 hoặc TypeScript đã khóa. `.github/dependabot.yml` bỏ qua các gói Expo quản lý và bản chính của TypeScript; nâng chúng trong task nâng SDK riêng. Ngày 06/11/2026 Đính merge #59, #61, #62 (bản vá Next, eslint-config-next, vitest) và đóng #60 (ESLint 10, đã ra lệnh bỏ qua bản chính) và #58 (jest 30, PR gộp hai gói nên chỉ đóng tay; sẽ mở lại hằng tuần cho tới khi `dependabot.yml` bỏ qua bản chính của `jest`, `@types/jest`).
 
 ## Giới hạn của bằng chứng hiện có
 - TX05 mới kiểm ở tầng service, qua hai Spring context trong một JVM. Kiểm qua HTTP và hai tiến trình thuộc TB-19, TB-23.
 - Chưa đo tải. Không được nói về năng lực chịu tải (INV-73).
 - `migration-check` mới kiểm từ DB trống. Kiểm tra kiến trúc chưa phát hiện SQL đọc bảng của mô-đun khác.
 - `npm audit` báo lỗ hổng trong công cụ dòng lệnh của Expo; sửa tự động sẽ hạ SDK nên chưa sửa. Theo dõi qua Dependabot.
+- `scripts/ci/contract-check.sh` báo mọi lỗi của oasdiff là "breaking change", kể cả không đọc được file; trên Windows với Git Bash nhánh Docker không mount được thư mục. Trên CI Linux chạy đúng.
+- Web: trang quản trị prerender một phần nên phần tĩnh của trang con vẫn gửi đi khi layout chuyển hướng; mỗi trang phải tự gọi `verifyAdminSession()` (conventions, mục Web).
+- `expo` đang 57.0.31, Expo muốn 57.0.32; `react-native-worklets` lệch phiên bản ngay trong gói của Expo. Nâng cùng task nâng SDK.
 
 ## Việc tiếp theo
 | Việc | Người |
 |---|---|
-| Huy đọc lại phần nền đã merge theo OP-15 (#63–#66): `conventions.md`, `mobile/AGENTS.md`, `web/AGENTS.md`, test mẫu ba phần | Huy |
-| Chia lại Issue chức năng theo kế hoạch Lát 1 (tách backend và giao diện, CR-012) | Đính |
+| Đọc lại phần nền đã merge theo OP-15 (#63–#66): `conventions.md`, `mobile/AGENTS.md`, `web/AGENTS.md`, test mẫu ba phần; báo chỗ cần sửa bằng Issue | Huy |
+| Trả lời Q1, Q2, Q4–Q8 trong handoff TB-8; chốt 422 hay 428 khi thiếu `Idempotency-Key`; cấp số migration V9 | Đính |
+| TB-08 (#8, PR nháp #39): viết `SessionResolver` trong `identity`, khai báo `PublicEndpoints`, không dựng bộ lọc riêng (ADR-0010) | Huy |
 | TB-06 diễn tập đổi agent: Claude làm dở, Codex làm tiếp, người kia review | Cả hai |
-| TB-08 đăng ký, đăng nhập, phiên (PR nháp #39, #40): viết `SessionResolver` trong `identity`, khai báo `PublicEndpoints`, không dựng bộ lọc riêng (ADR-0010) | Huy |
-| `NEN-MB` nền mobile, cần trước TB-10 | Đính |
-| TB-11 API hồ sơ con, sau khi TB-08 merge | Đính |
+| TB-11 (#11) API hồ sơ con sau khi TB-08 merge; giao diện ở #67 | Đính, Huy |
+| Thêm quy tắc bỏ qua bản chính của `jest`, `@types/jest` vào `.github/dependabot.yml` | Ai rảnh trước, người kia review |

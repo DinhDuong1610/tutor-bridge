@@ -20,9 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(propagation = Propagation.MANDATORY)
 public class CommandReceipts {
 
-    private static final int MIN_KEY_LENGTH = 16;
-    private static final int MAX_KEY_LENGTH = 128;
-
     public enum State { PROCESSING, SUCCEEDED, FAILED }
 
     public record Receipt(
@@ -38,11 +35,9 @@ public class CommandReceipts {
     }
 
     public Receipt begin(UUID actorId, String commandType, String idempotencyKey, Object payload) {
-        if (idempotencyKey == null
-                || idempotencyKey.length() < MIN_KEY_LENGTH
-                || idempotencyKey.length() > MAX_KEY_LENGTH) {
-            throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "IDEMPOTENCY_KEY_INVALID",
-                    "Khóa gửi lại phải có từ 16 đến 128 ký tự.");
+        // Checked again here so a caller that skips the web layer, such as a job, keeps the rule.
+        if (!IdempotencyKey.isValid(idempotencyKey)) {
+            throw IdempotencyKey.invalid();
         }
         String payloadSha256 = CanonicalJson.sha256(payload);
         UUID id = UUID.randomUUID();

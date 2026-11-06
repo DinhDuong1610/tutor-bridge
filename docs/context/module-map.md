@@ -45,4 +45,5 @@ Mũi tên chỉ một chiều. Khi mô-đun thấp cần báo mô-đun cao, dùn
 | `ai-worker/` | Trích xuất tệp, embedding, soạn nháp | Chạm DB, tự công bố |
 | `mobile/` | Android cho phụ huynh, gia sư, học sinh P1 | Chứa khóa AI, tự quyết định quyền |
 | `web/` | Quản trị, giới thiệu | Chứa học liệu riêng ở phần công khai |
-| `packages/` | API client sinh từ OpenAPI | Sửa tay code sinh ra |
+| `packages/api-client` | API client sinh từ OpenAPI | Sửa tay code sinh ra |
+| `packages/shared` | Code dùng chung không có React: Problem, `Idempotency-Key`, định dạng ngày giờ và tiền | Chứa React, gọi mạng, chứa bí mật |

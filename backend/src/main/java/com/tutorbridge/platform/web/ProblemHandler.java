@@ -6,6 +6,7 @@ import com.tutorbridge.platform.api.TraceContext;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 /** The one place where failures become application/problem+json. */
@@ -45,6 +47,25 @@ class ProblemHandler extends ResponseEntityExceptionHandler {
                 .toList();
         return problem(headers, HttpStatus.UNPROCESSABLE_CONTENT, "VALIDATION_FAILED",
                 "Dữ liệu chưa hợp lệ.", fields);
+    }
+
+    /** Constraints on query, path and header parameters, such as {@code @Min} on {@code limit}. */
+    @Override
+    protected ResponseEntity<Object> handleHandlerMethodValidationException(
+            HandlerMethodValidationException e, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+        List<FieldProblem> fields = e.getParameterValidationResults().stream()
+                .flatMap(result -> result.getResolvableErrors().stream()
+                        .map(error -> new FieldProblem(parameterName(result.getMethodParameter()),
+                                error.getDefaultMessage())))
+                .limit(50)
+                .toList();
+        return problem(headers, HttpStatus.UNPROCESSABLE_CONTENT, "VALIDATION_FAILED",
+                "Dữ liệu chưa hợp lệ.", fields);
+    }
+
+    private static String parameterName(MethodParameter parameter) {
+        String name = parameter.getParameterName();
+        return name == null ? "arg" + parameter.getParameterIndex() : name;
     }
 
     @Override

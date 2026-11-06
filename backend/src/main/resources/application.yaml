@@ -1,6 +1,9 @@
 spring:
   application:
     name: tutorbridge
+  autoconfigure:
+    # Sessions come from SessionResolver (ADR-0010). No in-memory user with a generated password.
+    exclude: org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
   datasource:
     url: ${TB_DB_URL:jdbc:postgresql://127.0.0.1:55432/tutorbridge?currentSchema=tutorbridge,public}
     username: tutorbridge_app
@@ -14,3 +17,22 @@ spring:
 logging:
   pattern:
     correlation: "[%X{traceId:-}] "
+  structured:
+    # JSON logs (Elastic Common Schema) wherever the app is deployed; MDC traceId is included.
+    # The local profile switches back to plain text.
+    format:
+      console: ecs
+    json:
+      customizer: com.tutorbridge.platform.web.LogRedaction
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      # Status only. Details would show the database and versions to anyone.
+      show-details: never
+      show-components: never
+      probes:
+        enabled: true

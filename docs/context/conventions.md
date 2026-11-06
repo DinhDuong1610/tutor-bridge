@@ -86,9 +86,9 @@ mobile/src/
     api/               client có gắn phiên, đọc Problem, lệnh ghi, tra trạng thái lệnh
     session/           lưu token bằng expo-secure-store, chặn route, hết phiên
     ui/                theme, component nền, khung màn hình đủ trạng thái
-    test/              tiện ích test (renderRoute), giả lập API
+    test/              tiện ích test, kiểu cho matcher của expo-router, giả lập API
 ```
-Vai trò dùng thư mục thường `parent/`, `tutor/`, không dùng nhóm `(parent)`: nhóm không tạo đoạn đường dẫn, nên trang chủ hai vai trò sẽ cùng là `/` và đụng nhau. Import trong `src` dùng alias `@/`, ví dụ `@/shared/ui/ComingSoon`. Test điều hướng dùng `renderRoute` của `shared/test`, không dùng `renderRouter` của expo-router vì nó viết cho Testing Library 13.
+Vai trò dùng thư mục thường `parent/`, `tutor/`, không dùng nhóm `(parent)`: nhóm không tạo đoạn đường dẫn, nên trang chủ hai vai trò sẽ cùng là `/` và đụng nhau. Import trong `src` dùng alias `@/`, ví dụ `@/shared/ui/ComingSoon`. Test điều hướng dùng `renderRouter` và `toHavePathname` của `expo-router/testing-library`.
 Tên thư mục tính năng theo luồng: `account`, `students`, `tutor-profile`, `calendar`, `needs`, `matching`, `offers`, `classes`, `notifications`.
 
 ### Cấu trúc web
@@ -104,6 +104,11 @@ web/src/
     session/           cookie phiên, token CSRF, chặn route khi hết phiên
     ui/                component shadcn/ui và khung trang đủ trạng thái
 ```
+
+### Gọi API trên mobile
+- Đọc: `useQuery` với `queryFn: () => call(api.GET(...))`. `call` trả dữ liệu hoặc ném `ApiError` (có `kind`, `code`, `fields`) hay `UnknownOutcomeError`. Đọc tự thử lại tối đa hai lần khi mất mạng hoặc lỗi 5xx, không thử lại lỗi 4xx.
+- Ghi: `useCommand((input, key) => call(api.POST(..., { params: { header: { "Idempotency-Key": key } } })))`. Màn hình hiển thị theo `state`: `sending`, `confirmed`, `failed` (kèm `error.fields`), `unknown` (nút thử lại gọi `retry`, giữ nguyên khóa). Không tự thử lại lệnh ghi.
+- Cả workspace dùng một bản React (`overrides` ở `package.json` gốc), đúng bản Expo SDK yêu cầu. Thêm thư viện React phải giữ điều này: `npm ls react` chỉ có một phiên bản.
 
 ### Thêm một màn hình
 1. Issue backend của chức năng đã merge, API client đã sinh lại.

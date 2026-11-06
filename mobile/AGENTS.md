@@ -4,7 +4,7 @@ Follow `../AGENTS.md` and `../docs/context/conventions.md`. They override the ge
 
 - Libraries are fixed by `../docs/decisions/adr/0009-nen-giao-dien.md`: Expo Router, TanStack Query, `StyleSheet` with theme tokens. Do not add other UI, style, state or navigation libraries without Đính (CR-012).
 - Folder structure and the steps to add a screen are in `../docs/context/conventions.md` ("Cấu trúc mobile", "Thêm một màn hình"). Routes live in `src/app/` (M1 done); role areas are the folders `parent/` and `tutor/`, not route groups. Foundation modules M2–M5 add data, session and UI; until they are merged, do not build feature screens.
-- The "Navigation & Routing" section below says routes live in `src/app/`; that matches this project. Use `@/` imports and test routes with `renderRoute` from `@/shared/test/renderRoute`.
+- The "Navigation & Routing" section below says routes live in `src/app/`; that matches this project. Use `@/` imports and test routes with `renderRouter` from `expo-router/testing-library`. Call the API through `call` and `useCommand` in `@/shared/api` (see conventions, "Gọi API trên mobile").
 - Use `@tutorbridge/api-client` for every API call. Only `EXPO_PUBLIC_` variables, never secrets.
 
 ## Generic Expo guidance

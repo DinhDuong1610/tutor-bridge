@@ -48,7 +48,7 @@ Mã lỗi đang dùng: `IDEMPOTENCY_KEY_INVALID`, `IDEMPOTENCY_KEY_REUSED`, `CUR
 - **Test đồng thời:** dùng `Concurrently`, không dùng `CompletableFuture.supplyAsync` mặc định. Common pool trên runner ít lõi làm các lệnh chạy lần lượt.
 - **Migration:** số tiếp theo là V9, Đính cấp trong Issue. V1–V6 bị khóa bằng `BaselineMigrationsTest`, migration đã merge bị khóa bằng `immutable-history`.
 - **`vector`** không phải extension trusted: môi trường thật phải cài bằng superuser trước V6.
-- **Mobile:** cài phụ thuộc bằng `npx expo install`. Mobile dùng TypeScript 6, web và client dùng 5.9 vì công cụ sinh client chưa hỗ trợ 6.
+- **Mobile:** cài phụ thuộc bằng `npx expo install`. Từ #50: Testing Library 13 thay cho 14 (bản 14 kéo React 19.3 vào gốc, sinh hai bản React), và `overrides` ở gốc giữ một bản React 19.2.3 cho cả workspace. Mobile dùng TypeScript 6, web và client dùng 5.9 vì công cụ sinh client chưa hỗ trợ 6.
 
 ## PR của Dependabot
 Dependabot mở PR cập nhật hằng tuần vào `dev`, không cần phần tác giả. Người duyệt kiểm CI và ghi chú phát hành, rồi squash merge. Ngày 04/11/2026 Huy đã merge #30, #33, #38 và đóng #34–#37 vì lệch Expo SDK 57 hoặc TypeScript đã khóa. `.github/dependabot.yml` bỏ qua các gói Expo quản lý và bản chính của TypeScript; nâng chúng trong task nâng SDK riêng.

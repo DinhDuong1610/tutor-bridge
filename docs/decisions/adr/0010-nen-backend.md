@@ -21,7 +21,7 @@ Backend đã có Problem, receipt, outbox, phân trang (TB-04) nhưng chưa có 
    - Mặc định `Cache-Control: private, no-store` cho phản hồi có dữ liệu riêng.
    - JSON từ chối thuộc tính lạ, thời điểm dạng ISO-8601 UTC.
    - Lỗi validate của Bean Validation ánh xạ về Problem `VALIDATION_FAILED` tại `ProblemHandler`.
-5. **Test:** lớp cơ sở cho test HTTP trên PostgreSQL thật, fixture tạo dữ liệu theo mô-đun, kiểm phản hồi khớp `contracts/openapi.yaml` bằng `Contract.matches()`, dựng trên `com.networknt:json-schema-validator` vì hợp đồng là OpenAPI 3.1 (JSON Schema 2020-12); agent chọn ở B3, cần Đính duyệt.
+5. **Test:** lớp cơ sở cho test HTTP trên PostgreSQL thật, fixture tạo dữ liệu theo mô-đun, kiểm phản hồi khớp `contracts/openapi.yaml` bằng `Contract.matches()`, dựng trên `com.networknt:json-schema-validator` vì hợp đồng là OpenAPI 3.1 (JSON Schema 2020-12); agent chọn ở B3, Đính duyệt ngày 06/11/2026.
 6. **Vận hành local:** health check qua Actuator, log JSON có `traceId`, che token, mật khẩu, email trong log; `Clock` và sinh ID tiêm qua bean để test được; dữ liệu seed giả chỉ chạy ở profile `local`.
 
 ## Vì sao không chọn phương án khác

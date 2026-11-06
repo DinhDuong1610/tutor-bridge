@@ -22,6 +22,11 @@
   --accent-foreground: #14181f;
   --destructive: #b42318;
   --destructive-foreground: #ffffff;
+  --destructive-surface: #fdecea;
+  --success: #1e6b34;
+  --success-surface: #e7f5ec;
+  --warning: #8a5a00;
+  --warning-surface: #fff4db;
   --card: #ffffff;
   --card-foreground: #14181f;
   --popover: #ffffff;
@@ -45,6 +50,11 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-surface: var(--destructive-surface);
+  --color-success: var(--success);
+  --color-success-surface: var(--success-surface);
+  --color-warning: var(--warning);
+  --color-warning-surface: var(--warning-surface);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);

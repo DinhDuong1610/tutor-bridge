@@ -4,7 +4,7 @@
 
 ## Trạng thái
 
-Đã hoàn thành 7 nhóm tài liệu. Repo: https://github.com/DinhDuong1610/tutor-bridge, làm việc trên nhánh `dev`. Đã xong M0 của Lát 1, xem [bàn giao](plan/m0-ban-giao.md). Bước tiếp theo là TB-06 và M2. Cổng phỏng vấn đã qua bằng chấp nhận rủi ro; chia việc theo CR-012.
+Đã hoàn thành 7 nhóm tài liệu. Repo: https://github.com/DinhDuong1610/tutor-bridge, làm việc trên nhánh `dev`. Đã xong M0 của Lát 1, xem [bàn giao](plan/m0-ban-giao.md). Bước tiếp theo là TB-06 và M2. Cổng phỏng vấn đã qua bằng chấp nhận rủi ro; chia việc theo CR-012. Nền backend, mobile, web (module N0, S1, B1–B4, M1–M5, W1–W3) làm xong ngày 06/11/2026 ở #43–#56, chờ review.
 
 | Nhóm | Nội dung | Vị trí | Trạng thái |
 |---|---|---|---|

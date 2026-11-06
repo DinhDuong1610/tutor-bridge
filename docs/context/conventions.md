@@ -113,7 +113,12 @@ Màu là biến CSS trong `src/app/globals.css`, cùng bảng màu với mobile.
 - Cookie `tb_session` (HttpOnly, Secure, SameSite=Strict) đặt bằng `setSessionCookie` trong Server Action đăng nhập; xóa bằng `clearSessionCookie`. Trình duyệt không đọc được token.
 - Gọi API bằng `await adminApi()` (`@/shared/api/server`): tự gửi cookie phiên, và với lệnh ghi gửi cặp CSRF cùng `Origin` (`TB_WEB_ORIGIN`, phải nằm trong `tutorbridge.security.admin-origins` của API).
 - `proxy.ts` chỉ kiểm có cookie. Kiểm thật là `verifyAdminSession()`: layout quản trị gọi, và **mỗi trang quản trị cũng gọi** trước khi lấy dữ liệu, vì trang được prerender một phần nên phần tĩnh của trang con vẫn gửi đi dù layout chuyển hướng. Không đặt nội dung nhạy cảm trong phần tĩnh.
-- API trả 401 thì về `/admin/session-expired` (xóa cookie, về đăng nhập với `reason=expired`). Thêm component shadcn/ui theo `web/AGENTS.md`.
+- API trả 401 thì về `/admin/session-expired` (xóa cookie, về đăng nhập với `reason=expired`).
+
+### Trang và form quản trị web
+- Đọc trong Server Component: `const result = await load((await adminApi()).GET(...))`; `result.status !== "ok"` thì trả `<StateMessage result={result} />` (mất quyền, không tìm thấy, giới hạn, lỗi hệ thống). 401 tự về hết phiên. Danh sách rỗng dùng `EmptyState`. Khung trang `AdminPage`.
+- Ghi: Server Action `"use server"` nhận `(input, idempotencyKey)` và trả `runCommand((await adminApi()).POST(..., { params: { header: { "Idempotency-Key": idempotencyKey } } }))`. Form phía trình duyệt dùng `useServerCommand(action)`, `useServerFieldErrors`, `FormField`, `CommandStatus`; cùng quy tắc khóa với mobile.
+- Test: hàm phía máy chủ chạy Vitest trong Node; component thêm dòng `// @vitest-environment jsdom` và dùng Testing Library. Mẫu đầy đủ: `web/src/shared/test/example.test.tsx`. Thêm component shadcn/ui theo `web/AGENTS.md`.
 
 ### Gọi API trên mobile
 - Đọc: `useQuery` với `queryFn: () => call(api.GET(...))`. `call` trả dữ liệu hoặc ném `ApiError` (có `kind`, `code`, `fields`) hay `UnknownOutcomeError`. Đọc tự thử lại tối đa hai lần khi mất mạng hoặc lỗi 5xx, không thử lại lỗi 4xx.

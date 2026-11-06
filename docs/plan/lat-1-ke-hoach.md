@@ -43,6 +43,8 @@ Theo [CR-012](../decisions/change-requests.md):
 ## Module nền
 Đính quyết định ngày 06/11/2026: dựng xong nền cho backend, mobile, web trước khi chia lại Issue chức năng, để Issue sau chỉ thêm chức năng. Mỗi module là một Issue và một PR nhỏ, làm lần lượt theo bảng. Quyết định thư viện ở [ADR-0009](../decisions/adr/0009-nen-giao-dien.md) và [ADR-0010](../decisions/adr/0010-nen-backend.md).
 
+Trạng thái 06/11/2026: cả 14 module đã làm xong trên các nhánh #43–#56 (nối tiếp nhau), chờ review và merge theo thứ tự.
+
 | Module | Nội dung | Phụ thuộc | Thuộc |
 |---|---|---|---|
 | N0 | ADR, quy ước, cấu trúc thư mục, cách thêm một chức năng (#43) | #42 | Chung |

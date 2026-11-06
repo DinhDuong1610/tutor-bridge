@@ -31,16 +31,75 @@ Những mục ghi **TBD** sẽ chốt khi dựng repo.
 - Giao dịch đặt ở service. Kiểm quyền trong service, không chỉ ở controller.
 - Lỗi nghiệp vụ dùng kiểu riêng, ánh xạ về Problem tại một chỗ.
 - Không gọi dịch vụ ngoài trong giao dịch (INV-18).
+- Nền chung theo [ADR-0010](../decisions/adr/0010-nen-backend.md), đặt trong `platform`: `Actor` và `SessionResolver` cho xác thực, đọc `Idempotency-Key` và `If-Match`, `Cache-Control`, ánh xạ lỗi validate. Controller dùng các phần này, không tự đọc header.
+- Service nhận `Actor` làm tham số, không đọc request hay context tĩnh.
+
+### Thêm một chức năng backend
+```text
+backend/src/main/java/com/tutorbridge/<mô-đun>/
+  api/        record và interface mô-đun khác được gọi
+  internal/   <Tên>Service (giao dịch, kiểm quyền), <Tên>Repository (JdbcClient)
+  web/        <Tên>Controller, DTO request và response
+backend/src/test/java/com/tutorbridge/<mô-đun>/
+  <Tên>Test, <Tên>HttpTest: tên test chứa mã AC
+```
+1. Hợp đồng đã có trong `contracts/openapi.yaml`; thiếu thì làm `contract-change` trước.
+2. Bảng mới hoặc cột mới đi bằng migration số Đính cấp trong Issue.
+3. Viết service và repository, rồi controller dùng nền chung của `platform/web`.
+4. Test service trên PostgreSQL thật, test HTTP kiểm cả hợp đồng, ca âm quyền.
 
 ## Mobile và web
 - npm workspaces: `packages/*`, `mobile`, `web`. Cài phụ thuộc mobile bằng `npx expo install` để đúng bản SDK.
 - Dùng `@tutorbridge/api-client`, sinh từ OpenAPI bằng `openapi-typescript` và gọi qua `openapi-fetch`. Không sửa `schema.d.ts` bằng tay; đổi hợp đồng thì chạy `npm run generate:api`.
 - Web gọi API ở phía máy chủ (`server-only`). Mobile chỉ dùng biến `EXPO_PUBLIC_`, không chứa bí mật.
-- Điều hướng mobile: **TBD** ở TB-10. Hướng dẫn của Expo đề xuất Expo Router.
+- Thư viện theo [ADR-0009](../decisions/adr/0009-nen-giao-dien.md): Expo Router, TanStack Query, `StyleSheet` với token cho mobile, Tailwind và shadcn/ui cho web. Thêm thư viện ngoài danh sách này phải qua Đính.
+- Code dùng chung không có React (kiểu Problem, `Idempotency-Key`, định dạng ngày giờ và tiền) đặt ở `@tutorbridge/shared`.
 - Mỗi màn hình có đủ: tải, rỗng, lỗi trường, lỗi hệ thống, hết phiên, mất quyền.
 - Lệnh ghi có: đang gửi, đã xác nhận, chưa rõ kết quả, thử lại an toàn.
 - Giữ dữ liệu đã nhập khi lỗi. Không chỉ dùng màu để phân biệt trạng thái.
-- Mã màn hình (`PH06`) gắn vào tên file hoặc comment đầu file để truy vết.
+- Mã màn hình (`PH06`) gắn vào comment đầu file màn hình để truy vết.
+
+### Cấu trúc mobile
+```text
+mobile/src/
+  app/                 chỉ có route của Expo Router, mỗi file gọi một màn hình trong features
+    _layout.tsx        provider: TanStack Query, phiên, theme
+    (auth)/            AUTH01–AUTH06, khi chưa đăng nhập
+    (parent)/          PH, chặn khi không phải phụ huynh
+    (tutor)/           GS, chặn khi không phải gia sư
+  features/<tính năng>/
+    screens/           màn hình, comment đầu file ghi mã màn hình
+    components/        component chỉ tính năng này dùng
+    api.ts             query và mutation TanStack Query của tính năng
+    schemas.ts         schema zod cho form
+  shared/
+    api/               client có gắn phiên, đọc Problem, lệnh ghi, tra trạng thái lệnh
+    session/           lưu token bằng expo-secure-store, chặn route, hết phiên
+    ui/                theme, component nền, khung màn hình đủ trạng thái
+    test/              tiện ích test, giả lập API
+```
+Tên thư mục tính năng theo luồng: `account`, `students`, `tutor-profile`, `calendar`, `needs`, `matching`, `offers`, `classes`, `notifications`.
+
+### Cấu trúc web
+```text
+web/src/
+  app/
+    (public)/          WEB01, WEB02
+    admin/             AD, chặn khi chưa có phiên quản trị và MFA
+  proxy.ts             chặn route quản trị khi chưa có cookie phiên
+  features/<tính năng>/   giống mobile: screens, components, actions.ts (server action), schemas.ts
+  shared/
+    api/               client gọi API bằng cookie phiên `tb_session` (ADR-0010 mục 3)
+    session/           cookie phiên, token CSRF, chặn route khi hết phiên
+    ui/                component shadcn/ui và khung trang đủ trạng thái
+```
+
+### Thêm một màn hình
+1. Issue backend của chức năng đã merge, API client đã sinh lại.
+2. Tạo màn hình trong `features/<tính năng>/screens/` dùng khung màn hình của `shared/ui`; khung này đã có đủ trạng thái bắt buộc.
+3. Lệnh ghi đi qua mutation của `shared/api`, không tự sinh `Idempotency-Key` hay tự thử lại.
+4. Thêm route mỏng trong `app/` trỏ tới màn hình.
+5. Test từng trạng thái bằng API giả lập của `shared/test`.
 
 ## Python worker
 - Không trạng thái, không kết nối DB. Mọi dữ liệu đi qua `/internal/v1`.

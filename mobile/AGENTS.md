@@ -1,3 +1,13 @@
+## TutorBridge rules come first
+
+Follow `../AGENTS.md` and `../docs/context/conventions.md`. They override the generic Expo guidance below.
+
+- Libraries are fixed by `../docs/decisions/adr/0009-nen-giao-dien.md`: Expo Router, TanStack Query, `StyleSheet` with theme tokens. Do not add other UI, style, state or navigation libraries without Đính (CR-012).
+- Folder structure and the steps to add a screen are in `../docs/context/conventions.md` ("Cấu trúc mobile", "Thêm một màn hình"). Foundation modules M1–M5 build it; until they are merged, do not build feature screens.
+- Use `@tutorbridge/api-client` for every API call. Only `EXPO_PUBLIC_` variables, never secrets.
+
+## Generic Expo guidance
+
 This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
 
 ## Expo has changed — do not trust your training data

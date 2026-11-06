@@ -9,6 +9,8 @@ Theo Gitflow (CR-011). Áp dụng cho Đính, Huy và mọi agent. Mục tiêu: 
 | Huy | Leader GitHub: giữ quy trình PR, nhịp merge, nhánh release, tag phát hành |
 | Cả hai | Làm chính phần được giao, review phần của người kia |
 
+Chủ trì kiến trúc theo CR-012: Đính cho backend, Next.js, React Native; Huy cho AI Python. Người chủ trì quyết định kiến trúc phần đó khi hai người không thống nhất (XC01), nhưng code của người chủ trì vẫn phải do người kia duyệt.
+
 Người làm và người duyệt luôn khác nhau.
 
 ## Nhánh
@@ -71,9 +73,9 @@ Không mở PR trực tiếp từ `main`: repo bật tự xóa nhánh sau merge,
 3. Đưa `main` về `dev` qua nhánh `sync/v<x.y.z>`.
 
 ## Tránh xung đột khi cùng làm backend và mobile
-- **Chia theo lát dọc, không theo tầng.** Một lát có một chủ từ API tới màn hình.
+- **Tách backend và giao diện thành hai Issue** (CR-012). Issue giao diện phụ thuộc Issue backend và có thể giao cho người khác.
 - Trong một tuần, hai người không làm cùng một mô-đun backend hoặc cùng một luồng mobile. Đính đảm bảo điều này khi chia Issue.
-- Thay đổi hợp đồng đi trước, là PR riêng (`contract-change`).
+- Thay đổi hợp đồng đi trước, là PR riêng (`contract-change`). Người làm giao diện bắt đầu từ hợp đồng đã merge, không chờ code backend xong mới đọc API.
 - Số migration được ghi trong Issue. Chỉ Đính cấp số.
 - File khóa phụ thuộc bị xung đột thì sinh lại, không sửa tay.
 - Dữ liệu chung, cấu hình chung: báo người kia trước khi sửa.

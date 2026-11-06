@@ -69,12 +69,12 @@ Bản Markdown của sổ TB HS 02 (42 mục), dùng làm nguồn tra cứu khi 
 
 | Mã | Chủ đề | Nội dung | Trạng thái |
 |---|---|---|---|
-| XC01 | Bản gốc và quyền phê duyệt | Dùng đề cương và kế hoạch v2.0 trong `docs/source-docx/`. Đính duyệt sản phẩm; người chủ trì phần nào duyệt kiến trúc phần đó; bất đồng thì giữ mở và lập CR | Đã chốt (Đính, 03/11/2026; chờ Huy) |
+| XC01 | Bản gốc và quyền phê duyệt | Dùng đề cương và kế hoạch v2.0 trong `docs/source-docx/`. Đính duyệt sản phẩm; người chủ trì phần nào duyệt kiến trúc phần đó (người chủ trì theo CR-012); bất đồng thì giữ mở và lập CR | Có CR |
 | XC02 | Tầm nhìn và phạm vi | OCR, AI tiến độ, trực tiếp/đa môn, thanh toán là lộ trình, không vào R0; AI soạn đã thành P0 | Đã chốt |
-| XC03 | Bằng chứng thị trường | G0/G1 là tổng hợp nội bộ, chưa có phỏng vấn; không giả dữ liệu | Thiếu giá trị (OP-05) |
+| XC03 | Bằng chứng thị trường | G0/G1 là tổng hợp nội bộ, chưa có phỏng vấn; không giả dữ liệu. Chấp nhận rủi ro thay cho phỏng vấn trước M2 (OP-05). Vẫn chưa có bằng chứng thị trường | Đã chốt (Đính, 06/11/2026) |
 | XC04 | Tiêu chí G3 về tài liệu | Duyệt thiết kế, truy vết, review và kế hoạch kiểm chứng; đọc kèm CR-004 | Có CR |
-| XC05 | Xác nhận UX | F01/F06 tĩnh không coi là tương tác; review walkthrough trước; chưa chọn giữ hay đổi tiêu chí 5 người | Thiếu giá trị (OP-06) |
-| XC06 | Vai trò và nguồn lực | Vai trò theo CR-001; 20 giờ/tuần mỗi người (Đính, 03/11/2026); thiếu dự phòng, ngân sách trần, mốc | Thiếu giá trị (OP-01) |
+| XC05 | Xác nhận UX | F01/F06 tĩnh không coi là tương tác; review walkthrough trước. Chấp nhận rủi ro không thử bản mẫu trước M2 (OP-06); chưa chọn giữ hay đổi tiêu chí 5 người | Đã chốt (Đính, 06/11/2026) |
+| XC06 | Vai trò và nguồn lực | Vai trò theo CR-001, người chủ trì theo CR-012; 20 giờ/tuần mỗi người (Đính, 03/11/2026); thiếu dự phòng, ngân sách trần, mốc | Thiếu giá trị (OP-01) |
 | XC07 | AI và nội dung | Thiếu người duyệt Toán độc lập, dataset/ngưỡng, trần tiền; nhà cung cấp TBD | Thiếu giá trị (OP-07) |
 | XC08 | Quyền trẻ em và bản quyền | Thời hạn BR08 chưa thẩm định, không gọi là tuân thủ pháp luật; thiếu người rà chuyên môn | Thiếu giá trị (OP-07) |
 | XC09 | Năng lực và cam kết | NFR là mục tiêu; không công bố chịu tải hoặc SLA khi chưa đo | Đã chốt |
@@ -96,9 +96,10 @@ Bản Markdown của sổ TB HS 02 (42 mục), dùng làm nguồn tra cứu khi 
 | OP-10 | Đã đóng 03/11/2026: thêm V6 theo ADR-0006, đã kiểm chứng. Đính ủy quyền chốt; Huy cần rà | CR-009, ADR-0006 | Đính, Huy rà | Không |
 | OP-11 | Chọn embedding model và số chiều vector cho điểm s | ADR-0006, XC07 | Huy | Chặn dùng S; Lát 1 chạy với B |
 | OP-12 | Đã đóng 03/11/2026: dùng GitHub Free (CR-010) | CR-005b, CR-010 | Đính | Không |
-| OP-13 | Đã có username Đính `DinhDuong1610`. Còn thiếu username Huy; thêm Huy làm collaborator trước PR code đầu tiên | CR-010 | Đính | Chặn review chéo |
+| OP-13 | Đã đóng: Đính `DinhDuong1610`, Huy `HuyDEV10` đều là collaborator (kiểm qua GitHub API ngày 06/11/2026) | CR-010 | Đính | Không |
 | OP-14 | Đã đóng 03/11/2026: Đính quyết định đợt M0 (TB-1, TB-3, TB-4, TB-7, TB-2, TB-5) "vì đây là phần nền tảng nên lần này là ngoại lệ": agent viết phần tác giả tự giải thích theo yêu cầu của Đính, merge vào `dev` không qua duyệt chéo, "không cần rà lại". Từ PR sau áp dụng lại đầy đủ [quy trình Git](../process/git-workflow.md) | CR-010 | Đính | Không |
-| OP-05 | Lịch phỏng vấn và người phụ trách, hoặc ghi nhận chấp nhận rủi ro | XC03 | Đính, Huy | Chặn G5 |
-| OP-06 | Giữ hay đổi tiêu chí thử 5 người | XC05 | Đính, Huy | Chặn G5 |
+| OP-15 | Đã đóng 06/11/2026: Đính quyết định phần nền (#42–#57) và các PR cấu hình còn tồn đọng là ngoại lệ, "chỉ ngoại lệ lần này thôi, không cần Huy review": agent tạo PR, tự điền phần tác giả (có ghi rõ do agent viết), tự merge vào `dev` các PR thuộc cấu hình và môi trường sau khi CI đạt. Đã merge theo ngoại lệ này: #41, #40 của Huy và các PR của phần nền. #39 (TB-8) là chức năng, không thuộc ngoại lệ. Từ PR sau áp dụng lại đầy đủ [quy trình Git](../process/git-workflow.md) | CR-010, OP-14 | Đính | Không |
+| OP-05 | Đã đóng 06/11/2026: Đính chọn "ghi nhận chấp nhận rủi ro" thay cho phỏng vấn trước M2. Huy chưa xác nhận | XC03 | Đính, Huy | Không |
+| OP-06 | Đã đóng 06/11/2026: Đính chọn chấp nhận rủi ro, không thử bản mẫu trước M2. Giữ hay đổi tiêu chí 5 người vẫn chưa chọn. Huy chưa xác nhận | XC05 | Đính, Huy | Không |
 | OP-07 | Người duyệt Toán, người rà dữ liệu trẻ em, người xác minh và hỗ trợ, trần tiền AI | XC07, XC08, XC10 | Đính, Huy | Chặn dữ liệu thật và AI thật (GATE02, GATE03) |
 | OP-08 | Bên nhận hồ sơ và mức phân phối | XC11 | Đính | Chặn gửi ngoài |

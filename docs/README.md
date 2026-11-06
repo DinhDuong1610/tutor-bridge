@@ -1,10 +1,10 @@
 # Tài liệu TutorBridge
 
-Điểm bắt đầu cho Đính, Huy và các agent. Cập nhật lần cuối: 03/11/2026.
+Điểm bắt đầu cho Đính, Huy và các agent. Cập nhật lần cuối: 06/11/2026.
 
 ## Trạng thái
 
-Đã hoàn thành 7 nhóm tài liệu. Repo: https://github.com/DinhDuong1610/tutor-bridge, làm việc trên nhánh `dev`. Đã xong M0 của Lát 1, xem [bàn giao](plan/m0-ban-giao.md). Bước tiếp theo là TB-06 và M2.
+Đã hoàn thành 7 nhóm tài liệu. Repo: https://github.com/DinhDuong1610/tutor-bridge, làm việc trên nhánh `dev`. Đã xong M0 của Lát 1, xem [bàn giao](plan/m0-ban-giao.md). Bước tiếp theo là TB-06 và M2. Cổng phỏng vấn đã qua bằng chấp nhận rủi ro; chia việc theo CR-012.
 
 | Nhóm | Nội dung | Vị trí | Trạng thái |
 |---|---|---|---|
@@ -14,7 +14,7 @@
 | 4 | Context cho agent: `AGENTS.md`, bất biến, sơ đồ mô-đun, thuật ngữ, phạm vi Lát 1 | `context/`, `../AGENTS.md` | Đã xác nhận |
 | 5 | Playbook và skills | `playbooks/`, `handoff/`, `.claude/skills/`, `.agents/skills/` | Đã xác nhận |
 | 6 | Quy trình nhóm: Git, PR, review, CI, GitHub | `process/`, `../.github/`, `../.githooks/` | Đã xác nhận |
-| 7 | Kế hoạch Lát 1: mốc, 24 Issue, ước lượng | `plan/` | Đã xác nhận |
+| 7 | Kế hoạch Lát 1: mốc, Issue tách backend và giao diện, ước lượng | `plan/` | Đã xác nhận; chia lại theo CR-012 ngày 06/11/2026 |
 
 ## Thứ tự ưu tiên khi tài liệu mâu thuẫn
 
@@ -37,7 +37,7 @@ Tài liệu mới hơn không tự động thắng. Khi các nguồn đã xác n
 | [process/](process/git-workflow.md) | Quy trình Git, review, CI, thiết lập GitHub |
 | [plan/](plan/lat-1-ke-hoach.md) | Kế hoạch Lát 1: mốc, Issue, ước lượng; [bàn giao sau M0](plan/m0-ban-giao.md) |
 | [design/](design/README.md) | Kiến trúc, đường mở rộng, F01–F06, API, dữ liệu |
-| [decisions/adr/](decisions/adr/) | Quyết định kiến trúc ADR-0001 đến ADR-0006 |
+| [decisions/adr/](decisions/adr/) | Quyết định kiến trúc ADR-0001 đến ADR-0010 (ADR-0007, một phần ADR-0009 và ADR-0010 đang đề xuất; ADR-0008 ở PR #39) |
 | [appendix/g3_ky_thuat_v0_1/](appendix/g3_ky_thuat_v0_1/) | OpenAPI, từ điển dữ liệu, ERD, SQL, truy vết FR. Giữ nguyên bản, không sửa tay |
 | [evidence/](evidence/) | Kết quả kiểm chứng thực tế |
 | [source-docx/](source-docx/) | 8 tài liệu Word gốc, chỉ để đối chiếu |

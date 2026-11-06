@@ -2,6 +2,8 @@
 
 Viết ngày 03/11/2026, khi M0 vào `dev`. Dành cho Huy khi vào repo, và cho mọi agent. Nội dung lấy từ các file handoff đã xóa của TB-1, TB-3, TB-4, TB-7, TB-2, TB-5; chi tiết từng phần ở PR #25 đến #29 và #31.
 
+**Cập nhật 06/11/2026 (#42):** OP-05, OP-06 đóng bằng chấp nhận rủi ro; OP-13 đã xong. Theo CR-012, Đính chủ trì kiến trúc backend, Next.js, React Native, Huy chủ trì AI; chức năng tách Issue backend và Issue giao diện, thêm hai Issue nền `NEN-MB`, `NEN-WEB`. Xem [kế hoạch Lát 1](lat-1-ke-hoach.md).
+
 ## Đã có trên `dev`
 | Phần | Nội dung | PR |
 |---|---|---|
@@ -26,15 +28,15 @@ Theo OP-14, đợt M0 là ngoại lệ: agent viết phần tác giả, merge kh
 | Việc | Hiện tại | Người chốt | Hạn |
 |---|---|---|---|
 | ADR-0007 khóa tài nguyên bằng khóa tư vấn | Đề xuất | Đính | Trước TB-15 |
-| Danh mục mã lỗi | Mã tự đặt trong `platform` và `classes`, xem dưới | Đính, Huy | Trước TB-10 |
+| Danh mục mã lỗi | Mã tự đặt trong `platform` và `classes`, xem dưới | Đính, Huy | Trước TB-10 và `NEN-MB` |
 | Thiếu `Idempotency-Key` | Trả 422; hợp đồng chỉ nói 428 cho `If-Match` | Đính, Huy | Trước TB-08 |
 | Quyền trên bảng chỉ thêm như `audit_events` | `tutorbridge_app` ghi đồng đều | Đính | Trước TB-23 |
 | Outbox thử tối đa bao nhiêu lần, xử lý sự kiện lỗi mãi | Thử lại không giới hạn | Đính | TB-21 |
 | Mục tiêu đầu của lớp | `EFFECTIVE`, vì gửi đề nghị là phụ huynh đã đồng ý (BR05) | Đính | Trước TB-19 |
 | `PREFERRED` có tính là rảnh không | Có | Đính | Trước TB-15 |
-| Công cụ kiểm hợp đồng (`contract-check`) | Huy chốt 04/11/2026: validator trong test tích hợp backend, cộng `oasdiff` trên CI. `oasdiff` đã có trong `repo.yml` | Huy | TB-08 |
+| Công cụ kiểm hợp đồng (`contract-check`) | Đã chốt: `oasdiff` trên CI chặn đổi hợp đồng phá vỡ (Huy, 04/11/2026, #40); kiểm phản hồi khớp hợp đồng bằng `Contract.matches()` trong test HTTP backend, dùng `com.networknt:json-schema-validator` vì hợp đồng là OpenAPI 3.1 (#47, Đính duyệt 06/11/2026) | Huy, Đính | Xong |
 | UUIDv7 | TBD, đang dùng UUIDv4 | Đính | Trước khi có dữ liệu thật |
-| Tên gói Android, thư viện điều hướng | TBD; Expo đề xuất Expo Router | Huy | TB-10 |
+| Tên gói Android, thư viện điều hướng | TBD; Expo đề xuất Expo Router | Đính (chủ trì React Native, CR-012) | `NEN-MB` |
 | `lock_timeout` cho giao dịch | Chưa đặt | Đính | Khi có số đo tải |
 
 Mã lỗi đang dùng: `IDEMPOTENCY_KEY_INVALID`, `IDEMPOTENCY_KEY_REUSED`, `CURSOR_INVALID`, `LIMIT_INVALID`, `VALIDATION_FAILED`, `REQUEST_REJECTED`, `INTERNAL_ERROR`, `OFFER_NOT_FOUND`, `ACCESS_UNAVAILABLE`, `SCOPE_CHANGED`, `OFFER_EXPIRED`, `VERSION_CONFLICT`, `SCHEDULE_CONFLICT`, `SERVICE_BUSY`.
@@ -60,7 +62,7 @@ Dependabot mở PR cập nhật hằng tuần vào `dev`, không cần phần t�
 ## Việc tiếp theo
 | Việc | Người |
 |---|---|
-| Thêm Huy làm collaborator (OP-13) | Đính |
 | TB-06 diễn tập đổi agent: Claude làm dở, Codex làm tiếp, người kia review | Cả hai |
-| TB-08 đăng ký, đăng nhập, phiên | Huy |
-| TB-11 hồ sơ con | Đính |
+| TB-08 đăng ký, đăng nhập, phiên (PR nháp #39, #40) | Huy |
+| `NEN-MB` nền mobile, cần trước TB-10 | Đính |
+| TB-11 API hồ sơ con, sau khi TB-08 merge | Đính |

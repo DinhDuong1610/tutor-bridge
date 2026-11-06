@@ -79,7 +79,7 @@ Chưa chạy test trên nhánh này vì chưa có thay đổi code.
 | Q6 | Ngưỡng giới hạn cho `registerAccount` và `resendVerification` | Đính, Huy |
 | Q7 | Đăng nhập của ADMIN (trả `AdminMfaChallenge`) thuộc TB-8 hay TB-13? Đề xuất: TB-8 chặn ADMIN đăng nhập, TB-13 mở | Đính |
 | Q8 | Danh sách `termsVersion` hợp lệ lấy từ đâu (cấu hình)? Hiện chưa có văn bản điều khoản nào | Đính, Huy |
-| Q10 | ADR-0010 mục 1 (nền dựng khung xác thực, TB-8 chỉ viết `SessionResolver`) ghi "cần Huy đồng ý". Huy đồng ý chưa? | Huy |
+| Q10 | ADR-0010 mục 1 (nền dựng khung xác thực, TB-8 chỉ viết `SessionResolver`) ghi "cần Huy đồng ý". Huy trả lời ngày 06/11/2026: "Thực hiện theo đúng yêu cầu và kế hoạch ban đầu, nếu cần sửa lỗi hay có những vấn đề cần duyệt hay đưa cho tôi xem". Agent hiểu là làm theo ADR-0010 (không dựng bộ lọc riêng) và giữ kế hoạch 3 PR; chờ Huy xác nhận cách hiểu này trước PR 3 | Huy |
 | Q11 | `SessionResolver`: digest token tính thế nào (SHA-256 hay HMAC có khóa, mã hóa hex hay base64url)? Cập nhật `last_seen_at` cho hạn 24 giờ không hoạt động mỗi yêu cầu hay theo chu kỳ (mỗi yêu cầu thêm một lần ghi)? Liên quan Q4 | Đính, Huy |
 
 ## Bước kế tiếp

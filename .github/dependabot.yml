@@ -28,3 +28,24 @@ updates:
       prefix: build
       include: scope
     open-pull-requests-limit: 5
+    # The Expo SDK fixes these versions (expo/bundledNativeModules.json). React Native refuses a
+    # React that differs from its renderer, so they move together in an SDK upgrade task through
+    # `npx expo install`, never one by one. TypeScript majors need the client generator to catch up.
+    ignore:
+      - dependency-name: react
+      - dependency-name: react-dom
+      - dependency-name: react-native
+      - dependency-name: expo
+        update-types: [version-update:semver-major]
+      - dependency-name: expo-*
+        update-types: [version-update:semver-major]
+      - dependency-name: eslint-config-expo
+        update-types: [version-update:semver-major]
+      - dependency-name: jest-expo
+        update-types: [version-update:semver-major]
+      - dependency-name: "@types/react"
+        update-types: [version-update:semver-major, version-update:semver-minor]
+      - dependency-name: "@types/react-dom"
+        update-types: [version-update:semver-major, version-update:semver-minor]
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]

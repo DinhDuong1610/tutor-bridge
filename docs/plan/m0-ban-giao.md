@@ -49,7 +49,7 @@ Mã lỗi đang dùng: `IDEMPOTENCY_KEY_INVALID`, `IDEMPOTENCY_KEY_REUSED`, `CUR
 - **Mobile:** cài phụ thuộc bằng `npx expo install`. Mobile dùng TypeScript 6, web và client dùng 5.9 vì công cụ sinh client chưa hỗ trợ 6.
 
 ## PR của Dependabot
-Dependabot mở PR cập nhật hằng tuần vào `dev`, không cần phần tác giả. Người duyệt kiểm CI và ghi chú phát hành, rồi squash merge. PR #30 (`setup-gradle` 6.4.1) đang chờ duyệt.
+Dependabot mở PR cập nhật hằng tuần vào `dev`, không cần phần tác giả. Người duyệt kiểm CI và ghi chú phát hành, rồi squash merge. Ngày 04/11/2026 Huy đã merge #30, #33, #38 và đóng #34–#37 vì lệch Expo SDK 57 hoặc TypeScript đã khóa. `.github/dependabot.yml` bỏ qua các gói Expo quản lý và bản chính của TypeScript; nâng chúng trong task nâng SDK riêng.
 
 ## Giới hạn của bằng chứng hiện có
 - TX05 mới kiểm ở tầng service, qua hai Spring context trong một JVM. Kiểm qua HTTP và hai tiến trình thuộc TB-19, TB-23.

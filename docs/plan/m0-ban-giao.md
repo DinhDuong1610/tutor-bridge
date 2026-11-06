@@ -57,7 +57,7 @@ Mã lỗi đang dùng: `IDEMPOTENCY_KEY_INVALID`, `IDEMPOTENCY_KEY_REUSED`, `CUR
 - **Mobile:** cài phụ thuộc bằng `npx expo install`. Từ #50: Testing Library 13 thay cho 14 (bản 14 kéo React 19.3 vào gốc, sinh hai bản React), và `overrides` ở gốc giữ một bản React 19.2.3 cho cả workspace. Mobile dùng TypeScript 6, web và client dùng 5.9 vì công cụ sinh client chưa hỗ trợ 6.
 
 ## PR của Dependabot
-Dependabot mở PR cập nhật hằng tuần vào `dev`, không cần phần tác giả. Người duyệt kiểm CI và ghi chú phát hành, rồi squash merge. Ngày 04/11/2026 Huy đã merge #30, #33, #38 và đóng #34–#37 vì lệch Expo SDK 57 hoặc TypeScript đã khóa. `.github/dependabot.yml` bỏ qua các gói Expo quản lý và bản chính của TypeScript; nâng chúng trong task nâng SDK riêng. Ngày 06/11/2026 Đính merge #59, #61, #62 (bản vá Next, eslint-config-next, vitest) và đóng #60 (ESLint 10, đã ra lệnh bỏ qua bản chính) và #58 (jest 30, PR gộp hai gói nên chỉ đóng tay; sẽ mở lại hằng tuần cho tới khi `dependabot.yml` bỏ qua bản chính của `jest`, `@types/jest`).
+Dependabot mở PR cập nhật hằng tuần vào `dev`, không cần phần tác giả. Người duyệt kiểm CI và ghi chú phát hành, rồi squash merge. Ngày 04/11/2026 Huy đã merge #30, #33, #38 và đóng #34–#37 vì lệch Expo SDK 57 hoặc TypeScript đã khóa. `.github/dependabot.yml` bỏ qua các gói Expo quản lý và bản chính của TypeScript; nâng chúng trong task nâng SDK riêng. Ngày 06/11/2026 Đính merge #59, #61, #62 (bản vá Next, eslint-config-next, vitest) và đóng #60 (ESLint 10, đã ra lệnh bỏ qua bản chính) và #58 (jest 30, PR gộp hai gói nên chỉ đóng tay). `dependabot.yml` nay bỏ qua cả bản chính của `jest`, `@types/jest`, vì `jest-expo` của SDK 57 chạy trên Jest 29.
 
 ## Giới hạn của bằng chứng hiện có
 - TX05 mới kiểm ở tầng service, qua hai Spring context trong một JVM. Kiểm qua HTTP và hai tiến trình thuộc TB-19, TB-23.
@@ -76,4 +76,3 @@ Dependabot mở PR cập nhật hằng tuần vào `dev`, không cần phần t�
 | TB-08 (#8, PR nháp #39): viết `SessionResolver` trong `identity`, khai báo `PublicEndpoints`, không dựng bộ lọc riêng (ADR-0010) | Huy |
 | TB-06 diễn tập đổi agent: Claude làm dở, Codex làm tiếp, người kia review | Cả hai |
 | TB-11 (#11) API hồ sơ con sau khi TB-08 merge; giao diện ở #67 | Đính, Huy |
-| Thêm quy tắc bỏ qua bản chính của `jest`, `@types/jest` vào `.github/dependabot.yml` | Ai rảnh trước, người kia review |

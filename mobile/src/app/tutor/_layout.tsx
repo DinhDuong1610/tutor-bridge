@@ -1,6 +1,11 @@
 import { Stack } from "expo-router";
+import { RequireRole } from "@/shared/session/RequireRole";
 
-// Tutor area (GS screens). M3 adds the guard that only lets a TUTOR session in.
+// Tutor area (GS screens), only for a TUTOR session.
 export default function TutorLayout() {
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <RequireRole role="TUTOR">
+      <Stack screenOptions={{ headerShown: false }} />
+    </RequireRole>
+  );
 }

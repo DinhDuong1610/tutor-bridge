@@ -108,6 +108,9 @@ web/src/
 ### Gọi API trên mobile
 - Đọc: `useQuery` với `queryFn: () => call(api.GET(...))`. `call` trả dữ liệu hoặc ném `ApiError` (có `kind`, `code`, `fields`) hay `UnknownOutcomeError`. Đọc tự thử lại tối đa hai lần khi mất mạng hoặc lỗi 5xx, không thử lại lỗi 4xx.
 - Ghi: `useCommand((input, key) => call(api.POST(..., { params: { header: { "Idempotency-Key": key } } })))`. Màn hình hiển thị theo `state`: `sending`, `confirmed`, `failed` (kèm `error.fields`), `unknown` (nút thử lại gọi `retry`, giữ nguyên khóa). Không tự thử lại lệnh ghi.
+- Phiên: `useSession()` cho `status` (`loading`, `signedIn`, `signedOut` kèm `endedBy`), `signIn(session)` sau đăng nhập, `signOut()` sau khi gọi API đăng xuất. Token chỉ nằm trong `expo-secure-store`. Mọi 401 tự kết thúc phiên, xóa token và dữ liệu đã tải, đưa về `/sign-in`; màn hình không tự xử lý 401.
+- Khu vực theo vai trò bọc bằng `RequireRole` trong `_layout.tsx`; màn hình đăng nhập bọc bằng `RequireSignedOut`. Máy chủ vẫn kiểm quyền mọi yêu cầu.
+- Test cần phiên: `storeSession(fakeSession("PARENT"))` của `@/shared/test/session`; `expo-secure-store` được thay bằng bản giả trong `mobile/__mocks__`.
 - Cả workspace dùng một bản React (`overrides` ở `package.json` gốc), đúng bản Expo SDK yêu cầu. Thêm thư viện React phải giữ điều này: `npm ls react` chỉ có một phiên bản.
 
 ### Thêm một màn hình

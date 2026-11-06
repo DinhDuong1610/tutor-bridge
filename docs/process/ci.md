@@ -16,7 +16,7 @@ Dặn agent bằng tài liệu là chưa đủ. CI chặn những gì bắt bu�
 | `architecture` | Mô-đun gọi ngược chiều, dùng `internal` của nhau (INV-82) | Có, `ArchitectureTest`. Chưa kiểm được SQL đọc bảng của mô-đun khác |
 | `contract-check` | Code lệch OpenAPI; đổi phá vỡ không có phiên bản | Có: `oasdiff breaking` so `contracts/openapi.yaml` với nhánh đích trong `repo.yml` (#40), lỗi mức ERR thì chặn, cảnh báo chỉ in ra; phản hồi khớp hợp đồng kiểm bằng `Contract.matches()` trong test HTTP, chạy cùng `backend-build` (#47) |
 | `client-sync` | API client sinh ra lệch hợp đồng | Có, `frontend.yml` |
-| `mobile-build`, `web-build` | Build, lint, typecheck, test | Có, `frontend.yml`. Mobile bundle Android; web chưa có test vì chưa có logic |
+| `mobile-build`, `web-build` | Build, lint, typecheck, test | Có, `frontend.yml`. Mobile bundle Android; web chạy Vitest từ #55 |
 | `worker-build` | Lint, test worker Python | Khi có worker |
 | `dependency-scan` | Phụ thuộc có lỗ hổng nghiêm trọng | Một phần: Dependabot cập nhật hằng tuần. Cần bật Dependabot alerts trong cài đặt repo |
 

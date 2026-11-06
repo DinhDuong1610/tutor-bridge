@@ -14,7 +14,7 @@ Viết ngày 03/11/2026, khi M0 vào `dev`. Dành cho Huy khi vào repo, và cho
 | CI | `repo.yml`, `backend.yml`, Dependabot | #26 |
 | Ứng dụng | API client sinh từ OpenAPI, khung Expo SDK 57, khung Next.js 16.4, `frontend.yml` | #31 |
 
-Theo OP-14, đợt M0 là ngoại lệ: agent viết phần tác giả, merge không qua duyệt chéo, Huy không cần rà lại. **Từ PR sau, quy trình Git áp dụng đầy đủ:** người làm và người duyệt khác nhau, tác giả tự viết phần giải thích.
+Phần nền sau M0 cũng merge theo ngoại lệ OP-15 (06/11/2026). Theo OP-14, đợt M0 là ngoại lệ: agent viết phần tác giả, merge không qua duyệt chéo, Huy không cần rà lại. **Từ PR sau, quy trình Git áp dụng đầy đủ:** người làm và người duyệt khác nhau, tác giả tự viết phần giải thích.
 
 ## Bắt đầu cho người mới vào repo
 1. Clone, rồi chạy `git config core.hooksPath .githooks`.
@@ -48,6 +48,7 @@ Mã lỗi đang dùng: `IDEMPOTENCY_KEY_INVALID`, `IDEMPOTENCY_KEY_REUSED`, `CUR
 - **Test đồng thời:** dùng `Concurrently`, không dùng `CompletableFuture.supplyAsync` mặc định. Common pool trên runner ít lõi làm các lệnh chạy lần lượt.
 - **Migration:** số tiếp theo là V9, Đính cấp trong Issue. V1–V6 bị khóa bằng `BaselineMigrationsTest`, migration đã merge bị khóa bằng `immutable-history`.
 - **`vector`** không phải extension trusted: môi trường thật phải cài bằng superuser trước V6.
+- **React và kiểu React:** `overrides` ở `package.json` gốc giữ một bản `react`, `react-dom`, `@types/react`, `@types/react-dom` cho mobile và web (#50, #54). Hai bản `@types/react` làm component shadcn/ui lỗi kiểu.
 - **Mobile:** cài phụ thuộc bằng `npx expo install`. Từ #50: Testing Library 13 thay cho 14 (bản 14 kéo React 19.3 vào gốc, sinh hai bản React), và `overrides` ở gốc giữ một bản React 19.2.3 cho cả workspace. Mobile dùng TypeScript 6, web và client dùng 5.9 vì công cụ sinh client chưa hỗ trợ 6.
 
 ## PR của Dependabot
@@ -62,7 +63,9 @@ Dependabot mở PR cập nhật hằng tuần vào `dev`, không cần phần t�
 ## Việc tiếp theo
 | Việc | Người |
 |---|---|
+| Huy đọc lại phần nền đã merge theo OP-15 (#63–#66): `conventions.md`, `mobile/AGENTS.md`, `web/AGENTS.md`, test mẫu ba phần | Huy |
+| Chia lại Issue chức năng theo kế hoạch Lát 1 (tách backend và giao diện, CR-012) | Đính |
 | TB-06 diễn tập đổi agent: Claude làm dở, Codex làm tiếp, người kia review | Cả hai |
-| TB-08 đăng ký, đăng nhập, phiên (PR nháp #39, #40) | Huy |
+| TB-08 đăng ký, đăng nhập, phiên (PR nháp #39, #40): viết `SessionResolver` trong `identity`, khai báo `PublicEndpoints`, không dựng bộ lọc riêng (ADR-0010) | Huy |
 | `NEN-MB` nền mobile, cần trước TB-10 | Đính |
 | TB-11 API hồ sơ con, sau khi TB-08 merge | Đính |

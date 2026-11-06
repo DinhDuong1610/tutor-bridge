@@ -11,6 +11,16 @@ Dùng khi rà một PR, kể cả tự rà trước khi gửi và khi agent này
 6. **Mở rộng:** truy vấn có giới hạn, có chỉ mục, không N+1, không trạng thái trong RAM.
 7. **Ranh giới:** không đọc bảng mô-đun khác, không gọi ngược chiều.
 
+## Dùng đúng nền
+Phần nền đã có sẵn ([conventions](../context/conventions.md)). PR tự làm lại phần nền, hoặc đi vòng qua nó, là lỗi cần sửa.
+
+| Phần | Phải thấy |
+|---|---|
+| Backend | Controller khai báo `IdempotencyKey`, `WritePrecondition`, lấy `@AuthenticationPrincipal Actor`; thao tác công khai khai báo bằng `PublicEndpoints`; test HTTP kế thừa `HttpTest` và có `Contract.matches()`; thời gian và ID từ `Clock`, `IdGenerator` |
+| Mobile | Đọc bằng `call` trong `useQuery`, ghi bằng `useCommand`; màn hình dùng `QueryScreen`, `CommandStatus`; không xử lý 401 tại chỗ; màu từ `theme.ts`; test bằng `mockApi`, `renderScreen` |
+| Web | Trang quản trị gọi `verifyAdminSession()` rồi `load(...)`; ghi qua Server Action trả `runCommand(...)` và `useServerCommand`; không gọi API từ trình duyệt; màu từ biến CSS |
+| Chung | Không thêm thư viện ngoài ADR-0009 khi chưa có Đính; `npm ls react @types/react` một phiên bản; không sinh `Idempotency-Key` tại màn hình |
+
 ## Mức rà theo rủi ro
 | Vùng | Cách rà |
 |---|---|

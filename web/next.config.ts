@@ -1,8 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // The API client ships TypeScript source from the workspace.
-  transpilePackages: ["@tutorbridge/api-client"],
+  // Workspace packages ship TypeScript source.
+  transpilePackages: ["@tutorbridge/api-client", "@tutorbridge/shared"],
   cacheComponents: true,
   partialPrefetching: true,
   reactCompiler: true,

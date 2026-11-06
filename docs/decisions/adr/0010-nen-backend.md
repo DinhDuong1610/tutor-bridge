@@ -1,6 +1,6 @@
 # ADR-0010 Nền backend: tầng web dùng chung và khung xác thực
 
-**Trạng thái:** Đã chọn (Đính, 06/11/2026), trừ cơ chế CSRF ở mục 3 còn chờ duyệt. Mục 1 chạm TB-08 nên cần Huy đồng ý. **Chủ trì:** Đính (CR-012).
+**Trạng thái:** Đã chọn (Đính, 06/11/2026), gồm cả cơ chế CSRF ở mục 3 (duyệt sau khi xem B2). Mục 1 chạm TB-08 nên cần Huy đồng ý. **Chủ trì:** Đính (CR-012).
 
 ## Vấn đề
 Backend đã có Problem, receipt, outbox, phân trang (TB-04) nhưng chưa có controller nào. Mỗi Issue backend sắp tới sẽ cần cùng một bộ: đọc `Idempotency-Key` và `If-Match`, đặt `Cache-Control`, biết ai đang gọi, chặn khi chưa đăng nhập. Nếu Issue đầu tiên tự dựng, Issue sau phải chờ hoặc dựng lại theo kiểu khác.
@@ -12,7 +12,7 @@ Backend đã có Problem, receipt, outbox, phân trang (TB-04) nhưng chưa có 
    - Bộ lọc đọc `Authorization: Bearer <token>`, gọi `SessionResolver`, trả 401 dạng Problem khi thao tác cần phiên mà không có.
    - Trong test có helper giả lập `Actor` để Issue khác test được trước khi TB-08 merge.
 2. **Dùng Spring Security, cấu hình tối thiểu** (Đính). Spring Security chỉ lo xác thực, chặn khi chưa đăng nhập, header bảo mật, 401 và 403 dạng Problem. Cấu hình: không tạo session máy chủ, tắt form login, HTTP Basic và CSRF (API chỉ nhận bearer, xem mục 3). Bộ lọc xác thực ở mục 1 là một bộ lọc trong chuỗi của Spring Security. Controller lấy `Actor` qua `@AuthenticationPrincipal` rồi truyền xuống service. Phân quyền theo quan hệ (phụ huynh và con, gia sư và lớp) vẫn kiểm trong service bằng truy vấn DB, không dùng `@PreAuthorize` cho việc này.
-3. **API nhận cả bearer và cookie, theo hợp đồng** (Đính chọn giữ hợp đồng, 06/11/2026). `contracts/openapi.yaml` khai báo `bearerAuth` cho mobile và `cookieAuth` (cookie `tb_session`, Secure, HttpOnly) cho web quản trị (ADR-0004). Bộ lọc xác thực đọc bearer trước, không có thì đọc cookie; cả hai đi qua cùng `SessionResolver`. Yêu cầu xác thực bằng cookie mà thay đổi dữ liệu (không phải GET, HEAD, OPTIONS) phải qua kiểm CSRF và Origin; yêu cầu bằng bearer không cần, vì trình duyệt không tự gửi bearer. Cơ chế CSRF là đề xuất của agent, Đính duyệt khi review B2:
+3. **API nhận cả bearer và cookie, theo hợp đồng** (Đính chọn giữ hợp đồng, 06/11/2026). `contracts/openapi.yaml` khai báo `bearerAuth` cho mobile và `cookieAuth` (cookie `tb_session`, Secure, HttpOnly) cho web quản trị (ADR-0004). Bộ lọc xác thực đọc bearer trước, không có thì đọc cookie; cả hai đi qua cùng `SessionResolver`. Yêu cầu xác thực bằng cookie mà thay đổi dữ liệu (không phải GET, HEAD, OPTIONS) phải qua kiểm CSRF và Origin; yêu cầu bằng bearer không cần, vì trình duyệt không tự gửi bearer. Cơ chế CSRF do agent đề xuất, Đính duyệt ngày 06/11/2026:
    - CSRF của Spring Security theo kiểu double-submit: cookie `tb_csrf` không HttpOnly, client gửi lại giá trị trong header `X-CSRF-Token`.
    - Origin, hoặc Referer khi thiếu Origin, phải nằm trong danh sách nguồn web quản trị lấy từ cấu hình; thiếu cả hai thì từ chối.
    - Vi phạm trả 403 dạng Problem với mã `CSRF_REJECTED`.

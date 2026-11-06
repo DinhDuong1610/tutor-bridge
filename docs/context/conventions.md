@@ -36,7 +36,7 @@ Những mục ghi **TBD** sẽ chốt khi dựng repo.
 - npm workspaces: `packages/*`, `mobile`, `web`. Cài phụ thuộc mobile bằng `npx expo install` để đúng bản SDK.
 - Dùng `@tutorbridge/api-client`, sinh từ OpenAPI bằng `openapi-typescript` và gọi qua `openapi-fetch`. Không sửa `schema.d.ts` bằng tay; đổi hợp đồng thì chạy `npm run generate:api`.
 - Web gọi API ở phía máy chủ (`server-only`). Mobile chỉ dùng biến `EXPO_PUBLIC_`, không chứa bí mật.
-- Điều hướng mobile: **TBD** ở TB-10. Hướng dẫn của Expo đề xuất Expo Router.
+- Điều hướng mobile: **TBD** ở Issue `NEN-MB`, Đính chốt (CR-012). Hướng dẫn của Expo đề xuất Expo Router. Cấu trúc thư mục, lưu phiên, lấy dữ liệu của mobile và web cũng chốt ở `NEN-MB`, `NEN-WEB`.
 - Mỗi màn hình có đủ: tải, rỗng, lỗi trường, lỗi hệ thống, hết phiên, mất quyền.
 - Lệnh ghi có: đang gửi, đã xác nhận, chưa rõ kết quả, thử lại an toàn.
 - Giữ dữ liệu đã nhập khi lỗi. Không chỉ dùng màu để phân biệt trạng thái.

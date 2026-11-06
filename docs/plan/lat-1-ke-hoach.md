@@ -14,12 +14,14 @@ Chia [phạm vi Lát 1](../context/r0a-scope.md) thành các mốc nhỏ. Mỗi 
 
 Tức Lát 1 đã xấp xỉ hoặc vượt khung 10 tuần của G4 và G5 trong kế hoạch gốc. R0 đầy đủ sẽ cần phạm vi hoặc thời gian lớn hơn, phải ước lượng lại. Không dùng các số này làm cam kết ngày.
 
+Tổng trên chưa gồm hai Issue nền giao diện thêm ngày 06/11/2026, vì chưa ước lượng.
+
 ## Mốc
 | Mốc | Kết quả chạy được | Tương ứng |
 |---|---|---|
 | M0 Nền móng | Repo, CI, schema, khung API và app; đã diễn tập đổi agent | G4 |
 | M1 Rủi ro lớn nhất | TX05 đúng khi đồng thời qua hai bản API | G4 |
-| **Cổng phỏng vấn** | Có kết quả OP-05, OP-06 trước khi mở rộng tính năng | Điều kiện G5 |
+| **Cổng phỏng vấn** | Đã qua bằng chấp nhận rủi ro: OP-05, OP-06 đóng ngày 06/11/2026, chưa có phỏng vấn và chưa thử bản mẫu | Điều kiện G5 |
 | M2 Tài khoản | Đăng ký, đăng nhập, quản lý phiên trên điện thoại thật | G5 |
 | M3 Hồ sơ | Có hồ sơ con và gia sư đã được duyệt | G5 |
 | M4 Lịch và nhu cầu | Phụ huynh xác nhận được nhu cầu | G5 |
@@ -29,8 +31,19 @@ Tức Lát 1 đã xấp xỉ hoặc vượt khung 10 tuần của G4 và G5 tron
 
 M1 đặt trước tài khoản có chủ đích: nếu TX05 có vấn đề, biết sớm khi chi phí sửa còn thấp. Test gọi service bằng dữ liệu seed, chưa cần màn hình.
 
+Mốc vẫn kết thúc bằng thứ chạy được trên app. Issue giao diện của một mốc phải xong trong mốc đó, không dồn về cuối.
+
+## Cách chia Issue
+Theo [CR-012](../decisions/change-requests.md):
+
+- **Chủ trì kiến trúc:** Đính cho backend Spring, Next.js và React Native; Huy cho AI Python. Người chủ trì duyệt quyết định kiến trúc của phần mình (XC01). Cả hai vẫn cùng code backend và React Native (CR-001).
+- **Tách backend và giao diện.** Chức năng có cả API và màn hình thành hai Issue. Issue giao diện phụ thuộc Issue backend và dùng API client sinh từ hợp đồng, nên có thể giao cho người khác.
+- **Mã tạm:** Issue backend giữ mã `TB-` cũ, trùng số Issue đã có trên GitHub. Issue giao diện mới có mã tạm `GD-<số TB>`, Issue nền có mã `NEN-MB`, `NEN-WEB`. Số thật do GitHub cấp khi tạo.
+
 ## Danh sách Issue
-Người phụ trách là đề xuất, Đính chốt khi chia việc. Mã `TB-` chỉ là tạm; số thật do GitHub cấp.
+Người phụ trách là đề xuất, Đính chốt khi chia việc.
+
+Giờ của Issue backend có dấu `*` là ước lượng cũ cho cả API lẫn màn hình. Chia lại giờ khi tạo Issue giao diện.
 
 | Mã | Mốc | Việc | Phụ thuộc | Giờ | Người | API | Màn hình |
 |---|---|---|---|---|---|---|---|
@@ -41,31 +54,44 @@ Người phụ trách là đề xuất, Đính chốt khi chia việc. Mã `TB-`
 | TB-05 | M0 | Khung mobile, web, API client sinh từ OpenAPI | TB-01 | 12–20 | Đính | | |
 | TB-06 | M0 | Diễn tập: Claude làm dở, Codex tiếp, người kia review; sửa playbook theo chỗ vướng | TB-02 | 3–5 | Cả hai | | |
 | TB-07 | M1 | TX05 ở tầng service, test đồng thời qua hai bản API | TB-04 | 24–36 | Đính | | |
+| NEN-MB | M2 | Nền mobile: điều hướng, cấu trúc thư mục, lưu phiên, lấy dữ liệu, thành phần cho trạng thái bắt buộc và lệnh ghi, theme; viết lại `mobile/AGENTS.md` | TB-05 | Chưa ước lượng | Đính | | |
 | TB-08 | M2 | Đăng ký, xác minh, đăng nhập, phiên; ADR băm mật khẩu | TB-04 | 20–30 | Huy | `registerAccount`, `verifyEmail`, `resendVerification`, `loginAccount`, `logoutAccount`, `listOwnSessions`, `revokeOwnSession` | |
 | TB-09 | M2 | Khôi phục, đổi mật khẩu, tái xác thực | TB-08 | 12–18 | Huy | `requestRecovery`, `resetPassword`, `changePassword`, `reauthenticate` | |
-| TB-10 | M2 | Màn hình tài khoản | TB-05, TB-09 | 16–24 | Huy | | AUTH01, AUTH02, AUTH03, AUTH04, AUTH05, AUTH06 |
-| TB-11 | M3 | Hồ sơ con | TB-08 | 10–16 | Đính | `listStudents`, `createStudent`, `getStudentProfile`, `patchStudent` | PH02 |
+| TB-10 | M2 | Màn hình tài khoản | NEN-MB, TB-09 | 16–24 | Huy | | AUTH01, AUTH02, AUTH03, AUTH04, AUTH05, AUTH06 |
+| TB-11 | M3 | API hồ sơ con | TB-08 | 10–16 * | Đính | `listStudents`, `createStudent`, `getStudentProfile`, `patchStudent` | |
+| GD-11 | M3 | Màn hình hồ sơ con | TB-11, NEN-MB | Trong TB-11 | Huy | | PH02 |
 | TB-12 | M3 | Hồ sơ gia sư, gửi duyệt, tải minh chứng, kho tệp local | TB-08 | 20–30 | Huy | `saveTutorProfile`, `getOwnTutorProfile`, `submitTutorProfile`, `createEvidenceUpload`, `completeEvidenceUpload` | |
-| TB-13 | M3 | Quản trị xác minh, MFA, web | TB-12 | 24–36 | Đính | `completeAdminMfa`, `listAssignedVerifications`, `decideVerification`, `readAssignedEvidence` | AD01, AD03, AD04 |
+| NEN-WEB | M3 | Nền web quản trị: cấu trúc thư mục, phiên quản trị bằng cookie và CSRF phía Next, bố cục, thành phần trạng thái; viết lại `web/AGENTS.md` | TB-05, TB-08 | Chưa ước lượng | Đính | | |
+| TB-13 | M3 | API quản trị xác minh, MFA | TB-12 | 24–36 * | Đính | `completeAdminMfa`, `listAssignedVerifications`, `decideVerification`, `readAssignedEvidence` | |
+| GD-13 | M3 | Web quản trị xác minh | TB-13, NEN-WEB | Trong TB-13 | Đính | | AD01, AD03, AD04 |
 | TB-14 | M3 | Màn hình hồ sơ gia sư, trang chủ hai vai trò | TB-10, TB-12 | 12–18 | Huy | | PH01, GS01, GS02, GS03 |
-| TB-15 | M4 | Lịch rảnh, ngoại lệ, sinh cửa sổ UTC | TB-11 | 24–36 | Đính | `getTutorCalendar`, `replaceTutorCalendar`, `getStudentCalendar`, `replaceStudentCalendar` | GS04 |
-| TB-16 | M4 | Nhu cầu có phiên bản | TB-15 | 20–30 | Đính | `listNeeds`, `createNeedDraft`, `getNeed`, `updateNeedDraft`, `confirmNeed` | PH03, PH04, PH05 |
-| TB-17 | M5 | Lọc cứng, giao lịch, xếp hạng B, lưu lượt gợi ý | TB-12, TB-16 | 28–40 | Huy | `createMatchingRun`, `getMatchingRun`, `getTutorPublic` | PH06, PH07 |
+| TB-15 | M4 | API lịch rảnh, ngoại lệ, sinh cửa sổ UTC | TB-11 | 24–36 * | Đính | `getTutorCalendar`, `replaceTutorCalendar`, `getStudentCalendar`, `replaceStudentCalendar` | |
+| GD-15 | M4 | Màn hình lịch rảnh | TB-15, NEN-MB | Trong TB-15 | Huy | | GS04 |
+| TB-16 | M4 | API nhu cầu có phiên bản | TB-15 | 20–30 * | Đính | `listNeeds`, `createNeedDraft`, `getNeed`, `updateNeedDraft`, `confirmNeed` | |
+| GD-16 | M4 | Màn hình nhu cầu | TB-16, GD-11 | Trong TB-16 | Huy | | PH03, PH04, PH05 |
+| TB-17 | M5 | API lọc cứng, giao lịch, xếp hạng B, lưu lượt gợi ý | TB-12, TB-16 | 28–40 * | Huy | `createMatchingRun`, `getMatchingRun`, `getTutorPublic` | |
+| GD-17 | M5 | Màn hình gợi ý gia sư | TB-17, GD-16 | Trong TB-17 | Đính | | PH06, PH07 |
 | TB-18 | M6 | Gửi, từ chối, hủy, hết hạn đề nghị | TB-17 | 16–24 | Đính | `sendOffer`, `listOffers`, `getOffer`, `rejectOffer`, `cancelOffer` | |
-| TB-19 | M6 | Nối `acceptOffer` vào HTTP, màn hình đề nghị | TB-07, TB-18 | 16–24 | Huy | `acceptOffer` | PH08, PH09, GS05 |
-| TB-20 | M6 | Xem lớp và buổi | TB-19 | 10–16 | Huy | `getClass`, `listSessions` | CL01, CL02 |
-| TB-21 | M6 | Bộ phát thông báo, hộp thông báo | TB-18 | 12–18 | Đính | `listOwnNotifications`, `markNotificationRead` | COM01 |
-| TB-22 | M6 | Tra trạng thái lệnh, xử lý chưa rõ kết quả trên app | TB-19 | 8–12 | Huy | `getCommandStatus`, `findCommandStatus` | |
-| TB-23 | M7 | Ca quyền trên mọi API, AT01–AT04, hai bản API | TB-22 | 16–24 | Cả hai | | |
+| TB-19 | M6 | Nối `acceptOffer` vào HTTP | TB-07, TB-18 | 16–24 * | Huy | `acceptOffer` | |
+| GD-19 | M6 | Màn hình đề nghị | TB-19, GD-17 | Trong TB-19 | Đính | | PH08, PH09, GS05 |
+| TB-20 | M6 | API xem lớp và buổi | TB-19 | 10–16 * | Huy | `getClass`, `listSessions` | |
+| GD-20 | M6 | Màn hình lớp và buổi | TB-20, GD-19 | Trong TB-20 | Huy | | CL01, CL02 |
+| TB-21 | M6 | Bộ phát thông báo, API hộp thông báo | TB-18 | 12–18 * | Đính | `listOwnNotifications`, `markNotificationRead` | |
+| GD-21 | M6 | Màn hình hộp thông báo | TB-21, NEN-MB | Trong TB-21 | Huy | | COM01 |
+| TB-22 | M6 | API tra trạng thái lệnh | TB-19 | 8–12 * | Huy | `getCommandStatus`, `findCommandStatus` | |
+| GD-22 | M6 | Xử lý chưa rõ kết quả trên app bằng tra trạng thái lệnh | TB-22, GD-19 | Trong TB-22 | Đính | | |
+| TB-23 | M7 | Ca quyền trên mọi API, AT01–AT04, hai bản API | TB-22, các Issue GD của M6 | 16–24 | Cả hai | | |
 | TB-24 | M7 | Job dọn receipt và outbox theo lô | TB-04 | 6–10 | Đính | | |
+
+Cách gán người ở trên: Issue backend giữ người cũ, Issue giao diện thường giao cho người không làm backend của chức năng đó, để cả hai hiểu cả hai phía. Theo ước lượng cũ, phần Huy vẫn nhiều hơn phần Đính. Đính cân lại khi chia lại giờ.
 
 ## Việc không phải code, chạy song song
 | Việc | Người | Hạn |
 |---|---|---|
-| Phỏng vấn tối thiểu 10 phụ huynh, 10 gia sư, hoặc ghi nhận chấp nhận rủi ro (OP-05) | Đính, Huy | Trước M2 |
-| Thử bản mẫu theo tiêu chí đã chốt (OP-06) | Cả hai | Trước M2 |
+| ~~Phỏng vấn tối thiểu 10 phụ huynh, 10 gia sư~~: đã thay bằng chấp nhận rủi ro (OP-05, 06/11/2026) | Đính | Xong |
+| ~~Thử bản mẫu theo tiêu chí đã chốt~~: đã thay bằng chấp nhận rủi ro (OP-06, 06/11/2026) | Đính | Xong |
 | Ngân sách và mốc (OP-01) | Đính, Huy | Trước khi cam kết ngày |
-| Thêm Huy vào repo (OP-13) | Đính | Trước TB-02 |
+| Thêm Huy vào repo (OP-13) | Đính | Xong |
 | Quyết định môi trường thử chung, ngoài máy local | Đính | Trước M6 |
 
 ## Rủi ro kế hoạch
@@ -73,3 +99,5 @@ Người phụ trách là đề xuất, Đính chốt khi chia việc. Mã `TB-`
 - Tăng tốc nhờ agent có thể đổi lại nợ hiểu biết. Nếu review bị dồn, giảm tốc độ tạo code, không giảm review.
 - Chi tiết như mẫu email, kho tệp, thiết bị thử có thể làm phát sinh giờ chưa tính.
 - Thiếu nguồn gia sư thật không chặn Lát 1 vì dùng dữ liệu giả, nhưng chặn R0.
+- Làm Lát 1 khi chưa phỏng vấn và chưa thử bản mẫu (OP-05, OP-06). Có thể làm đúng kỹ thuật nhưng sai nhu cầu. Lát 1 không chứng minh được nhu cầu thị trường.
+- Tách backend và giao diện thêm điểm bàn giao giữa hai người. Issue giao diện chờ Issue backend merge; hợp đồng phải chốt trước để hai bên làm song song được.

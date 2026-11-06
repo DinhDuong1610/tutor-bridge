@@ -1,3 +1,12 @@
+## TutorBridge rules come first
+
+Follow `../AGENTS.md` and `../docs/context/conventions.md`. They override the generic Expo guidance below.
+
+- The navigation library and folder structure are **not decided yet**. They are set in Issue `NEN-MB` (see `../docs/plan/lat-1-ke-hoach.md`), which Đính leads (CR-012). Until that Issue is merged, do not add Expo Router or any other navigation library, and do not create `src/app/`.
+- Use `@tutorbridge/api-client` for every API call. Only `EXPO_PUBLIC_` variables, never secrets.
+
+## Generic Expo guidance
+
 This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
 
 ## Expo has changed — do not trust your training data

@@ -5,7 +5,7 @@ Quy trình dùng chung cho Đính, Huy, Claude và Codex. Nội dung thật nằ
 | Playbook | Dùng khi | Gọi trong Claude | Gọi trong Codex |
 |---|---|---|---|
 | [start-task](start-task.md) | Bắt đầu hoặc tiếp nhận task | `/start-task` | `$start-task` |
-| [implement-slice](implement-slice.md) | Làm một lát dọc | `/implement-slice` | `$implement-slice` |
+| [implement-slice](implement-slice.md) | Làm một chức năng: Issue backend hoặc Issue giao diện | `/implement-slice` | `$implement-slice` |
 | [transaction-change](transaction-change.md) | Đụng lịch, giao dịch, khóa, thu hồi | `/transaction-change` | `$transaction-change` |
 | [contract-change](contract-change.md) | Đổi OpenAPI hoặc migration | `/contract-change` | `$contract-change` |
 | [review-pr](review-pr.md) | Rà PR | `/review-pr` | `$review-pr` |

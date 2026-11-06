@@ -39,6 +39,7 @@ GitHub Free không ép CODEOWNERS trên repo private, nên đây là quy ước.
 | `contracts/`, migration, `docs/decisions/`, `docs/context/` | Cả hai đọc, người không phải tác giả duyệt |
 | `AGENTS.md`, `.claude/`, `.agents/`, `docs/playbooks/` | Cả hai đọc, người không phải tác giả duyệt |
 | Giao dịch trong mô-đun `classes` | Đọc từng dòng |
+| `backend/`, `mobile/`, `packages/` | Người không phải tác giả duyệt; kiến trúc do Đính chủ trì (CR-012) |
 | `ai-worker/` | Huy chủ trì |
 | `web/` | Đính chủ trì |
 

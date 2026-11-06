@@ -1,6 +1,6 @@
 ---
 name: implement-slice
-description: Use when building a TutorBridge vertical slice across API, service, data, UI and tests. Do not use alone for scheduling or transaction work; use transaction-change too.
+description: Use when building a TutorBridge feature Issue, either the backend part (API, service, data, tests) or the UI part (screens, tests). Do not use alone for scheduling or transaction work; use transaction-change too.
 ---
 
 Read `docs/playbooks/implement-slice.md` from the repository root and follow it exactly. Also obey `AGENTS.md`.

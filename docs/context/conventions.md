@@ -95,15 +95,19 @@ Tên thư mục tính năng theo luồng: `account`, `students`, `tutor-profile`
 ```text
 web/src/
   app/
-    (public)/          WEB01, WEB02
-    admin/             AD, chặn khi chưa có phiên quản trị và MFA
+    (public)/          WEB01 (/), WEB02 (/huong-dan); không có học liệu riêng
+    admin/(auth)/      AD01 /admin/sign-in
+    admin/(console)/   AD03 /admin/verifications, AD04...; chặn khi chưa có phiên quản trị và MFA
+    not-found.tsx      404 tiếng Việt
   proxy.ts             chặn route quản trị khi chưa có cookie phiên
   features/<tính năng>/   giống mobile: screens, components, actions.ts (server action), schemas.ts
   shared/
     api/               client gọi API bằng cookie phiên `tb_session` (ADR-0010 mục 3)
     session/           cookie phiên, token CSRF, chặn route khi hết phiên
+    lib/utils.ts       cn() cho class Tailwind
     ui/                component shadcn/ui và khung trang đủ trạng thái
 ```
+Màu là biến CSS trong `src/app/globals.css`, cùng bảng màu với mobile. Thêm component shadcn/ui theo `web/AGENTS.md`.
 
 ### Gọi API trên mobile
 - Đọc: `useQuery` với `queryFn: () => call(api.GET(...))`. `call` trả dữ liệu hoặc ném `ApiError` (có `kind`, `code`, `fields`) hay `UnknownOutcomeError`. Đọc tự thử lại tối đa hai lần khi mất mạng hoặc lỗi 5xx, không thử lại lỗi 4xx.

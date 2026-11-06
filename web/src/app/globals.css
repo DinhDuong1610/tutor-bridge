@@ -1,14 +1,65 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens, the same palette as mobile/src/shared/ui/theme.ts (contrast measured there:
+ * text at least 5.4:1, borders 3.8:1). Names follow shadcn/ui so its components pick them up.
+ * Placeholder colors until there is a visual design.
+ */
 :root {
   color-scheme: light;
-  font-family: system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --background: #ffffff;
+  --foreground: #14181f;
+  --muted: #f4f6f8;
+  --muted-foreground: #4a5361;
+  --border: #7a8494;
+  --input: #7a8494;
+  --ring: #0b5cad;
+  --primary: #0b5cad;
+  --primary-foreground: #ffffff;
+  --secondary: #f4f6f8;
+  --secondary-foreground: #14181f;
+  --accent: #e8f1fb;
+  --accent-foreground: #14181f;
+  --destructive: #b42318;
+  --destructive-foreground: #ffffff;
+  --card: #ffffff;
+  --card-foreground: #14181f;
+  --popover: #ffffff;
+  --popover-foreground: #14181f;
+  --radius: 0.625rem;
 }
 
-body {
-  margin: 0;
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --font-sans: system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-main {
-  max-width: 40rem;
-  margin: 0 auto;
-  padding: 3rem 1rem;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
 }

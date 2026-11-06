@@ -48,6 +48,7 @@ Mã lỗi đang dùng: `IDEMPOTENCY_KEY_INVALID`, `IDEMPOTENCY_KEY_REUSED`, `CUR
 - **Test đồng thời:** dùng `Concurrently`, không dùng `CompletableFuture.supplyAsync` mặc định. Common pool trên runner ít lõi làm các lệnh chạy lần lượt.
 - **Migration:** số tiếp theo là V9, Đính cấp trong Issue. V1–V6 bị khóa bằng `BaselineMigrationsTest`, migration đã merge bị khóa bằng `immutable-history`.
 - **`vector`** không phải extension trusted: môi trường thật phải cài bằng superuser trước V6.
+- **React và kiểu React:** `overrides` ở `package.json` gốc giữ một bản `react`, `react-dom`, `@types/react`, `@types/react-dom` cho mobile và web (#50, #54). Hai bản `@types/react` làm component shadcn/ui lỗi kiểu.
 - **Mobile:** cài phụ thuộc bằng `npx expo install`. Từ #50: Testing Library 13 thay cho 14 (bản 14 kéo React 19.3 vào gốc, sinh hai bản React), và `overrides` ở gốc giữ một bản React 19.2.3 cho cả workspace. Mobile dùng TypeScript 6, web và client dùng 5.9 vì công cụ sinh client chưa hỗ trợ 6.
 
 ## PR của Dependabot

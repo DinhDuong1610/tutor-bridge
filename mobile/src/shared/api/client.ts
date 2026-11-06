@@ -19,7 +19,9 @@ export function createClient(options: {
   fetch?: (request: Request) => Promise<Response>;
   token?: TokenSource;
 } = {}): ApiClient {
-  const client = createApiClient({ baseUrl: options.baseUrl ?? DEFAULT_BASE_URL, fetch: options.fetch });
+  // Look fetch up on each request, so screen tests can replace it (shared/test/mockApi).
+  const fetch = options.fetch ?? ((request: Request) => globalThis.fetch(request));
+  const client = createApiClient({ baseUrl: options.baseUrl ?? DEFAULT_BASE_URL, fetch });
   const token = options.token ?? (() => currentTokenSource());
   client.use({
     async onRequest({ request }) {

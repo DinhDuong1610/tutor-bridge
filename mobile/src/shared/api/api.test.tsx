@@ -6,11 +6,6 @@ import { useCommand } from "./command";
 import { ApiError, UnknownOutcomeError, call } from "./errors";
 import { createQueryClient, shouldRetryRead } from "./queryClient";
 
-jest.mock("expo-crypto", () => ({
-  // eslint-disable-next-line @typescript-eslint/no-require-imports -- jest.mock factories cannot use imports
-  getRandomValues: (bytes: Uint8Array) => require("node:crypto").getRandomValues(bytes),
-}));
-
 const PROBLEM = {
   type: "urn:tutorbridge:problem:VALIDATION_FAILED",
   title: "Dữ liệu chưa hợp lệ.",

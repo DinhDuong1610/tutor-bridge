@@ -119,6 +119,12 @@ web/src/
 - Lệnh ghi hiển thị bằng `CommandStatus` cạnh nút gửi; nút gửi đặt `busy` khi `state === "sending"`. Lỗi trường đặt vào `TextField error`.
 - Không chỉ dùng màu để báo trạng thái; không đặt chiều cao cố định quanh chữ để chữ phóng to 200% vẫn đọc được.
 
+### Form và test màn hình mobile
+- Form: `useForm` với `zodResolver(schema)`; giới hạn lấy từ schema của hợp đồng, máy chủ vẫn kiểm lại. Ô nhập dùng `FormTextField`. Lỗi trường của máy chủ đặt vào ô bằng `useServerErrors(command.error, form.setError, [tên ô])`; lỗi không thuộc ô nào trả về để hiện trên form.
+- Ngày giờ và tiền hiển thị bằng `formatDateTime`, `formatDate`, `formatTime`, `formatVnd` của `@tutorbridge/shared`.
+- Test màn hình: `mockApi({ "GET /students": () => json(200, ...) })` thay `fetch` theo đường dẫn hợp đồng, yêu cầu ngoài danh sách làm test hỏng; `renderScreen(<Screen />, { session: fakeSession("PARENT") })` dựng màn hình với đủ provider. Gọi `restore()` sau mỗi test.
+- Mẫu đầy đủ một màn hình và test của nó: `mobile/src/shared/test/example.test.tsx`.
+
 ### Thêm một màn hình
 1. Issue backend của chức năng đã merge, API client đã sinh lại.
 2. Tạo màn hình trong `features/<tính năng>/screens/` dùng khung màn hình của `shared/ui`; khung này đã có đủ trạng thái bắt buộc.

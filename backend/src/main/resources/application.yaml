@@ -17,3 +17,22 @@ spring:
 logging:
   pattern:
     correlation: "[%X{traceId:-}] "
+  structured:
+    # JSON logs (Elastic Common Schema) wherever the app is deployed; MDC traceId is included.
+    # The local profile switches back to plain text.
+    format:
+      console: ecs
+    json:
+      customizer: com.tutorbridge.platform.web.LogRedaction
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      # Status only. Details would show the database and versions to anyone.
+      show-details: never
+      show-components: never
+      probes:
+        enabled: true

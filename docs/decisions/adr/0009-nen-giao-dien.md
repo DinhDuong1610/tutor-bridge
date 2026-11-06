@@ -29,6 +29,6 @@ Cấu trúc thư mục và cách thêm một chức năng ở [conventions](../.
 | Thư viện component mobile có sẵn | Phụ thuộc thiết kế của thư viện; trạng thái bắt buộc vẫn phải tự làm |
 
 ## Hệ quả
-- Thêm phụ thuộc: `expo-router` và các gói đi kèm, `@tanstack/react-query`, `tailwindcss`, shadcn/ui. Mobile cài bằng `npx expo install`. Phiên bản chốt khi làm module tương ứng.
+- Thêm phụ thuộc: `expo-router` và các gói đi kèm, `@tanstack/react-query`, `tailwindcss`, shadcn/ui; `expo-crypto` làm nguồn ngẫu nhiên an toàn cho `Idempotency-Key` trên Hermes (M2). Mobile cài bằng `npx expo install`. Phiên bản chốt khi làm module tương ứng.
 - Token màu của mobile và web định nghĩa riêng ở Lát 1. Muốn dùng chung thì làm sau, khi có thiết kế giao diện.
 - Thử lại tự động của TanStack Query phải tắt cho lệnh ghi. Lệnh ghi chưa rõ kết quả đi qua tra trạng thái lệnh, không gửi lại mù (INV-20).

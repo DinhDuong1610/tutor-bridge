@@ -36,7 +36,7 @@ Theo OP-14, đợt M0 là ngoại lệ: agent viết phần tác giả, merge kh
 | `PREFERRED` có tính là rảnh không | Có | Đính | Trước TB-15 |
 | Công cụ kiểm hợp đồng (`contract-check`) | Đã chốt: `oasdiff` trên CI chặn đổi hợp đồng phá vỡ (Huy, 04/11/2026, #40); kiểm phản hồi khớp hợp đồng bằng `Contract.matches()` trong test HTTP backend, dùng `com.networknt:json-schema-validator` vì hợp đồng là OpenAPI 3.1 (#47, Đính duyệt 06/11/2026) | Huy, Đính | Xong |
 | UUIDv7 | TBD, đang dùng UUIDv4 | Đính | Trước khi có dữ liệu thật |
-| Tên gói Android, thư viện điều hướng | TBD; Expo đề xuất Expo Router | Đính (chủ trì React Native, CR-012) | `NEN-MB` |
+| Tên gói Android, thư viện điều hướng | Đã chốt 06/11/2026: `vn.tutorbridge.app` (Đính), Expo Router (ADR-0009) | Đính | Xong |
 | `lock_timeout` cho giao dịch | Chưa đặt | Đính | Khi có số đo tải |
 
 Mã lỗi đang dùng: `IDEMPOTENCY_KEY_INVALID`, `IDEMPOTENCY_KEY_REUSED`, `CURSOR_INVALID`, `LIMIT_INVALID`, `VALIDATION_FAILED`, `REQUEST_REJECTED`, `INTERNAL_ERROR`, `OFFER_NOT_FOUND`, `ACCESS_UNAVAILABLE`, `SCOPE_CHANGED`, `OFFER_EXPIRED`, `VERSION_CONFLICT`, `SCHEDULE_CONFLICT`, `SERVICE_BUSY`, và `PRECONDITION_REQUIRED` (428, thiếu `If-Match`, thêm ở #45), `AUTHENTICATION_REQUIRED` (401), `CSRF_REJECTED` (403), `ACCESS_DENIED` (403) thêm ở #46.
@@ -48,7 +48,7 @@ Mã lỗi đang dùng: `IDEMPOTENCY_KEY_INVALID`, `IDEMPOTENCY_KEY_REUSED`, `CUR
 - **Test đồng thời:** dùng `Concurrently`, không dùng `CompletableFuture.supplyAsync` mặc định. Common pool trên runner ít lõi làm các lệnh chạy lần lượt.
 - **Migration:** số tiếp theo là V9, Đính cấp trong Issue. V1–V6 bị khóa bằng `BaselineMigrationsTest`, migration đã merge bị khóa bằng `immutable-history`.
 - **`vector`** không phải extension trusted: môi trường thật phải cài bằng superuser trước V6.
-- **Mobile:** cài phụ thuộc bằng `npx expo install`. Mobile dùng TypeScript 6, web và client dùng 5.9 vì công cụ sinh client chưa hỗ trợ 6.
+- **Mobile:** cài phụ thuộc bằng `npx expo install`. Từ #50: Testing Library 13 thay cho 14 (bản 14 kéo React 19.3 vào gốc, sinh hai bản React), và `overrides` ở gốc giữ một bản React 19.2.3 cho cả workspace. Mobile dùng TypeScript 6, web và client dùng 5.9 vì công cụ sinh client chưa hỗ trợ 6.
 
 ## PR của Dependabot
 Dependabot mở PR cập nhật hằng tuần vào `dev`, không cần phần tác giả. Người duyệt kiểm CI và ghi chú phát hành, rồi squash merge. Ngày 04/11/2026 Huy đã merge #30, #33, #38 và đóng #34–#37 vì lệch Expo SDK 57 hoặc TypeScript đã khóa. `.github/dependabot.yml` bỏ qua các gói Expo quản lý và bản chính của TypeScript; nâng chúng trong task nâng SDK riêng.

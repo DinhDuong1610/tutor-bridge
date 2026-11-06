@@ -89,8 +89,8 @@ web/src/
   proxy.ts             chặn route quản trị khi chưa có cookie phiên
   features/<tính năng>/   giống mobile: screens, components, actions.ts (server action), schemas.ts
   shared/
-    api/               client phía máy chủ, gắn bearer từ cookie
-    session/           cookie Secure, HttpOnly, CSRF
+    api/               client gọi API bằng cookie phiên `tb_session` (ADR-0010 mục 3)
+    session/           cookie phiên, token CSRF, chặn route khi hết phiên
     ui/                component shadcn/ui và khung trang đủ trạng thái
 ```
 

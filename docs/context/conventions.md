@@ -33,7 +33,9 @@ Những mục ghi **TBD** sẽ chốt khi dựng repo.
 - Không gọi dịch vụ ngoài trong giao dịch (INV-18).
 - Nền chung theo [ADR-0010](../decisions/adr/0010-nen-backend.md), đặt trong `platform`: `Actor` và `SessionResolver` cho xác thực, đọc `Idempotency-Key` và `If-Match`, `Cache-Control`, ánh xạ lỗi validate. Controller dùng các phần này, không tự đọc header.
 - Controller khai báo tham số `IdempotencyKey` cho lệnh ghi, `WritePrecondition.Expected` khi cần `If-Match`, `WritePrecondition` khi cho phép tạo lần đầu bằng `If-None-Match: *`. Phản hồi có phiên bản đặt `ETag` bằng `Etag.of(version)`. Mọi phản hồi đã có sẵn `Cache-Control: private, no-store`.
-- Service nhận `Actor` làm tham số, không đọc request hay context tĩnh.
+- Service nhận `Actor` làm tham số, không đọc request hay context tĩnh. Controller lấy nó bằng `@AuthenticationPrincipal Actor actor`.
+- Mọi đường dẫn cần phiên, trừ thao tác mô-đun khai báo công khai bằng một bean `PublicEndpoints` (ví dụ đăng ký, đăng nhập). Không mở đường dẫn bằng cách sửa `SecurityConfig`.
+- Test controller: `@WebMvcTest` kèm `@Import(WebSecurityTestConfig.class)`, gửi yêu cầu bằng `.with(sessions.as(actor))` với `TestSessions`. Ca âm quyền luôn có: không phiên, sai vai trò, đối tượng của người khác.
 
 ### Thêm một chức năng backend
 ```text

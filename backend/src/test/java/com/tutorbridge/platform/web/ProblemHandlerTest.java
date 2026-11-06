@@ -28,7 +28,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 @WebMvcTest(controllers = ProblemHandlerTest.Probe.class)
-@Import(ProblemHandlerTest.Probe.class)
+@Import({ProblemHandlerTest.Probe.class, OpenProbes.class})
 class ProblemHandlerTest {
 
     private static final String TRACE_ID = "^[0-9a-f]{32}$";

@@ -30,7 +30,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @WebMvcTest(controllers = WebFoundationTest.Probe.class)
-@Import(WebFoundationTest.Probe.class)
+@Import({WebFoundationTest.Probe.class, OpenProbes.class})
 class WebFoundationTest {
 
     private static final String KEY = "k".repeat(16);

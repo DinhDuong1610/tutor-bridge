@@ -1,6 +1,9 @@
 spring:
   application:
     name: tutorbridge
+  autoconfigure:
+    # Sessions come from SessionResolver (ADR-0010). No in-memory user with a generated password.
+    exclude: org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
   datasource:
     url: ${TB_DB_URL:jdbc:postgresql://127.0.0.1:55432/tutorbridge?currentSchema=tutorbridge,public}
     username: tutorbridge_app

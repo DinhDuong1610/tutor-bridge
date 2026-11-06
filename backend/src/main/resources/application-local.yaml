@@ -1,3 +1,7 @@
 spring:
   flyway:
     enabled: true
+tutorbridge:
+  security:
+    # Next.js dev server. Cookie writes from any other origin are rejected (ADR-0010).
+    admin-origins: http://localhost:3000

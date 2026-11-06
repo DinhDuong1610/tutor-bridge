@@ -1,6 +1,8 @@
-// AUTH03 Đăng nhập. Placeholder route until TB-10 builds the screen in features/account.
-import { ComingSoon } from "@/shared/ui/ComingSoon";
+// AUTH03 Đăng nhập
+import { useRouter } from "expo-router";
+import { SignInScreen } from "@/features/account/screens/SignInScreen";
 
 export default function SignInRoute() {
-  return <ComingSoon title="Đăng nhập" />;
+  const router = useRouter();
+  return <SignInScreen onGoToRegister={() => router.push("/register")} />;
 }

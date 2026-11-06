@@ -14,7 +14,7 @@ Chia [phạm vi Lát 1](../context/r0a-scope.md) thành các mốc nhỏ. Mỗi 
 
 Tức Lát 1 đã xấp xỉ hoặc vượt khung 10 tuần của G4 và G5 trong kế hoạch gốc. R0 đầy đủ sẽ cần phạm vi hoặc thời gian lớn hơn, phải ước lượng lại. Không dùng các số này làm cam kết ngày.
 
-Tổng trên chưa gồm hai Issue nền giao diện thêm ngày 06/11/2026, vì chưa ước lượng.
+Tổng trên chưa gồm các module nền thêm ngày 06/11/2026, vì chưa ước lượng.
 
 ## Mốc
 | Mốc | Kết quả chạy được | Tương ứng |
@@ -40,8 +40,28 @@ Theo [CR-012](../decisions/change-requests.md):
 - **Tách backend và giao diện.** Chức năng có cả API và màn hình thành hai Issue. Issue giao diện phụ thuộc Issue backend và dùng API client sinh từ hợp đồng, nên có thể giao cho người khác.
 - **Mã tạm:** Issue backend giữ mã `TB-` cũ, trùng số Issue đã có trên GitHub. Issue giao diện mới có mã tạm `GD-<số TB>`, Issue nền có mã `NEN-MB`, `NEN-WEB`. Số thật do GitHub cấp khi tạo.
 
+## Module nền
+Đính quyết định ngày 06/11/2026: dựng xong nền cho backend, mobile, web trước khi chia lại Issue chức năng, để Issue sau chỉ thêm chức năng. Mỗi module là một Issue và một PR nhỏ, làm lần lượt theo bảng. Quyết định thư viện ở [ADR-0009](../decisions/adr/0009-nen-giao-dien.md) và [ADR-0010](../decisions/adr/0010-nen-backend.md).
+
+| Module | Nội dung | Phụ thuộc | Thuộc |
+|---|---|---|---|
+| N0 | ADR, quy ước, cấu trúc thư mục, cách thêm một chức năng (#43) | #42 | Chung |
+| S1 | Gói `@tutorbridge/shared`: kiểu Problem, `Idempotency-Key`, định dạng ngày giờ và tiền | N0 | Chung |
+| B1 | Tầng web dùng chung: `Idempotency-Key`, `If-Match`/ETag, `Cache-Control`, JSON chặt, lỗi validate | N0 | `NEN-BE` |
+| B2 | Khung xác thực: `Actor`, `SessionResolver`, bộ lọc bearer, helper test. TB-08 nối phần tra phiên | B1 | `NEN-BE` |
+| B3 | Bộ test: lớp cơ sở test HTTP, fixture, kiểm phản hồi theo OpenAPI | B2 | `NEN-BE` |
+| B4 | Vận hành local: health, log JSON che dữ liệu nhạy cảm, `Clock` và sinh ID, seed giả | B1 | `NEN-BE` |
+| M1 | Expo Router, cấu trúc thư mục, nhóm route theo vai trò, tên gói Android | N0 | `NEN-MB` |
+| M2 | Tầng API: TanStack Query, client gắn phiên, đọc Problem, lệnh ghi, tra trạng thái lệnh | M1, S1 | `NEN-MB` |
+| M3 | Phiên: `expo-secure-store`, chặn route, hết phiên | M2 | `NEN-MB` |
+| M4 | Nền giao diện: theme, component nền, khung màn hình đủ trạng thái | M1 | `NEN-MB` |
+| M5 | Form, định dạng, test mẫu, giả lập API | M2, M4 | `NEN-MB` |
+| W1 | Cấu trúc, Tailwind, shadcn/ui, nhóm route công khai và quản trị | N0 | `NEN-WEB` |
+| W2 | Phiên quản trị: cookie, CSRF, `proxy.ts`, client phía máy chủ | W1, S1 | `NEN-WEB` |
+| W3 | Form, khung trang đủ trạng thái, Vitest | W2 | `NEN-WEB` |
+
 ## Danh sách Issue
-Người phụ trách là đề xuất, Đính chốt khi chia việc.
+Người phụ trách là đề xuất, Đính chốt khi chia việc. `NEN-BE`, `NEN-MB`, `NEN-WEB` là nhóm module nền ở trên.
 
 Giờ của Issue backend có dấu `*` là ước lượng cũ cho cả API lẫn màn hình. Chia lại giờ khi tạo Issue giao diện.
 
@@ -54,14 +74,15 @@ Giờ của Issue backend có dấu `*` là ước lượng cũ cho cả API l�
 | TB-05 | M0 | Khung mobile, web, API client sinh từ OpenAPI | TB-01 | 12–20 | Đính | | |
 | TB-06 | M0 | Diễn tập: Claude làm dở, Codex tiếp, người kia review; sửa playbook theo chỗ vướng | TB-02 | 3–5 | Cả hai | | |
 | TB-07 | M1 | TX05 ở tầng service, test đồng thời qua hai bản API | TB-04 | 24–36 | Đính | | |
-| NEN-MB | M2 | Nền mobile: điều hướng, cấu trúc thư mục, lưu phiên, lấy dữ liệu, thành phần cho trạng thái bắt buộc và lệnh ghi, theme; viết lại `mobile/AGENTS.md` | TB-05 | Chưa ước lượng | Đính | | |
-| TB-08 | M2 | Đăng ký, xác minh, đăng nhập, phiên; ADR băm mật khẩu | TB-04 | 20–30 | Huy | `registerAccount`, `verifyEmail`, `resendVerification`, `loginAccount`, `logoutAccount`, `listOwnSessions`, `revokeOwnSession` | |
+| NEN-BE | M2 | Nền backend: module B1–B4 | TB-04 | Chưa ước lượng | Đính | | |
+| NEN-MB | M2 | Nền mobile: module M1–M5; viết lại `mobile/AGENTS.md` | TB-05 | Chưa ước lượng | Đính | | |
+| TB-08 | M2 | Đăng ký, xác minh, đăng nhập, phiên; ADR băm mật khẩu; viết `SessionResolver` cho khung của B2 | TB-04; B2 cho phần phiên | 20–30 | Huy | `registerAccount`, `verifyEmail`, `resendVerification`, `loginAccount`, `logoutAccount`, `listOwnSessions`, `revokeOwnSession` | |
 | TB-09 | M2 | Khôi phục, đổi mật khẩu, tái xác thực | TB-08 | 12–18 | Huy | `requestRecovery`, `resetPassword`, `changePassword`, `reauthenticate` | |
 | TB-10 | M2 | Màn hình tài khoản | NEN-MB, TB-09 | 16–24 | Huy | | AUTH01, AUTH02, AUTH03, AUTH04, AUTH05, AUTH06 |
 | TB-11 | M3 | API hồ sơ con | TB-08 | 10–16 * | Đính | `listStudents`, `createStudent`, `getStudentProfile`, `patchStudent` | |
 | GD-11 | M3 | Màn hình hồ sơ con | TB-11, NEN-MB | Trong TB-11 | Huy | | PH02 |
 | TB-12 | M3 | Hồ sơ gia sư, gửi duyệt, tải minh chứng, kho tệp local | TB-08 | 20–30 | Huy | `saveTutorProfile`, `getOwnTutorProfile`, `submitTutorProfile`, `createEvidenceUpload`, `completeEvidenceUpload` | |
-| NEN-WEB | M3 | Nền web quản trị: cấu trúc thư mục, phiên quản trị bằng cookie và CSRF phía Next, bố cục, thành phần trạng thái; viết lại `web/AGENTS.md` | TB-05, TB-08 | Chưa ước lượng | Đính | | |
+| NEN-WEB | M3 | Nền web quản trị: module W1–W3; viết lại `web/AGENTS.md` | TB-05 | Chưa ước lượng | Đính | | |
 | TB-13 | M3 | API quản trị xác minh, MFA | TB-12 | 24–36 * | Đính | `completeAdminMfa`, `listAssignedVerifications`, `decideVerification`, `readAssignedEvidence` | |
 | GD-13 | M3 | Web quản trị xác minh | TB-13, NEN-WEB | Trong TB-13 | Đính | | AD01, AD03, AD04 |
 | TB-14 | M3 | Màn hình hồ sơ gia sư, trang chủ hai vai trò | TB-10, TB-12 | 12–18 | Huy | | PH01, GS01, GS02, GS03 |

@@ -2,7 +2,8 @@
 
 Follow `../AGENTS.md` and `../docs/context/conventions.md`. They override the generic Expo guidance below.
 
-- The navigation library and folder structure are **not decided yet**. They are set in Issue `NEN-MB` (see `../docs/plan/lat-1-ke-hoach.md`), which Đính leads (CR-012). Until that Issue is merged, do not add Expo Router or any other navigation library, and do not create `src/app/`.
+- Libraries are fixed by `../docs/decisions/adr/0009-nen-giao-dien.md`: Expo Router, TanStack Query, `StyleSheet` with theme tokens. Do not add other UI, style, state or navigation libraries without Đính (CR-012).
+- Folder structure and the steps to add a screen are in `../docs/context/conventions.md` ("Cấu trúc mobile", "Thêm một màn hình"). Foundation modules M1–M5 build it; until they are merged, do not build feature screens.
 - Use `@tutorbridge/api-client` for every API call. Only `EXPO_PUBLIC_` variables, never secrets.
 
 ## Generic Expo guidance

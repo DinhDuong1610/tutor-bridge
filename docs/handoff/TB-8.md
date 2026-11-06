@@ -50,7 +50,7 @@ Phụ huynh và gia sư tự đăng ký, xác minh email, đăng nhập bằng p
 - Phản hồi có `Cache-Control: private, no-store`.
 
 ## Trạng thái hiện tại
-Đã chạy `start-task`, viết bản nháp ADR-0008 (thuật toán đã chọn, tham số TBD). Ngày 06/11/2026 rebase lên `dev`, cập nhật theo nền backend. Chưa viết code: PR 1 chờ Q1, Q2; PR 2 chờ Q4–Q8; PR 3 chờ Q5, Q7, Q11. Q10 chờ Huy.
+Đã chạy `start-task`, viết bản nháp ADR-0008 (thuật toán đã chọn, tham số TBD). Ngày 06/11/2026 rebase lên `dev`, cập nhật theo nền backend. Chưa viết code: PR 1 chờ Q1, Q2; PR 2 chờ Q4–Q8; PR 3 chờ Q5, Q7, Q11.
 
 ## Lệnh kiểm tra
 ```bash
@@ -66,6 +66,7 @@ Chưa chạy test trên nhánh này vì chưa có thay đổi code.
 - Huy, 04/11/2026, Q3: băm mật khẩu bằng Argon2id. Ghi trong ADR-0008. Tham số chưa đo.
 - Huy, 04/11/2026, Q9: `oasdiff` trên CI chặn đổi hợp đồng phá vỡ (đã merge ở #40). Phần kiểm phản hồi khớp hợp đồng trong test: nền dùng `Contract.matches()` trên `com.networknt:json-schema-validator` thay cho `swagger-request-validator` vì hợp đồng là OpenAPI 3.1 (agent chọn ở B3, Đính duyệt 06/11/2026). Test HTTP của TB-8 dùng `Contract.matches()`.
 - Huy, 04/11/2026: push nhánh và mở Draft PR vào `dev` để Đính xem câu hỏi.
+- Huy, 06/11/2026, Q10: đồng ý ADR-0010 mục 1. TB-8 không dựng bộ lọc riêng, chỉ viết `SessionResolver` trong `identity`; giữ kế hoạch 3 PR.
 - Huy, 04/11/2026: bỏ qua OP-05 (cổng phỏng vấn) để làm TB-8. Đính đóng OP-05, OP-06 bằng chấp nhận rủi ro ngày 06/11/2026 (sổ quyết định ghi "Huy chưa xác nhận").
 
 ## Câu hỏi còn mở
@@ -79,7 +80,6 @@ Chưa chạy test trên nhánh này vì chưa có thay đổi code.
 | Q6 | Ngưỡng giới hạn cho `registerAccount` và `resendVerification` | Đính, Huy |
 | Q7 | Đăng nhập của ADMIN (trả `AdminMfaChallenge`) thuộc TB-8 hay TB-13? Đề xuất: TB-8 chặn ADMIN đăng nhập, TB-13 mở | Đính |
 | Q8 | Danh sách `termsVersion` hợp lệ lấy từ đâu (cấu hình)? Hiện chưa có văn bản điều khoản nào | Đính, Huy |
-| Q10 | ADR-0010 mục 1 (nền dựng khung xác thực, TB-8 chỉ viết `SessionResolver`) ghi "cần Huy đồng ý". Huy trả lời ngày 06/11/2026: "Thực hiện theo đúng yêu cầu và kế hoạch ban đầu, nếu cần sửa lỗi hay có những vấn đề cần duyệt hay đưa cho tôi xem". Agent hiểu là làm theo ADR-0010 (không dựng bộ lọc riêng) và giữ kế hoạch 3 PR; chờ Huy xác nhận cách hiểu này trước PR 3 | Huy |
 | Q11 | `SessionResolver`: digest token tính thế nào (SHA-256 hay HMAC có khóa, mã hóa hex hay base64url)? Cập nhật `last_seen_at` cho hạn 24 giờ không hoạt động mỗi yêu cầu hay theo chu kỳ (mỗi yêu cầu thêm một lần ghi)? Liên quan Q4 | Đính, Huy |
 
 ## Bước kế tiếp

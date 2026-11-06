@@ -32,6 +32,7 @@ Những mục ghi **TBD** sẽ chốt khi dựng repo.
 - Lỗi nghiệp vụ dùng kiểu riêng, ánh xạ về Problem tại một chỗ.
 - Không gọi dịch vụ ngoài trong giao dịch (INV-18).
 - Nền chung theo [ADR-0010](../decisions/adr/0010-nen-backend.md), đặt trong `platform`: `Actor` và `SessionResolver` cho xác thực, đọc `Idempotency-Key` và `If-Match`, `Cache-Control`, ánh xạ lỗi validate. Controller dùng các phần này, không tự đọc header.
+- Controller khai báo tham số `IdempotencyKey` cho lệnh ghi, `WritePrecondition.Expected` khi cần `If-Match`, `WritePrecondition` khi cho phép tạo lần đầu bằng `If-None-Match: *`. Phản hồi có phiên bản đặt `ETag` bằng `Etag.of(version)`. Mọi phản hồi đã có sẵn `Cache-Control: private, no-store`.
 - Service nhận `Actor` làm tham số, không đọc request hay context tĩnh.
 
 ### Thêm một chức năng backend

@@ -71,7 +71,7 @@ backend/src/test/java/com/tutorbridge/<mô-đun>/
 ```text
 mobile/src/
   app/                 chỉ có route của Expo Router, mỗi file gọi một màn hình trong features
-    _layout.tsx        provider: TanStack Query, phiên, theme
+    _layout.tsx        provider: phiên, TanStack Query (theme là token, không cần provider)
     index.tsx          điều hướng về trang của vai trò, hoặc đăng nhập
     +not-found.tsx     liên kết tới màn hình không có
     (auth)/            AUTH01–AUTH05, khi chưa đăng nhập; nhóm không tạo đoạn đường dẫn: /sign-in
@@ -85,7 +85,7 @@ mobile/src/
   shared/
     api/               client có gắn phiên, đọc Problem, lệnh ghi, tra trạng thái lệnh
     session/           lưu token bằng expo-secure-store, chặn route, hết phiên
-    ui/                theme, component nền, khung màn hình đủ trạng thái
+    ui/                token (theme.ts), Button, TextField, Notice, QueryScreen, CommandStatus
     test/              tiện ích test, kiểu cho matcher của expo-router, giả lập API
 ```
 Vai trò dùng thư mục thường `parent/`, `tutor/`, không dùng nhóm `(parent)`: nhóm không tạo đoạn đường dẫn, nên trang chủ hai vai trò sẽ cùng là `/` và đụng nhau. Import trong `src` dùng alias `@/`, ví dụ `@/shared/ui/ComingSoon`. Test điều hướng dùng `renderRouter` và `toHavePathname` của `expo-router/testing-library`.
@@ -112,6 +112,12 @@ web/src/
 - Khu vực theo vai trò bọc bằng `RequireRole` trong `_layout.tsx`; màn hình đăng nhập bọc bằng `RequireSignedOut`. Máy chủ vẫn kiểm quyền mọi yêu cầu.
 - Test cần phiên: `storeSession(fakeSession("PARENT"))` của `@/shared/test/session`; `expo-secure-store` được thay bằng bản giả trong `mobile/__mocks__`.
 - Cả workspace dùng một bản React (`overrides` ở `package.json` gốc), đúng bản Expo SDK yêu cầu. Thêm thư viện React phải giữ điều này: `npm ls react` chỉ có một phiên bản.
+
+### Giao diện mobile
+- Màu, cỡ chữ, khoảng cách lấy từ `@/shared/ui/theme`, không viết số hay mã màu trong màn hình. Đổi màu thì đo lại độ tương phản (ghi ở đầu `theme.ts`).
+- Màn hình đọc dữ liệu dùng `QueryScreen`: đã có tải, rỗng, lỗi hệ thống kèm thử lại, mất quyền, không tìm thấy, dữ liệu cũ khi tải lại lỗi. Màn hình chỉ viết phần nội dung.
+- Lệnh ghi hiển thị bằng `CommandStatus` cạnh nút gửi; nút gửi đặt `busy` khi `state === "sending"`. Lỗi trường đặt vào `TextField error`.
+- Không chỉ dùng màu để báo trạng thái; không đặt chiều cao cố định quanh chữ để chữ phóng to 200% vẫn đọc được.
 
 ### Thêm một màn hình
 1. Issue backend của chức năng đã merge, API client đã sinh lại.

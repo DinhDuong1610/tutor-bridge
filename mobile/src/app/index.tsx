@@ -1,6 +1,8 @@
 import { Redirect } from "expo-router";
-import { Button, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { useSession } from "@/shared/session/SessionProvider";
+import { Button } from "@/shared/ui/Button";
+import { colors, spacing, typography } from "@/shared/ui/theme";
 
 // Entry point: sends each session to the home of its role.
 export default function Index() {
@@ -29,8 +31,7 @@ export default function Index() {
   }
 }
 
-// Theme tokens replace these values in M4.
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 16 },
-  title: { fontSize: 20, fontWeight: "600", textAlign: "center" },
+  container: { flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.md, padding: spacing.md, backgroundColor: colors.background },
+  title: { ...typography.heading, color: colors.text, textAlign: "center" },
 });

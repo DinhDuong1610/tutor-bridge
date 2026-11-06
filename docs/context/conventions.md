@@ -72,9 +72,11 @@ backend/src/test/java/com/tutorbridge/<mô-đun>/
 mobile/src/
   app/                 chỉ có route của Expo Router, mỗi file gọi một màn hình trong features
     _layout.tsx        provider: TanStack Query, phiên, theme
-    (auth)/            AUTH01–AUTH06, khi chưa đăng nhập
-    (parent)/          PH, chặn khi không phải phụ huynh
-    (tutor)/           GS, chặn khi không phải gia sư
+    index.tsx          điều hướng về trang của vai trò, hoặc đăng nhập
+    +not-found.tsx     liên kết tới màn hình không có
+    (auth)/            AUTH01–AUTH05, khi chưa đăng nhập; nhóm không tạo đoạn đường dẫn: /sign-in
+    parent/            PH, đường dẫn /parent/..., chặn khi không phải phụ huynh
+    tutor/             GS, đường dẫn /tutor/..., chặn khi không phải gia sư
   features/<tính năng>/
     screens/           màn hình, comment đầu file ghi mã màn hình
     components/        component chỉ tính năng này dùng
@@ -84,8 +86,9 @@ mobile/src/
     api/               client có gắn phiên, đọc Problem, lệnh ghi, tra trạng thái lệnh
     session/           lưu token bằng expo-secure-store, chặn route, hết phiên
     ui/                theme, component nền, khung màn hình đủ trạng thái
-    test/              tiện ích test, giả lập API
+    test/              tiện ích test (renderRoute), giả lập API
 ```
+Vai trò dùng thư mục thường `parent/`, `tutor/`, không dùng nhóm `(parent)`: nhóm không tạo đoạn đường dẫn, nên trang chủ hai vai trò sẽ cùng là `/` và đụng nhau. Import trong `src` dùng alias `@/`, ví dụ `@/shared/ui/ComingSoon`. Test điều hướng dùng `renderRoute` của `shared/test`, không dùng `renderRouter` của expo-router vì nó viết cho Testing Library 13.
 Tên thư mục tính năng theo luồng: `account`, `students`, `tutor-profile`, `calendar`, `needs`, `matching`, `offers`, `classes`, `notifications`.
 
 ### Cấu trúc web

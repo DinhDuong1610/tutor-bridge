@@ -2,7 +2,7 @@
 
 Nền tảng kết nối phụ huynh với gia sư và quản lý việc học kèm. Hai thành viên: Dương Đính, Đức Huy. File này áp dụng cho mọi agent và mọi người trong dự án.
 
-**Trạng thái:** xong M0 của Lát 1 trên `dev`. Nền backend, mobile, web (#42–#57) đã làm, đang chờ review và merge theo thứ tự. Tiến độ ở [docs/README.md](docs/README.md), bàn giao ở [docs/plan/m0-ban-giao.md](docs/plan/m0-ban-giao.md).
+**Trạng thái:** xong M0 của Lát 1 trên `dev`. Nền backend, mobile, web (#42–#57) đã merge vào `dev` ngày 06/11/2026 qua #63–#66 theo ngoại lệ OP-15; Issue chức năng chỉ thêm chức năng trên nền này. Tiến độ ở [docs/README.md](docs/README.md), bàn giao ở [docs/plan/m0-ban-giao.md](docs/plan/m0-ban-giao.md).
 
 ## Đọc gì trước khi làm
 1. [docs/context/invariants.md](docs/context/invariants.md): bắt buộc đọc mỗi task.

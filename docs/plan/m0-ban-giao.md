@@ -14,7 +14,7 @@ Viết ngày 03/11/2026, khi M0 vào `dev`. Dành cho Huy khi vào repo, và cho
 | CI | `repo.yml`, `backend.yml`, Dependabot | #26 |
 | Ứng dụng | API client sinh từ OpenAPI, khung Expo SDK 57, khung Next.js 16.4, `frontend.yml` | #31 |
 
-Theo OP-14, đợt M0 là ngoại lệ: agent viết phần tác giả, merge không qua duyệt chéo, Huy không cần rà lại. **Từ PR sau, quy trình Git áp dụng đầy đủ:** người làm và người duyệt khác nhau, tác giả tự viết phần giải thích.
+Phần nền sau M0 cũng merge theo ngoại lệ OP-15 (06/11/2026). Theo OP-14, đợt M0 là ngoại lệ: agent viết phần tác giả, merge không qua duyệt chéo, Huy không cần rà lại. **Từ PR sau, quy trình Git áp dụng đầy đủ:** người làm và người duyệt khác nhau, tác giả tự viết phần giải thích.
 
 ## Bắt đầu cho người mới vào repo
 1. Clone, rồi chạy `git config core.hooksPath .githooks`.
@@ -63,7 +63,8 @@ Dependabot mở PR cập nhật hằng tuần vào `dev`, không cần phần t�
 ## Việc tiếp theo
 | Việc | Người |
 |---|---|
-| Review và merge chuỗi nền #42–#57 theo thứ tự | Huy review, Đính merge |
+| Huy đọc lại phần nền đã merge theo OP-15 (#63–#66): `conventions.md`, `mobile/AGENTS.md`, `web/AGENTS.md`, test mẫu ba phần | Huy |
+| Chia lại Issue chức năng theo kế hoạch Lát 1 (tách backend và giao diện, CR-012) | Đính |
 | TB-06 diễn tập đổi agent: Claude làm dở, Codex làm tiếp, người kia review | Cả hai |
 | TB-08 đăng ký, đăng nhập, phiên (PR nháp #39, #40): viết `SessionResolver` trong `identity`, khai báo `PublicEndpoints`, không dựng bộ lọc riêng (ADR-0010) | Huy |
 | `NEN-MB` nền mobile, cần trước TB-10 | Đính |

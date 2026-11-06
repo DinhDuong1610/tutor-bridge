@@ -2,13 +2,13 @@
 
 Nền tảng kết nối phụ huynh với gia sư và quản lý việc học kèm. Hai thành viên: Dương Đính, Đức Huy. File này áp dụng cho mọi agent và mọi người trong dự án.
 
-**Trạng thái:** xong M0 của Lát 1: backend, TX05, CI, khung mobile và web. Tiến độ ở [docs/README.md](docs/README.md), bàn giao ở [docs/plan/m0-ban-giao.md](docs/plan/m0-ban-giao.md).
+**Trạng thái:** xong M0 của Lát 1 trên `dev`. Nền backend, mobile, web (#42–#57) đã làm, đang chờ review và merge theo thứ tự. Tiến độ ở [docs/README.md](docs/README.md), bàn giao ở [docs/plan/m0-ban-giao.md](docs/plan/m0-ban-giao.md).
 
 ## Đọc gì trước khi làm
 1. [docs/context/invariants.md](docs/context/invariants.md): bắt buộc đọc mỗi task.
 2. [docs/context/r0a-scope.md](docs/context/r0a-scope.md): việc này có trong phạm vi không.
 3. [docs/context/module-map.md](docs/context/module-map.md): code đặt ở đâu, bảng nào của ai.
-4. [docs/context/conventions.md](docs/context/conventions.md): cách viết code và test.
+4. [docs/context/conventions.md](docs/context/conventions.md): cách viết code và test, mục của phần mình (Backend, Mobile, Web) có các bước thêm một chức năng và test mẫu. Làm mobile hay web thì đọc thêm `mobile/AGENTS.md` hoặc `web/AGENTS.md`.
 5. Đúng UC của task trong `docs/baseline/use-cases/`, cùng `docs/baseline/02-quy-tac-nghiep-vu.md` và file luồng `docs/design/f0X-*.md`.
 6. [docs/context/glossary.md](docs/context/glossary.md) khi gặp thuật ngữ.
 
@@ -57,7 +57,7 @@ SPRING_PROFILES_ACTIVE=local ./gradlew bootRun
 ```bash
 # Mobile, web, API client: Node 26, cài từ thư mục gốc
 npm ci
-npm run lint && npm run typecheck && npm test
+npm run lint && npm run typecheck && npm test   # api-client, shared, mobile (Jest), web (Vitest)
 npm run generate:api                       # sau khi đổi contracts/openapi.yaml
 npm run start --workspace @tutorbridge/mobile
 npm run dev --workspace @tutorbridge/web

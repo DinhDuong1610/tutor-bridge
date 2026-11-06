@@ -1,6 +1,6 @@
 # Quy ước code
 
-Những mục ghi **TBD** sẽ chốt khi dựng repo.
+Mục ghi **TBD** là quyết định còn mở, chưa được tự chọn.
 
 ## Chung
 - Code, tên biến, commit tiếng Anh. Giao diện, thông báo lỗi người dùng, tài liệu tiếng Việt.
@@ -20,7 +20,7 @@ Những mục ghi **TBD** sẽ chốt khi dựng repo.
 
 ## Dữ liệu
 - Thời điểm là `timestamptz`, hiển thị Asia/Ho_Chi_Minh, 24 giờ. Tiền là số nguyên VND.
-- ID là UUID do máy chủ sinh. Đề xuất UUIDv7 để chỉ mục ghi tốt hơn: **TBD** khi dựng backend.
+- ID là UUID do máy chủ sinh, lấy từ bean `IdGenerator` (hiện UUIDv4). Đổi sang UUIDv7 để chỉ mục ghi tốt hơn: **TBD**, Đính chốt (bàn giao M0); khi chốt chỉ đổi bean trong `RuntimeServices`.
 - Migration Flyway chỉ thêm, không sửa file đã merge. Theo thứ tự expand → backfill → validate → enforce.
 - Số migration được cấp trong Issue để tránh trùng.
 - Migration chạy bằng `tutorbridge_migrator`, ứng dụng chạy bằng `tutorbridge_app`, chỉ có quyền đọc ghi dữ liệu. Không dùng tài khoản sở hữu schema khi chạy.
@@ -56,18 +56,20 @@ backend/src/test/java/com/tutorbridge/<mô-đun>/
 3. Viết service và repository, rồi controller dùng nền chung của `platform/web`.
 4. Test service trên PostgreSQL thật, test HTTP kiểm cả hợp đồng, ca âm quyền.
 
-## Mobile và web
-- npm workspaces: `packages/*`, `mobile`, `web`. Cài phụ thuộc mobile bằng `npx expo install` để đúng bản SDK.
+## Mobile và web (chung)
+- npm workspaces: `packages/*`, `mobile`, `web`. Cài từ thư mục gốc bằng `npm ci` với Node 26.
 - Dùng `@tutorbridge/api-client`, sinh từ OpenAPI bằng `openapi-typescript` và gọi qua `openapi-fetch`. Không sửa `schema.d.ts` bằng tay; đổi hợp đồng thì chạy `npm run generate:api`.
-- Web gọi API ở phía máy chủ (`server-only`). Mobile chỉ dùng biến `EXPO_PUBLIC_`, không chứa bí mật.
-- Thư viện theo [ADR-0009](../decisions/adr/0009-nen-giao-dien.md): Expo Router, TanStack Query, `StyleSheet` với token cho mobile, Tailwind và shadcn/ui cho web. Thêm thư viện ngoài danh sách này phải qua Đính.
-- Code dùng chung không có React (kiểu Problem, `Idempotency-Key`, định dạng ngày giờ và tiền) đặt ở `@tutorbridge/shared`.
-- Mỗi màn hình có đủ: tải, rỗng, lỗi trường, lỗi hệ thống, hết phiên, mất quyền.
-- Lệnh ghi có: đang gửi, đã xác nhận, chưa rõ kết quả, thử lại an toàn.
-- Giữ dữ liệu đã nhập khi lỗi. Không chỉ dùng màu để phân biệt trạng thái.
-- Mã màn hình (`PH06`) gắn vào comment đầu file màn hình để truy vết.
+- Code dùng chung không có React (kiểu Problem, `Idempotency-Key`, định dạng ngày giờ Asia/Ho_Chi_Minh 24 giờ và tiền VND) đặt ở `@tutorbridge/shared`.
+- Thư viện theo [ADR-0009](../decisions/adr/0009-nen-giao-dien.md). Thêm thư viện ngoài danh sách phải qua Đính. Thư viện mới phát hành ít nhất hai tuần, khóa đúng phiên bản.
+- Cả workspace dùng một bản `react`, `react-dom`, `@types/react`, `@types/react-dom` (`overrides` ở `package.json` gốc), đúng bản Expo SDK yêu cầu. Sau khi thêm thư viện, `npm ls react @types/react` chỉ được có một phiên bản.
+- Mỗi màn hình có đủ: tải, rỗng, lỗi trường, lỗi hệ thống, hết phiên, mất quyền. Lệnh ghi có: đang gửi, đã xác nhận, chưa rõ kết quả, thử lại an toàn. Không hiện thành công trước khi máy chủ xác nhận.
+- Mỗi thao tác ghi của người dùng có một `Idempotency-Key`: thử lại sau khi chưa rõ kết quả thì giữ khóa; sau kết quả rõ (thành công hay lỗi) thì lần sau dùng khóa mới. Nền đã làm việc này, màn hình không tự sinh khóa.
+- Giữ dữ liệu đã nhập khi lỗi. Không chỉ dùng màu để phân biệt trạng thái. Câu chữ trạng thái giống nhau trên mobile và web.
+- Mã màn hình (`PH06`, `AD03`) ghi trong comment đầu file màn hình để truy vết.
+- Màu lấy từ token (mobile `theme.ts`, web biến CSS trong `globals.css`), cùng một bảng màu. Đổi màu thì đo lại độ tương phản theo WCAG 2.1 và ghi số đo.
 
-### Cấu trúc mobile
+## Mobile
+### Cấu trúc
 ```text
 mobile/src/
   app/                 chỉ có route của Expo Router, mỗi file gọi một màn hình trong features
@@ -75,77 +77,89 @@ mobile/src/
     index.tsx          điều hướng về trang của vai trò, hoặc đăng nhập
     +not-found.tsx     liên kết tới màn hình không có
     (auth)/            AUTH01–AUTH05, khi chưa đăng nhập; nhóm không tạo đoạn đường dẫn: /sign-in
-    parent/            PH, đường dẫn /parent/..., chặn khi không phải phụ huynh
-    tutor/             GS, đường dẫn /tutor/..., chặn khi không phải gia sư
+    parent/            PH, đường dẫn /parent/..., chỉ PARENT
+    tutor/             GS, đường dẫn /tutor/..., chỉ TUTOR
   features/<tính năng>/
     screens/           màn hình, comment đầu file ghi mã màn hình
     components/        component chỉ tính năng này dùng
-    api.ts             query và mutation TanStack Query của tính năng
+    api.ts             query và lệnh ghi của tính năng
     schemas.ts         schema zod cho form
   shared/
-    api/               client có gắn phiên, đọc Problem, lệnh ghi, tra trạng thái lệnh
-    session/           lưu token bằng expo-secure-store, chặn route, hết phiên
-    ui/                token (theme.ts), Button, TextField, Notice, QueryScreen, CommandStatus
-    test/              tiện ích test, kiểu cho matcher của expo-router, giả lập API
+    api/               client gắn phiên, call, useCommand, QueryProvider
+    session/           SessionProvider, RequireRole, lưu phiên bằng expo-secure-store
+    form/              FormTextField, useServerErrors
+    ui/                theme.ts, Button, TextField, Notice, QueryScreen, CommandStatus
+    test/              mockApi, renderScreen, phiên giả, kiểu matcher của expo-router, test mẫu
+mobile/__mocks__/      bản giả expo-secure-store, expo-crypto cho Jest
 ```
-Vai trò dùng thư mục thường `parent/`, `tutor/`, không dùng nhóm `(parent)`: nhóm không tạo đoạn đường dẫn, nên trang chủ hai vai trò sẽ cùng là `/` và đụng nhau. Import trong `src` dùng alias `@/`, ví dụ `@/shared/ui/ComingSoon`. Test điều hướng dùng `renderRouter` và `toHavePathname` của `expo-router/testing-library`.
-Tên thư mục tính năng theo luồng: `account`, `students`, `tutor-profile`, `calendar`, `needs`, `matching`, `offers`, `classes`, `notifications`.
+- Vai trò dùng thư mục thường `parent/`, `tutor/`, không dùng nhóm `(parent)`: nhóm không tạo đoạn đường dẫn, nên trang chủ hai vai trò sẽ cùng là `/` và đụng nhau.
+- Import trong `src` dùng alias `@/`. Cài phụ thuộc bằng `npx expo install` để đúng bản SDK.
+- Chỉ dùng biến `EXPO_PUBLIC_` (xem `mobile/.env.example`), không chứa bí mật.
+- Tên thư mục tính năng theo luồng: `account`, `students`, `tutor-profile`, `calendar`, `needs`, `matching`, `offers`, `classes`, `notifications`.
 
-### Cấu trúc web
+### Gọi API và phiên
+- Đọc: `useQuery` với `queryFn: () => call(api.GET(...))`. `call` trả dữ liệu hoặc ném `ApiError` (có `kind`, `code`, `fields`) hay `UnknownOutcomeError`. Đọc tự thử lại tối đa hai lần khi mất mạng hoặc lỗi 5xx, không thử lại lỗi 4xx.
+- Ghi: `useCommand((input, key) => call(api.POST(..., { params: { header: { "Idempotency-Key": key } } })))`. Hiển thị theo `state`: `sending`, `confirmed`, `failed` (kèm `error.fields`), `unknown` (nút thử lại gọi `retry`).
+- Phiên: `useSession()` cho `status` (`loading`, `signedIn`, `signedOut` kèm `endedBy`), `signIn(session)` sau đăng nhập, `signOut()` sau khi gọi API đăng xuất. Token chỉ nằm trong `expo-secure-store`. Mọi 401 tự kết thúc phiên, xóa token và dữ liệu đã tải, đưa về `/sign-in`; màn hình không tự xử lý 401.
+- Khu vực theo vai trò bọc bằng `RequireRole` trong `_layout.tsx`; màn hình đăng nhập bọc bằng `RequireSignedOut`. Máy chủ vẫn kiểm quyền mọi yêu cầu.
+
+### Giao diện và form
+- Màu, cỡ chữ, khoảng cách lấy từ `@/shared/ui/theme`, không viết số hay mã màu trong màn hình. Không đặt chiều cao cố định quanh chữ để chữ phóng to 200% vẫn đọc được.
+- Màn hình đọc dữ liệu dùng `QueryScreen`: đã có tải, rỗng, lỗi hệ thống kèm thử lại, mất quyền, không tìm thấy, dữ liệu cũ khi tải lại lỗi. `empty` thay cả nội dung; màn hình cần giữ form khi danh sách rỗng thì tự hiện thông báo rỗng.
+- Lệnh ghi hiển thị bằng `CommandStatus` cạnh nút gửi; nút gửi đặt `busy` khi `state === "sending"`.
+- Form: `useForm` với `zodResolver(schema)`; giới hạn lấy từ schema của hợp đồng, máy chủ vẫn kiểm lại. Ô nhập dùng `FormTextField`. Lỗi trường của máy chủ đặt vào ô bằng `useServerErrors(command.error, form.setError, [tên ô])`.
+
+### Test
+- Màn hình: `mockApi({ "GET /students": () => json(200, ...) })` thay `fetch` theo đường dẫn hợp đồng, yêu cầu ngoài danh sách làm test hỏng; `renderScreen(<Screen />, { session: fakeSession("PARENT") })` dựng màn hình với đủ provider; `restore()` sau mỗi test.
+- Điều hướng: `renderRouter` và `toHavePathname` của `expo-router/testing-library`; phiên bằng `storeSession(fakeSession(...))`.
+- Mẫu đầy đủ: `mobile/src/shared/test/example.test.tsx`.
+
+### Thêm một màn hình
+1. Issue backend của chức năng đã merge, API client đã sinh lại.
+2. Tạo màn hình trong `features/<tính năng>/screens/` với `QueryScreen`, form và `useCommand` của nền.
+3. Thêm route mỏng trong `app/` trỏ tới màn hình; khu vực theo vai trò đã được chặn ở `_layout.tsx`.
+4. Test từng trạng thái bằng `mockApi` và `renderScreen` như test mẫu.
+
+## Web
+### Cấu trúc
 ```text
 web/src/
   app/
     (public)/          WEB01 (/), WEB02 (/huong-dan); không có học liệu riêng
     admin/(auth)/      AD01 /admin/sign-in
-    admin/(console)/   AD03 /admin/verifications, AD04...; chặn khi chưa có phiên quản trị và MFA
+    admin/(console)/   AD03 /admin/verifications, AD04...; layout kiểm phiên quản trị
+    admin/session-expired/route.ts   xóa cookie khi API trả 401
     not-found.tsx      404 tiếng Việt
-  proxy.ts             chặn route quản trị khi chưa có cookie phiên
-  features/<tính năng>/   giống mobile: screens, components, actions.ts (server action), schemas.ts
+  proxy.ts             chặn /admin khi chưa có cookie phiên
+  features/<tính năng>/   components, actions.ts (Server Action), schemas.ts
   shared/
-    api/               client gọi API bằng cookie phiên `tb_session` (ADR-0010 mục 3)
-    session/           cookie phiên, token CSRF, chặn route khi hết phiên
+    api/               server.ts (adminApi), result.ts (load, runCommand)
+    session/           cookie phiên, verifyAdminSession
+    form/              useServerCommand, useServerFieldErrors
     lib/utils.ts       cn() cho class Tailwind
-    ui/                component shadcn/ui và khung trang đủ trạng thái
+    ui/                shadcn/ui (button, input), FormField, Notice, AdminPage, StateMessage, CommandStatus
+    test/              test mẫu, stub server-only
 ```
-Màu là biến CSS trong `src/app/globals.css`, cùng bảng màu với mobile.
+- Thêm component shadcn/ui theo `web/AGENTS.md` (sửa import `cn`, không cài gói `cn`).
+- Biến môi trường ở `web/.env.example`. API chỉ được gọi phía máy chủ (`server-only`).
 
-### Phiên quản trị web
+### Phiên quản trị
 - Cookie `tb_session` (HttpOnly, Secure, SameSite=Strict) đặt bằng `setSessionCookie` trong Server Action đăng nhập; xóa bằng `clearSessionCookie`. Trình duyệt không đọc được token.
-- Gọi API bằng `await adminApi()` (`@/shared/api/server`): tự gửi cookie phiên, và với lệnh ghi gửi cặp CSRF cùng `Origin` (`TB_WEB_ORIGIN`, phải nằm trong `tutorbridge.security.admin-origins` của API).
+- Gọi API bằng `await adminApi()`: tự gửi cookie phiên; lệnh ghi gửi thêm cặp CSRF và `Origin` (`TB_WEB_ORIGIN`, phải nằm trong `tutorbridge.security.admin-origins` của API).
 - `proxy.ts` chỉ kiểm có cookie. Kiểm thật là `verifyAdminSession()`: layout quản trị gọi, và **mỗi trang quản trị cũng gọi** trước khi lấy dữ liệu, vì trang được prerender một phần nên phần tĩnh của trang con vẫn gửi đi dù layout chuyển hướng. Không đặt nội dung nhạy cảm trong phần tĩnh.
-- API trả 401 thì về `/admin/session-expired` (xóa cookie, về đăng nhập với `reason=expired`).
 
-### Trang và form quản trị web
-- Đọc trong Server Component: `const result = await load((await adminApi()).GET(...))`; `result.status !== "ok"` thì trả `<StateMessage result={result} />` (mất quyền, không tìm thấy, giới hạn, lỗi hệ thống). 401 tự về hết phiên. Danh sách rỗng dùng `EmptyState`. Khung trang `AdminPage`.
-- Ghi: Server Action `"use server"` nhận `(input, idempotencyKey)` và trả `runCommand((await adminApi()).POST(..., { params: { header: { "Idempotency-Key": idempotencyKey } } }))`. Form phía trình duyệt dùng `useServerCommand(action)`, `useServerFieldErrors`, `FormField`, `CommandStatus`; cùng quy tắc khóa với mobile.
-- Test: hàm phía máy chủ chạy Vitest trong Node; component thêm dòng `// @vitest-environment jsdom` và dùng Testing Library. Mẫu đầy đủ: `web/src/shared/test/example.test.tsx`. Thêm component shadcn/ui theo `web/AGENTS.md`.
+### Trang và form
+- Đọc trong Server Component: `const result = await load((await adminApi()).GET(...))`; `result.status !== "ok"` thì trả `<StateMessage result={result} />`. 401 tự về hết phiên. Danh sách rỗng dùng `EmptyState`. Khung trang `AdminPage`.
+- Ghi: Server Action `"use server"` nhận `(input, idempotencyKey)` và trả `runCommand((await adminApi()).POST(..., { params: { header: { "Idempotency-Key": idempotencyKey } } }))`. Form phía trình duyệt dùng `useServerCommand(action)`, `useServerFieldErrors`, `FormField`, `CommandStatus`.
 
-### Gọi API trên mobile
-- Đọc: `useQuery` với `queryFn: () => call(api.GET(...))`. `call` trả dữ liệu hoặc ném `ApiError` (có `kind`, `code`, `fields`) hay `UnknownOutcomeError`. Đọc tự thử lại tối đa hai lần khi mất mạng hoặc lỗi 5xx, không thử lại lỗi 4xx.
-- Ghi: `useCommand((input, key) => call(api.POST(..., { params: { header: { "Idempotency-Key": key } } })))`. Màn hình hiển thị theo `state`: `sending`, `confirmed`, `failed` (kèm `error.fields`), `unknown` (nút thử lại gọi `retry`, giữ nguyên khóa). Không tự thử lại lệnh ghi.
-- Phiên: `useSession()` cho `status` (`loading`, `signedIn`, `signedOut` kèm `endedBy`), `signIn(session)` sau đăng nhập, `signOut()` sau khi gọi API đăng xuất. Token chỉ nằm trong `expo-secure-store`. Mọi 401 tự kết thúc phiên, xóa token và dữ liệu đã tải, đưa về `/sign-in`; màn hình không tự xử lý 401.
-- Khu vực theo vai trò bọc bằng `RequireRole` trong `_layout.tsx`; màn hình đăng nhập bọc bằng `RequireSignedOut`. Máy chủ vẫn kiểm quyền mọi yêu cầu.
-- Test cần phiên: `storeSession(fakeSession("PARENT"))` của `@/shared/test/session`; `expo-secure-store` được thay bằng bản giả trong `mobile/__mocks__`.
-- Cả workspace dùng một bản React (`overrides` ở `package.json` gốc), đúng bản Expo SDK yêu cầu. Thêm thư viện React phải giữ điều này: `npm ls react` chỉ có một phiên bản.
+### Test
+- Hàm phía máy chủ chạy Vitest trong Node; component thêm dòng `// @vitest-environment jsdom` và dùng Testing Library.
+- Mẫu đầy đủ: `web/src/shared/test/example.test.tsx`.
 
-### Giao diện mobile
-- Màu, cỡ chữ, khoảng cách lấy từ `@/shared/ui/theme`, không viết số hay mã màu trong màn hình. Đổi màu thì đo lại độ tương phản (ghi ở đầu `theme.ts`).
-- Màn hình đọc dữ liệu dùng `QueryScreen`: đã có tải, rỗng, lỗi hệ thống kèm thử lại, mất quyền, không tìm thấy, dữ liệu cũ khi tải lại lỗi. Màn hình chỉ viết phần nội dung.
-- Lệnh ghi hiển thị bằng `CommandStatus` cạnh nút gửi; nút gửi đặt `busy` khi `state === "sending"`. Lỗi trường đặt vào `TextField error`.
-- Không chỉ dùng màu để báo trạng thái; không đặt chiều cao cố định quanh chữ để chữ phóng to 200% vẫn đọc được.
-
-### Form và test màn hình mobile
-- Form: `useForm` với `zodResolver(schema)`; giới hạn lấy từ schema của hợp đồng, máy chủ vẫn kiểm lại. Ô nhập dùng `FormTextField`. Lỗi trường của máy chủ đặt vào ô bằng `useServerErrors(command.error, form.setError, [tên ô])`; lỗi không thuộc ô nào trả về để hiện trên form.
-- Ngày giờ và tiền hiển thị bằng `formatDateTime`, `formatDate`, `formatTime`, `formatVnd` của `@tutorbridge/shared`.
-- Test màn hình: `mockApi({ "GET /students": () => json(200, ...) })` thay `fetch` theo đường dẫn hợp đồng, yêu cầu ngoài danh sách làm test hỏng; `renderScreen(<Screen />, { session: fakeSession("PARENT") })` dựng màn hình với đủ provider. Gọi `restore()` sau mỗi test.
-- Mẫu đầy đủ một màn hình và test của nó: `mobile/src/shared/test/example.test.tsx`.
-
-### Thêm một màn hình
-1. Issue backend của chức năng đã merge, API client đã sinh lại.
-2. Tạo màn hình trong `features/<tính năng>/screens/` dùng khung màn hình của `shared/ui`; khung này đã có đủ trạng thái bắt buộc.
-3. Lệnh ghi đi qua mutation của `shared/api`, không tự sinh `Idempotency-Key` hay tự thử lại.
-4. Thêm route mỏng trong `app/` trỏ tới màn hình.
-5. Test từng trạng thái bằng API giả lập của `shared/test`.
+### Thêm một trang quản trị
+1. Issue backend đã merge, API client đã sinh lại.
+2. Tạo trang trong `app/admin/(console)/...`, gọi `verifyAdminSession()` rồi `load(...)`; form là client component trong `features/<tính năng>/` với Server Action ở `actions.ts`.
+3. Test Server Action và form như test mẫu.
 
 ## Python worker
 - Không trạng thái, không kết nối DB. Mọi dữ liệu đi qua `/internal/v1`.
@@ -155,10 +169,10 @@ Màu là biến CSS trong `src/app/globals.css`, cùng bảng màu với mobile.
 ## Kiểm thử
 | Mức | Dùng khi | Công cụ |
 |---|---|---|
-| Unit | Logic thuần: tính điểm, giá, lịch | JUnit; Jest với `jest-expo` cho mobile; Vitest cho `packages/` |
+| Unit | Logic thuần: tính điểm, giá, lịch | JUnit; Jest với `jest-expo` cho mobile; Vitest cho `packages/` và web |
 | Tích hợp | Service, giao dịch, ràng buộc DB | PostgreSQL thật qua Testcontainers, image `pgvector/pgvector:pg17` |
 | Hợp đồng | Phản hồi khớp OpenAPI (thao tác, mã trạng thái, kiểu nội dung, schema); đổi hợp đồng không phá vỡ | `Contract.matches()` trên mọi test HTTP, validator JSON Schema 2020-12 `com.networknt:json-schema-validator`; `oasdiff` trên CI (Huy, 04/11/2026) |
-| Đồng thời | TX05, đổi lịch, thu hồi | Nhiều kết nối, hai bản API |
+| Đồng thời | TX05, đổi lịch, thu hồi | Nhiều kết nối, hai bản API; dùng `Concurrently`, không dùng common pool |
 | Quyền | Mọi API | Ca âm: khác gia đình, đổi ID, sai vai trò |
 | Tải | Theo [mo-rong](../design/mo-rong.md) | k6 |
 

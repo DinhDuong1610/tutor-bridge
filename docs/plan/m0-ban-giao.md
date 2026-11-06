@@ -63,7 +63,8 @@ Dependabot mở PR cập nhật hằng tuần vào `dev`, không cần phần t�
 ## Việc tiếp theo
 | Việc | Người |
 |---|---|
+| Review và merge chuỗi nền #42–#57 theo thứ tự | Huy review, Đính merge |
 | TB-06 diễn tập đổi agent: Claude làm dở, Codex làm tiếp, người kia review | Cả hai |
-| TB-08 đăng ký, đăng nhập, phiên (PR nháp #39, #40) | Huy |
+| TB-08 đăng ký, đăng nhập, phiên (PR nháp #39, #40): viết `SessionResolver` trong `identity`, khai báo `PublicEndpoints`, không dựng bộ lọc riêng (ADR-0010) | Huy |
 | `NEN-MB` nền mobile, cần trước TB-10 | Đính |
 | TB-11 API hồ sơ con, sau khi TB-08 merge | Đính |

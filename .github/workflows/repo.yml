@@ -38,6 +38,10 @@ jobs:
         if: ${{ !cancelled() }}
         run: sh scripts/ci/hooks.sh
 
+      - name: contract-check
+        if: ${{ !cancelled() }}
+        run: sh scripts/ci/contract-check.sh "$BASE_SHA"
+
       - name: no-handoff
         if: ${{ !cancelled() && !github.event.pull_request.draft }}
         run: sh scripts/ci/no-handoff.sh

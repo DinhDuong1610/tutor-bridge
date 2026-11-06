@@ -14,7 +14,7 @@ Dặn agent bằng tài liệu là chưa đủ. CI chặn những gì bắt bu�
 | `backend-integration` | Test trên PostgreSQL thật, image `pgvector/pgvector:pg17` | Có, cùng job `backend-build` |
 | `migration-check` | Áp được từ DB trống và từ phiên bản trước | Một phần: từ DB trống. Từ phiên bản trước làm khi có bản phát hành đầu |
 | `architecture` | Mô-đun gọi ngược chiều, dùng `internal` của nhau (INV-82) | Có, `ArchitectureTest`. Chưa kiểm được SQL đọc bảng của mô-đun khác |
-| `contract-check` | Code lệch OpenAPI; đổi phá vỡ không có phiên bản | Chưa có: công cụ còn TBD, làm khi có API HTTP đầu tiên (TB-08) |
+| `contract-check` | Code lệch OpenAPI; đổi phá vỡ không có phiên bản | Một phần: `oasdiff breaking` so `contracts/openapi.yaml` với nhánh đích, `repo.yml`; lỗi mức ERR thì chặn, cảnh báo chỉ in ra. Phần kiểm code khớp hợp đồng bằng validator trong test tích hợp backend làm cùng API HTTP đầu tiên (TB-08) |
 | `client-sync` | API client sinh ra lệch hợp đồng | Có, `frontend.yml` |
 | `mobile-build`, `web-build` | Build, lint, typecheck, test | Có, `frontend.yml`. Mobile bundle Android; web chưa có test vì chưa có logic |
 | `worker-build` | Lint, test worker Python | Khi có worker |
@@ -27,6 +27,7 @@ sh scripts/ci/immutable-history.sh origin/dev
 sh scripts/ci/hooks.sh
 sh scripts/ci/no-handoff.sh   # trước khi chuyển PR sang Ready
 sh scripts/ci/client-sync.sh  # sau khi đổi contracts/openapi.yaml
+sh scripts/ci/contract-check.sh origin/dev  # cần oasdiff trên PATH hoặc Docker đang chạy
 npm run lint && npm run typecheck && npm test
 ```
 

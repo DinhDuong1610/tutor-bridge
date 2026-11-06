@@ -52,7 +52,7 @@ Những mục ghi **TBD** sẽ chốt khi dựng repo.
 |---|---|---|
 | Unit | Logic thuần: tính điểm, giá, lịch | JUnit; Jest với `jest-expo` cho mobile; Vitest cho `packages/` |
 | Tích hợp | Service, giao dịch, ràng buộc DB | PostgreSQL thật qua Testcontainers, image `pgvector/pgvector:pg17` |
-| Hợp đồng | Code khớp OpenAPI | **TBD** |
+| Hợp đồng | Code khớp OpenAPI; đổi hợp đồng không phá vỡ | Validator kiểm request và response thật trong test tích hợp (đề xuất `swagger-request-validator`, dựng ở TB-08); `oasdiff` trên CI (Huy, 04/11/2026) |
 | Đồng thời | TX05, đổi lịch, thu hồi | Nhiều kết nối, hai bản API |
 | Quyền | Mọi API | Ca âm: khác gia đình, đổi ID, sai vai trò |
 | Tải | Theo [mo-rong](../design/mo-rong.md) | k6 |

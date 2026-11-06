@@ -1,6 +1,6 @@
 # ADR-0009 Nền giao diện cho mobile và web
 
-**Trạng thái:** Các mục 1–4 đã chọn (Đính, 06/11/2026). Các mục 5–9 là đề xuất của agent, chờ Đính chốt. **Chủ trì:** Đính (CR-012).
+**Trạng thái:** Đã chọn (Đính, 06/11/2026). Mục 1–4 Đính chọn trực tiếp, mục 5–9 Đính đồng ý theo đề xuất của agent. **Chủ trì:** Đính (CR-012).
 
 ## Vấn đề
 Mobile và web mới có khung chạy CI (TB-5). Nếu mỗi Issue giao diện tự chọn điều hướng, cách gọi API, style và cấu trúc thư mục, code của hai người và hai agent sẽ không thống nhất. Cần chốt trước Issue giao diện đầu tiên (TB-10).
@@ -12,11 +12,11 @@ Mobile và web mới có khung chạy CI (TB-5). Nếu mỗi Issue giao diện t
 | 2 | Lấy dữ liệu và cache | TanStack Query cho mobile gọi API qua `@tutorbridge/api-client`. Web chỉ gọi API phía máy chủ Next; TanStack Query trên web chỉ dùng cho phần tương tác phía trình duyệt và gọi route handler hoặc server action của Next, không gọi thẳng API | Đính |
 | 3 | Style mobile | `StyleSheet` của React Native với token màu, cỡ chữ, khoảng cách trong `mobile/src/shared/ui/theme`. Không thêm thư viện style | Đính |
 | 4 | Style web | Tailwind CSS, shadcn/ui cho bảng và form quản trị | Đính |
-| 5 | Form | react-hook-form với zod. Schema zod đặt trong thư mục tính năng | Đề xuất |
-| 6 | Lưu phiên mobile | `expo-secure-store`, đúng "kho bảo mật của hệ điều hành" của ADR-0004 | Đề xuất |
-| 7 | Test web | Vitest với Testing Library. Mobile giữ Jest với `jest-expo` | Đề xuất |
-| 8 | Ngôn ngữ | Chuỗi tiếng Việt viết thẳng trong code, không dùng thư viện đa ngôn ngữ ở Lát 1 | Đề xuất |
-| 9 | Code dùng chung | Gói `packages/shared` (`@tutorbridge/shared`): kiểu Problem, sinh `Idempotency-Key`, định dạng ngày giờ Asia/Ho_Chi_Minh 24 giờ và tiền VND. Không chứa React | Đề xuất |
+| 5 | Form | react-hook-form với zod. Schema zod đặt trong thư mục tính năng | Đính, theo đề xuất |
+| 6 | Lưu phiên mobile | `expo-secure-store`, đúng "kho bảo mật của hệ điều hành" của ADR-0004 | Đính, theo đề xuất |
+| 7 | Test web | Vitest với Testing Library. Mobile giữ Jest với `jest-expo` | Đính, theo đề xuất |
+| 8 | Ngôn ngữ | Chuỗi tiếng Việt viết thẳng trong code, không dùng thư viện đa ngôn ngữ ở Lát 1 | Đính, theo đề xuất |
+| 9 | Code dùng chung | Gói `packages/shared` (`@tutorbridge/shared`): kiểu Problem, sinh `Idempotency-Key`, định dạng ngày giờ Asia/Ho_Chi_Minh 24 giờ và tiền VND. Không chứa React | Đính, theo đề xuất |
 
 Cấu trúc thư mục và cách thêm một chức năng ở [conventions](../../context/conventions.md).
 

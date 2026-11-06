@@ -36,7 +36,7 @@ Theo OP-14, đợt M0 là ngoại lệ: agent viết phần tác giả, merge kh
 | `PREFERRED` có tính là rảnh không | Có | Đính | Trước TB-15 |
 | Công cụ kiểm hợp đồng (`contract-check`) | Đã chốt: `oasdiff` trên CI chặn đổi hợp đồng phá vỡ (Huy, 04/11/2026, #40); kiểm phản hồi khớp hợp đồng bằng `Contract.matches()` trong test HTTP backend, dùng `com.networknt:json-schema-validator` vì hợp đồng là OpenAPI 3.1 (#47, Đính duyệt 06/11/2026) | Huy, Đính | Xong |
 | UUIDv7 | TBD, đang dùng UUIDv4 | Đính | Trước khi có dữ liệu thật |
-| Tên gói Android, thư viện điều hướng | TBD; Expo đề xuất Expo Router | Đính (chủ trì React Native, CR-012) | `NEN-MB` |
+| Tên gói Android, thư viện điều hướng | Đã chốt 06/11/2026: `vn.tutorbridge.app` (Đính), Expo Router (ADR-0009) | Đính | Xong |
 | `lock_timeout` cho giao dịch | Chưa đặt | Đính | Khi có số đo tải |
 
 Mã lỗi đang dùng: `IDEMPOTENCY_KEY_INVALID`, `IDEMPOTENCY_KEY_REUSED`, `CURSOR_INVALID`, `LIMIT_INVALID`, `VALIDATION_FAILED`, `REQUEST_REJECTED`, `INTERNAL_ERROR`, `OFFER_NOT_FOUND`, `ACCESS_UNAVAILABLE`, `SCOPE_CHANGED`, `OFFER_EXPIRED`, `VERSION_CONFLICT`, `SCHEDULE_CONFLICT`, `SERVICE_BUSY`, và `PRECONDITION_REQUIRED` (428, thiếu `If-Match`, thêm ở #45), `AUTHENTICATION_REQUIRED` (401), `CSRF_REJECTED` (403), `ACCESS_DENIED` (403) thêm ở #46.

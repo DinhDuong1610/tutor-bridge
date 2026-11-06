@@ -6,7 +6,8 @@ Follow `../AGENTS.md` and `../docs/context/conventions.md` ("Cấu trúc web"). 
 - Routes: `src/app/(public)` for WEB01–WEB02 (no private learning data), `src/app/admin/(auth)` for sign-in, `src/app/admin/(console)` for AD screens. Feature code goes in `src/features/<feature>`, shared code in `src/shared`.
 - shadcn/ui components live in `src/shared/ui` (see `components.json`). Add one with `npx shadcn@4.22.1 add <name> --dry-run` first: the registry imports `cn` from an npm package `cn`; change it to `@/shared/lib/utils` and do not install `cn`.
 - Colors come from the CSS variables in `src/app/globals.css`; do not write raw colors in components.
-- The API is called on the server only (`server-only`, `src/shared/api/server.ts`). The admin session (cookie, CSRF) is module W2.
+- The API is called on the server only with `await adminApi()` (`src/shared/api/server.ts`), which carries the admin session cookie and the CSRF pair. Every admin page calls `verifyAdminSession()` before loading data, not only the layout (conventions, "Phiên quản trị web").
+- Server code is tested with Vitest in Node (`npm test`); `server-only` is replaced by a stub in `vitest.config.mts`.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

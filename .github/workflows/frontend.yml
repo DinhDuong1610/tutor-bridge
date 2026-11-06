@@ -53,6 +53,12 @@ jobs:
           npm run typecheck --workspace @tutorbridge/api-client
           npm run test --workspace @tutorbridge/api-client
 
+      - name: shared
+        if: ${{ !cancelled() }}
+        run: |
+          npm run typecheck --workspace @tutorbridge/shared
+          npm run test --workspace @tutorbridge/shared
+
       - name: mobile-build
         if: ${{ !cancelled() }}
         working-directory: mobile

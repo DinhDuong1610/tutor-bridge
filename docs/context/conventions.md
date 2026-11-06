@@ -35,7 +35,9 @@ Những mục ghi **TBD** sẽ chốt khi dựng repo.
 - Controller khai báo tham số `IdempotencyKey` cho lệnh ghi, `WritePrecondition.Expected` khi cần `If-Match`, `WritePrecondition` khi cho phép tạo lần đầu bằng `If-None-Match: *`. Phản hồi có phiên bản đặt `ETag` bằng `Etag.of(version)`. Mọi phản hồi đã có sẵn `Cache-Control: private, no-store`.
 - Service nhận `Actor` làm tham số, không đọc request hay context tĩnh. Controller lấy nó bằng `@AuthenticationPrincipal Actor actor`.
 - Mọi đường dẫn cần phiên, trừ thao tác mô-đun khai báo công khai bằng một bean `PublicEndpoints` (ví dụ đăng ký, đăng nhập). Không mở đường dẫn bằng cách sửa `SecurityConfig`.
-- Test controller: `@WebMvcTest` kèm `@Import(WebSecurityTestConfig.class)`, gửi yêu cầu bằng `.with(sessions.as(actor))` với `TestSessions`. Ca âm quyền luôn có: không phiên, sai vai trò, đối tượng của người khác.
+- Test HTTP của chức năng: kế thừa `HttpTest` (toàn ứng dụng, PostgreSQL thật), tạo người gọi bằng `newActor(role)`, gửi bằng `.with(sessions().as(actor))`, và mọi phản hồi qua `.andExpect(Contract.matches())`. Xem `HttpTestExampleTest`.
+- Test riêng tầng web không cần DB: `@WebMvcTest` kèm `@Import(WebSecurityTestConfig.class)` và `TestSessions`.
+- Ca âm quyền luôn có: không phiên, sai vai trò, đối tượng của người khác.
 
 ### Thêm một chức năng backend
 ```text
@@ -114,7 +116,7 @@ web/src/
 |---|---|---|
 | Unit | Logic thuần: tính điểm, giá, lịch | JUnit; Jest với `jest-expo` cho mobile; Vitest cho `packages/` |
 | Tích hợp | Service, giao dịch, ràng buộc DB | PostgreSQL thật qua Testcontainers, image `pgvector/pgvector:pg17` |
-| Hợp đồng | Code khớp OpenAPI; đổi hợp đồng không phá vỡ | Validator kiểm request và response thật trong test tích hợp (đề xuất `swagger-request-validator`, dựng ở TB-08); `oasdiff` trên CI (Huy, 04/11/2026) |
+| Hợp đồng | Phản hồi khớp OpenAPI (thao tác, mã trạng thái, kiểu nội dung, schema); đổi hợp đồng không phá vỡ | `Contract.matches()` trên mọi test HTTP, validator JSON Schema 2020-12 `com.networknt:json-schema-validator`; `oasdiff` trên CI (Huy, 04/11/2026) |
 | Đồng thời | TX05, đổi lịch, thu hồi | Nhiều kết nối, hai bản API |
 | Quyền | Mọi API | Ca âm: khác gia đình, đổi ID, sai vai trò |
 | Tải | Theo [mo-rong](../design/mo-rong.md) | k6 |

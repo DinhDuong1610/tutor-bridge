@@ -27,13 +27,17 @@ dependencies {
     implementation("org.flywaydb:flyway-database-postgresql")
     runtimeOnly("org.postgresql:postgresql")
 
-    testImplementation(platform(SpringBootPlugin.BOM_COORDINATES))
+    // Enforced: a test library must not lift Jackson or Spring above what production runs.
+    testImplementation(enforcedPlatform(SpringBootPlugin.BOM_COORDINATES))
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
     testImplementation("org.springframework.boot:spring-boot-starter-security-test")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.testcontainers:testcontainers-postgresql")
     testImplementation("com.tngtech.archunit:archunit-junit5:1.5.1")
+    // Responses checked against contracts/openapi.yaml (OpenAPI 3.1 uses JSON Schema 2020-12).
+    testImplementation("com.networknt:json-schema-validator:3.0.8")
+    testImplementation("tools.jackson.dataformat:jackson-dataformat-yaml")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

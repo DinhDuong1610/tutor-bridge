@@ -2,7 +2,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { api } from "@/shared/api/client";
 import { useCommand } from "@/shared/api/command";
 import { call } from "@/shared/api/errors";
-import type { EmailOnlyForm, RegistrationForm, ResetPasswordForm, SignInForm } from "./schemas";
+import type { ChangePasswordForm, EmailOnlyForm, RegistrationForm, ResetPasswordForm, SignInForm } from "./schemas";
 
 // The contract declares no Idempotency-Key for these public commands (handoff TB-10, Q4), so the
 // key from useCommand is not sent. Retrying register cannot create a second account: the email
@@ -57,6 +57,15 @@ export function useRevokeSession() {
 
 export function useLogout() {
   return useCommand(() => call(api.POST("/auth/logout", {})));
+}
+
+/**
+ * Changing the password revokes every session, this one too (UC01), so a success is followed by
+ * signing in again. No Idempotency-Key in the contract; a retry after an unknown outcome that
+ * finds the session gone ends in sign-in, which is the right place anyway.
+ */
+export function useChangePassword() {
+  return useCommand((input: ChangePasswordForm) => call(api.POST("/me/password", { body: input })));
 }
 
 export function useVerifyEmail(token: string) {

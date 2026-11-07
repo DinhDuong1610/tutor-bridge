@@ -1,5 +1,5 @@
 // AUTH06 Bảo mật và quản lý phiên: xem phiên, thu hồi phiên, đăng xuất (UC01, FR-02, FR-39).
-// Đổi mật khẩu chờ TB-09 (handoff TB-10, Q10).
+// Đổi mật khẩu ở ChangePasswordScreen.
 import { formatDateTime } from "@tutorbridge/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -15,17 +15,18 @@ import { OWN_SESSIONS_KEY, useLogout, useOwnSessions, useRevokeSession } from ".
 
 type SessionMetadata = components["schemas"]["SessionMetadata"];
 
-export function SessionsScreen() {
+export function SessionsScreen({ onChangePassword }: { onChangePassword: () => void }) {
   const sessions = useOwnSessions();
 
   return (
-    <QueryScreen
-      title="Bảo mật và phiên đăng nhập"
-      query={sessions}
-      empty={{ when: (data) => data.pages.every((page) => page.items.length === 0), message: "Không có phiên đăng nhập nào." }}
-    >
+    // No `empty` on QueryScreen: it would replace the content and hide "Đổi mật khẩu".
+    <QueryScreen title="Bảo mật và phiên đăng nhập" query={sessions}>
       {(data) => (
         <ScrollView contentContainerStyle={styles.list}>
+          <Button variant="secondary" title="Đổi mật khẩu" onPress={onChangePassword} />
+          {data.pages.every((page) => page.items.length === 0) ? (
+            <Notice tone="info" message="Không có phiên đăng nhập nào." />
+          ) : null}
           {data.pages
             .flatMap((page) => page.items)
             .map((item) => (item.current ? <CurrentSession key={item.id} session={item} /> : <OtherSession key={item.id} session={item} />))}
@@ -69,6 +70,14 @@ function CurrentSession({ session }: { session: SessionMetadata }) {
       <Text style={styles.badge}>Máy này (phiên hiện tại)</Text>
       <Details session={session} />
       <CommandStatus command={logout} confirmedMessage="Đã đăng xuất." />
+      {logout.state === "unknown" ? (
+        // Anyone must be able to leave a shared device (handoff TB-10, Q12). Truthful: only this device.
+        <Notice
+          tone="info"
+          message="Nếu không kết nối được, bạn vẫn có thể đăng xuất khỏi máy này. Phiên trên máy chủ sẽ tự hết hạn, hoặc thu hồi nó từ máy khác."
+          action={<Button variant="secondary" title="Đăng xuất khỏi máy này" onPress={() => void signOut()} />}
+        />
+      ) : null}
       <Button title="Đăng xuất" busy={logout.state === "sending"} onPress={() => void logout.submit(undefined)} />
     </View>
   );

@@ -21,7 +21,7 @@ function page(items: unknown[], nextCursor: string | null = null) {
 }
 
 async function show() {
-  await renderScreen(<SessionsScreen />, { session: fakeSession("PARENT") });
+  await renderScreen(<SessionsScreen onChangePassword={jest.fn()} />, { session: fakeSession("PARENT") });
 }
 
 async function press(name: string, scope = screen) {
@@ -147,6 +147,26 @@ describe("AUTH06 SessionsScreen", () => {
 
     await waitFor(() => expect(storedSession()).toBeUndefined());
     expect(attempts).toBe(2);
+  });
+
+  it("lets the user leave this device when logout cannot reach the server, saying only this device is signed out", async () => {
+    server = mockApi({
+      "GET /me/sessions": () => page([CURRENT]),
+      "POST /auth/logout": () => {
+        throw new TypeError("Network request failed");
+      },
+    });
+    await show();
+    await screen.findByText("Máy này (phiên hiện tại)");
+    expect(screen.queryByRole("button", { name: "Đăng xuất khỏi máy này" })).toBeNull();
+
+    await press("Đăng xuất");
+    expect(await screen.findByText(/Phiên trên máy chủ sẽ tự hết hạn/)).toBeOnTheScreen();
+    expect(storedSession()).toBeDefined();
+
+    await press("Đăng xuất khỏi máy này");
+
+    await waitFor(() => expect(storedSession()).toBeUndefined());
   });
 
   it("shows a system error with retry when the list cannot load", async () => {

@@ -74,6 +74,26 @@ describe("account routes", () => {
     }
   });
 
+  it("goes from session security to change password and back", async () => {
+    const server = mockApi({ "GET /me/sessions": () => json(200, { items: [], nextCursor: null }) });
+    try {
+      storeSession(fakeSession("PARENT"));
+      renderRouter("./src/app", { initialUrl: "/parent/security" });
+      // The header shows while the list loads; the button comes with the list.
+      const changePassword = await screen.findByRole("button", { name: "Đổi mật khẩu" });
+      await act(async () => fireEvent.press(changePassword));
+
+      expect(await screen.findByRole("header", { name: "Đổi mật khẩu" })).toBeOnTheScreen();
+      expect(screen).toHavePathname("/parent/change-password");
+
+      await act(async () => fireEvent.press(screen.getByRole("button", { name: "Hủy" })));
+
+      expect(await screen.findByRole("header", { name: "Bảo mật và phiên đăng nhập" })).toBeOnTheScreen();
+    } finally {
+      server.restore();
+    }
+  });
+
   it("sends a signed-out user from session security to sign-in", async () => {
     renderRouter("./src/app", { initialUrl: "/parent/security" });
 

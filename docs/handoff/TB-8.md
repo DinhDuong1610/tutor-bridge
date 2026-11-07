@@ -3,7 +3,7 @@
 - **Chủ task:** Huy
 - **Nhánh:** `feature/TB-8-account-sessions`
 - **Agent đang làm:** Claude (Claude Code), chưa viết code nghiệp vụ
-- **Cập nhật lần cuối:** 07/11/2026, ghi chủ trì ADR-0008 và số đo tham khảo Argon2id; nhánh trên `dev` tại `8c045d9`
+- **Cập nhật lần cuối:** 07/11/2026, ghi ý kiến của Huy cho Q1, Q4–Q8, Q11 và chính sách tham số ADR-0008
 - **Mã liên quan:** FR-01, FR-02; UC01; AC-UC01-01, AC-UC01-02, AC-UC01-03, AC-UC01-04; INV-01, INV-03, INV-06, INV-18, INV-20, INV-21, INV-63, INV-80, INV-83; ADR-0004
 
 ## Mục tiêu
@@ -71,6 +71,22 @@ Chưa chạy test trên nhánh này vì chưa có thay đổi code.
 
 - Huy, 07/11/2026: Huy chủ trì ADR-0008, kể cả thêm `bcprov`; Q12 không cần Đính duyệt. Ghi chú: CR-012 vẫn ghi Đính chủ trì kiến trúc backend Spring và `conventions.md` ghi thư viện mới qua Đính; Đính chưa có ý kiến về ngoại lệ này.
 
+- Huy, 07/11/2026, Q3 phần tham số: chính sách `argon2id-v1` = mức tối thiểu OWASP (`m=19456` KiB, `t=2`, `p=1`), đo lại trên máy chạy trước thí điểm. Ghi trong ADR-0008.
+- Huy, 07/11/2026, yêu cầu cho TB-09 từ TB-10 (Q10 của TB-10): `changePassword` dùng `currentPassword` làm bước tái xác thực, không dùng `reauthToken`; sai mật khẩu hiện tại trả 422 kèm lỗi trường `currentPassword`, không trả 401 (401 làm app kết thúc phiên).
+
+## Ý kiến của Huy, chờ Đính cùng chốt (07/11/2026)
+Huy đồng ý các đề xuất dưới đây; câu hỏi chỉ đóng khi Đính đồng ý. Đã gửi lên #39.
+| # | Ý kiến của Huy |
+|---|---|
+| Q1 | Không dùng `Idempotency-Key` cho `registerAccount`, `verifyEmail`, `resendVerification`, `loginAccount`, `requestRecovery`, `resetPassword`: email duy nhất, mã một lần, phiên trùng tự hết hạn. `logoutAccount`, `revokeOwnSession` vốn idempotent. Vì INV-20 ghi "mọi lệnh ghi", cần CR (bản nháp trên #39). Thiếu khóa ở lệnh có yêu cầu khóa trả 400 mã `IDEMPOTENCY_KEY_REQUIRED` theo `draft-ietf-httpapi-idempotency-key-header`, không dùng 422 hay 428 |
+| Q4 | Email: cắt khoảng trắng, chữ thường, Unicode NFC. `email_digest` = HMAC-SHA256 có khóa. `email_ciphertext` = AES-GCM, khóa từ biến môi trường. Lát 1 gửi qua Mailpit trong `infra/compose.yaml` |
+| Q5 | `UNVERIFIED` không đăng nhập được: sau khi mật khẩu đúng trả 403 mã `ACCOUNT_UNVERIFIED`; app dẫn sang AUTH02 gửi lại liên kết. Khớp OpenAPI |
+| Q6 | Đề xuất, chưa có số đo: gửi lại xác minh và khôi phục 3 lần/giờ theo tài khoản, 10 lần/giờ theo nguồn; đăng ký 5 lần/giờ theo nguồn; bộ đếm trong DB (INV-80) |
+| Q8 | Backend giữ danh sách `termsVersion` hợp lệ trong cấu hình; app lấy từ `EXPO_PUBLIC_TERMS_VERSION`. Văn bản điều khoản do Đính lo; trước khi có, dùng bản ghi rõ "bản thử, chưa có hiệu lực" |
+| Q11 | Token phiên 256 bit ngẫu nhiên, base64url; digest SHA-256 (token đủ entropy, không cần HMAC). `last_seen_at` chỉ ghi khi giá trị cũ quá 5 phút |
+| Mã lỗi | `ACCOUNT_UNVERIFIED` (403), `ACCOUNT_LOCKED` (403), `LOGIN_DELAYED` (429, kèm `Retry-After`), `LINK_EXPIRED` (400), `LINK_USED` (409), `LINK_INVALID` (400), `CURRENT_PASSWORD_INVALID` (422) |
+| ADR-0008 | Không dùng pepper ở Lát 1; chuẩn hóa NFKC trước khi băm |
+
 ## Tham khảo đo Argon2id (không phải tham số)
 07/11/2026, máy Windows của Huy (i7-12700H, RAM 15,6 GB), JDK 21, BouncyCastle `bcprov-jdk18on` 1.80 (`Argon2BytesGenerator`), 15 lần sau 3 lần làm nóng, mật khẩu giả:
 
@@ -89,7 +105,7 @@ Không ghi vào ADR-0008: ADR yêu cầu đo trên máy sẽ chạy, chưa chọ
 |---|---|---|
 | Q1 | Lệnh xác thực công khai có cần `Idempotency-Key` không? Nếu có thì receipt lưu thế nào khi chưa có actor: đổi `actor_id` cho phép null, hay tách bảng? `logoutAccount`, `revokeOwnSession` có actor: có thêm header vào OpenAPI không? Thiếu khóa trả 422 (code hiện tại) hay 428 (`10-hop-dong-api.md` ghi "thiếu điều kiện trả 428")? | Đính, Huy |
 | Q2 | Có cấp V9 cho TB-8 không? Nội dung đề xuất: `auth_sessions.device_label`, bảng chấp thuận điều khoản (tài khoản, phiên bản, thời điểm), bảng đếm lần thử theo tài khoản và theo nguồn | Đính |
-| Q3 | Đã chọn Argon2id. Còn lại: tham số `m`, `t`, `p` đo trên máy chạy; có dùng pepper không; có chuẩn hóa Unicode mật khẩu không (xem ADR-0008) | Tham số: Huy. Pepper, Unicode: Đính, Huy |
+| Q3 | Đã chọn Argon2id và chính sách `argon2id-v1`. Còn lại: pepper, chuẩn hóa Unicode (ý kiến Huy ở bảng trên) | Đính, Huy |
 | Q4 | Email: chuẩn hóa thế nào (cắt khoảng trắng, chữ thường)? `email_digest` dùng HMAC với khóa bí mật hay hash thường? Khóa mã hóa `email_ciphertext` lấy từ đâu? Lát 1 gửi email qua đâu (đề xuất: hộp thư local như Mailpit trong `infra/compose.yaml`, không dùng nhà cung cấp thật)? | Đính, Huy |
 | Q5 | Tài khoản `UNVERIFIED` có đăng nhập được không? (OpenAPI nói không, F01 ngụ ý có) | Đính, Huy |
 | Q6 | Ngưỡng giới hạn cho `registerAccount` và `resendVerification` | Đính, Huy |

@@ -46,3 +46,27 @@ export const signInSchema = z.object({
     .refine((value) => lengthOf(value) <= PASSWORD_MAX, `Mật khẩu tối đa ${PASSWORD_MAX} ký tự.`),
 });
 export type SignInForm = z.infer<typeof signInSchema>;
+
+// Limits from the contract (VerifyEmailInput, RecoveryInput, ResetInput).
+const TOKEN_MIN = 20;
+const TOKEN_MAX = 512;
+
+/** Whether a link carried a token the server could accept. Anything else is not sent. */
+export function isLinkToken(value: unknown): value is string {
+  return typeof value === "string" && lengthOf(value) >= TOKEN_MIN && lengthOf(value) <= TOKEN_MAX;
+}
+
+// Resend verification and password recovery both take only the email (RecoveryInput).
+export const emailOnlySchema = z.object({ email });
+export type EmailOnlyForm = z.infer<typeof emailOnlySchema>;
+
+export const resetPasswordSchema = z.object({
+  // Not trimmed, like registration.
+  newPassword: z
+    .string()
+    .refine(
+      (value) => lengthOf(value) >= PASSWORD_MIN && lengthOf(value) <= PASSWORD_MAX,
+      `Mật khẩu cần từ ${PASSWORD_MIN} đến ${PASSWORD_MAX} ký tự.`,
+    ),
+});
+export type ResetPasswordForm = z.infer<typeof resetPasswordSchema>;

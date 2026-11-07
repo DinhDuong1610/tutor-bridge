@@ -7,7 +7,7 @@ const PASSWORD = "mot cau mat khau du dai";
 const ACK = { message: "Nếu email hợp lệ, bạn sẽ nhận thư xác minh.", traceId: "0123456789abcdef" };
 
 async function show({ termsVersion }: { termsVersion?: string } = { termsVersion: "2026-11" }) {
-  await renderScreen(<RegisterScreen termsVersion={termsVersion} onGoToSignIn={jest.fn()} />);
+  await renderScreen(<RegisterScreen termsVersion={termsVersion} onGoToSignIn={jest.fn()} onResendVerification={jest.fn()} />);
 }
 
 function fillValidForm() {

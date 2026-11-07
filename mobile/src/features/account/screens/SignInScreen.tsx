@@ -16,6 +16,7 @@ import { signInSchema, type SignInForm } from "../schemas";
 
 type Props = {
   onGoToRegister: () => void;
+  onForgotPassword: () => void;
 };
 
 // Fixed text, so the screen never says whether the email has an account.
@@ -23,7 +24,7 @@ const WRONG_CREDENTIALS = "Email hoặc mật khẩu không đúng.";
 const ADMIN_ON_WEB = "Tài khoản quản trị đăng nhập trên trang quản trị, không dùng ứng dụng.";
 const NOT_SAVED = "Không lưu được phiên đăng nhập trên máy. Vui lòng thử lại.";
 
-export function SignInScreen({ onGoToRegister }: Props) {
+export function SignInScreen({ onGoToRegister, onForgotPassword }: Props) {
   const session = useSession();
   const form = useForm<SignInForm>({ resolver: zodResolver(signInSchema), defaultValues: { email: "", password: "" } });
   const signIn = useSignIn();
@@ -89,6 +90,7 @@ export function SignInScreen({ onGoToRegister }: Props) {
         <CommandStatus command={signIn} confirmedMessage="" />
       )}
       <Button title="Đăng nhập" busy={signIn.state === "sending"} onPress={form.handleSubmit(submit)} />
+      <Button variant="secondary" title="Quên mật khẩu?" onPress={onForgotPassword} />
       <Button variant="secondary" title="Chưa có tài khoản? Đăng ký" onPress={onGoToRegister} />
     </ScrollView>
   );

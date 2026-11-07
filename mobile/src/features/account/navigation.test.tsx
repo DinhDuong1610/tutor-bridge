@@ -32,6 +32,31 @@ describe("account routes", () => {
     expect(screen).toHavePathname("/sign-in");
   });
 
+  it("goes from sign-in to password recovery and back", async () => {
+    renderRouter("./src/app", { initialUrl: "/sign-in" });
+    expect(await screen.findByRole("header", { name: "Đăng nhập" })).toBeOnTheScreen();
+
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Quên mật khẩu?" })));
+
+    expect(await screen.findByRole("header", { name: "Khôi phục mật khẩu" })).toBeOnTheScreen();
+    expect(screen).toHavePathname("/forgot-password");
+
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Quay lại đăng nhập" })));
+
+    expect(await screen.findByRole("header", { name: "Đăng nhập" })).toBeOnTheScreen();
+  });
+
+  it.each([
+    ["/verify-email?token=fake-verification-token-0001", "Xác minh email", "Xác minh email"],
+    ["/reset-password?token=fake-reset-token-000000001", "Đặt lại mật khẩu", "Đặt lại mật khẩu"],
+  ])("opens the email link %s with its token", async (initialUrl, header, button) => {
+    renderRouter("./src/app", { initialUrl });
+
+    expect(await screen.findByRole("header", { name: header })).toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: button })).toBeOnTheScreen();
+    expect(screen.queryByText(/không hợp lệ/)).toBeNull();
+  });
+
   it("sends a signed-in user away from registration", async () => {
     storeSession(fakeSession("TUTOR"));
     renderRouter("./src/app", { initialUrl: "/register" });

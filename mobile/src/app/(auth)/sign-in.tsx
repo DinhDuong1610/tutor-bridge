@@ -4,5 +4,10 @@ import { SignInScreen } from "@/features/account/screens/SignInScreen";
 
 export default function SignInRoute() {
   const router = useRouter();
-  return <SignInScreen onGoToRegister={() => router.push("/register")} />;
+  return (
+    <SignInScreen
+      onGoToRegister={() => router.push("/register")}
+      onForgotPassword={() => router.push("/forgot-password")}
+    />
+  );
 }

@@ -23,7 +23,7 @@ function SessionStatus() {
 async function signIn() {
   await renderScreen(
     <>
-      <SignInScreen onGoToRegister={jest.fn()} />
+      <SignInScreen onGoToRegister={jest.fn()} onForgotPassword={jest.fn()} />
       <SessionStatus />
     </>,
   );
@@ -51,7 +51,7 @@ describe("AUTH03 SignInScreen", () => {
 
   it("checks the form before sending anything", async () => {
     server = mockApi({});
-    await renderScreen(<SignInScreen onGoToRegister={jest.fn()} />);
+    await renderScreen(<SignInScreen onGoToRegister={jest.fn()} onForgotPassword={jest.fn()} />);
 
     await act(async () => fireEvent.press(screen.getByRole("button", { name: "Đăng nhập" })));
 

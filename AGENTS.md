@@ -8,7 +8,7 @@ Nền tảng kết nối phụ huynh với gia sư và quản lý việc học k
 1. [docs/context/invariants.md](docs/context/invariants.md): bắt buộc đọc mỗi task.
 2. [docs/context/r0a-scope.md](docs/context/r0a-scope.md): việc này có trong phạm vi không.
 3. [docs/context/module-map.md](docs/context/module-map.md): code đặt ở đâu, bảng nào của ai.
-4. [docs/context/conventions.md](docs/context/conventions.md): cách viết code và test, mục của phần mình (Backend, Mobile, Web) có các bước thêm một chức năng và test mẫu. Làm mobile hay web thì đọc thêm `mobile/AGENTS.md` hoặc `web/AGENTS.md`.
+4. [docs/context/conventions.md](docs/context/conventions.md): cách viết code và test, mục của phần mình (Backend, Mobile, Web) có các bước thêm một chức năng và test mẫu. Làm mobile hay web thì đọc thêm `mobile/AGENTS.md` hoặc `web/AGENTS.md`, và thiết kế đã duyệt của màn hình trong [docs/design/ui/](docs/design/ui/README.md).
 5. Đúng UC của task trong `docs/baseline/use-cases/`, cùng `docs/baseline/02-quy-tac-nghiep-vu.md` và file luồng `docs/design/f0X-*.md`.
 6. [docs/context/glossary.md](docs/context/glossary.md) khi gặp thuật ngữ.
 
@@ -18,7 +18,8 @@ Không đọc cả bộ tài liệu. `docs/design/chi-tiet/` và `docs/source-do
 1. Yêu cầu đã xác nhận và CR có hiệu lực (`docs/baseline/`, `docs/decisions/change-requests.md`)
 2. Quyết định thiết kế đã xác nhận (`docs/decisions/`)
 3. Hợp đồng đang dùng (`contracts/`, thư mục migration của backend). Trước khi dựng repo là `docs/appendix/` và `docs/design/migrations-proposed/`
-4. Tài liệu lịch sử
+4. Thiết kế giao diện đã duyệt (`docs/design/ui/`, Figma theo ADR-0011), chỉ cho phần nhìn, bố cục và câu chữ. Khác 1–3 về hành vi, trạng thái, quyền hay phạm vi thì 1–3 thắng
+5. Tài liệu lịch sử
 
 Tài liệu mới hơn không tự động thắng. Mâu thuẫn giữa các nguồn đã xác nhận thì dừng phần bị ảnh hưởng và báo lại.
 

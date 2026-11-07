@@ -1,3 +1,4 @@
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { api } from "@/shared/api/client";
 import { useCommand } from "@/shared/api/command";
 import { call } from "@/shared/api/errors";
@@ -30,6 +31,33 @@ export function useSignIn() {
 // Verification and reset links are single use. Without an Idempotency-Key in the contract, a retry
 // after an unknown outcome may answer "already used" although the first attempt worked; the
 // screens say so instead of claiming failure.
+
+export const OWN_SESSIONS_KEY = ["me", "sessions"] as const;
+const SESSIONS_PAGE_LIMIT = 50; // maxItems of OwnSessionPage
+
+/** Own sessions, newest page first; more pages through `fetchNextPage` (cursor from the server). */
+export function useOwnSessions() {
+  return useInfiniteQuery({
+    queryKey: OWN_SESSIONS_KEY,
+    initialPageParam: null as string | null,
+    queryFn: ({ pageParam }) =>
+      call(api.GET("/me/sessions", { params: { query: { limit: SESSIONS_PAGE_LIMIT, ...(pageParam ? { cursor: pageParam } : {}) } } })),
+    getNextPageParam: (page) => page.nextCursor,
+  });
+}
+
+// The contract declares no Idempotency-Key for logout and revoke. Both are idempotent on the
+// server ("idempotent", "enforce revoke on next request"), so a retry cannot do harm.
+
+export function useRevokeSession() {
+  return useCommand((sessionId: string) =>
+    call(api.DELETE("/me/sessions/{sessionId}", { params: { path: { sessionId } } })),
+  );
+}
+
+export function useLogout() {
+  return useCommand(() => call(api.POST("/auth/logout", {})));
+}
 
 export function useVerifyEmail(token: string) {
   return useCommand(() => call(api.POST("/auth/verify", { body: { token } })));

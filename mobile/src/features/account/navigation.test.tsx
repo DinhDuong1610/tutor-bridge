@@ -1,4 +1,5 @@
 import { act, fireEvent, renderRouter, screen } from "expo-router/testing-library";
+import { json, mockApi } from "@/shared/test/mockApi";
 import { clearStore, fakeSession, storeSession } from "@/shared/test/session";
 
 beforeEach(() => {
@@ -55,6 +56,29 @@ describe("account routes", () => {
     expect(await screen.findByRole("header", { name: header })).toBeOnTheScreen();
     expect(screen.getByRole("button", { name: button })).toBeOnTheScreen();
     expect(screen.queryByText(/không hợp lệ/)).toBeNull();
+  });
+
+  it.each([
+    ["PARENT", "/parent/security"],
+    ["TUTOR", "/tutor/security"],
+  ] as const)("opens session security for a %s at %s", async (role, initialUrl) => {
+    const server = mockApi({ "GET /me/sessions": () => json(200, { items: [], nextCursor: null }) });
+    try {
+      storeSession(fakeSession(role));
+      renderRouter("./src/app", { initialUrl });
+
+      expect(await screen.findByRole("header", { name: "Bảo mật và phiên đăng nhập" })).toBeOnTheScreen();
+      expect(screen).toHavePathname(initialUrl);
+    } finally {
+      server.restore();
+    }
+  });
+
+  it("sends a signed-out user from session security to sign-in", async () => {
+    renderRouter("./src/app", { initialUrl: "/parent/security" });
+
+    expect(await screen.findByRole("header", { name: "Đăng nhập" })).toBeOnTheScreen();
+    expect(screen).toHavePathname("/sign-in");
   });
 
   it("sends a signed-in user away from registration", async () => {

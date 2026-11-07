@@ -3,7 +3,7 @@
 - **Chủ task:** Huy
 - **Nhánh:** `feature/TB-8-account-sessions`
 - **Agent đang làm:** Claude (Claude Code), chưa viết code nghiệp vụ
-- **Cập nhật lần cuối:** 06/11/2026, rebase lên `dev` tại `8c045d9` (sau nền backend #64)
+- **Cập nhật lần cuối:** 07/11/2026, ghi chủ trì ADR-0008 và số đo tham khảo Argon2id; nhánh trên `dev` tại `8c045d9`
 - **Mã liên quan:** FR-01, FR-02; UC01; AC-UC01-01, AC-UC01-02, AC-UC01-03, AC-UC01-04; INV-01, INV-03, INV-06, INV-18, INV-20, INV-21, INV-63, INV-80, INV-83; ADR-0004
 
 ## Mục tiêu
@@ -50,7 +50,7 @@ Phụ huynh và gia sư tự đăng ký, xác minh email, đăng nhập bằng p
 - Phản hồi có `Cache-Control: private, no-store`.
 
 ## Trạng thái hiện tại
-Đã chạy `start-task`, viết bản nháp ADR-0008 (thuật toán đã chọn, tham số TBD). Ngày 06/11/2026 rebase lên `dev`, cập nhật theo nền backend. Chưa viết code: PR 1 chờ Q1, Q2; PR 2 chờ Q4–Q8; PR 3 chờ Q5, Q7, Q11.
+Đã chạy `start-task`, viết bản nháp ADR-0008 (thuật toán đã chọn, tham số TBD). Ngày 06/11/2026 rebase lên `dev`, cập nhật theo nền backend. Chưa viết code: PR 1 chờ Q1, Q2, Q12; PR 2 chờ Q4–Q8; PR 3 chờ Q5, Q7, Q11.
 
 ## Lệnh kiểm tra
 ```bash
@@ -69,9 +69,25 @@ Chưa chạy test trên nhánh này vì chưa có thay đổi code.
 - Huy, 06/11/2026, Q10: đồng ý ADR-0010 mục 1. TB-8 không dựng bộ lọc riêng, chỉ viết `SessionResolver` trong `identity`; giữ kế hoạch 3 PR.
 - Huy, 04/11/2026: bỏ qua OP-05 (cổng phỏng vấn) để làm TB-8. Đính đóng OP-05, OP-06 bằng chấp nhận rủi ro ngày 06/11/2026 (sổ quyết định ghi "Huy chưa xác nhận").
 
+- Huy, 07/11/2026: Huy chủ trì ADR-0008. Chưa có hiệu lực đầy đủ vì CR-012 giao Đính chủ trì kiến trúc backend Spring và thư viện mới phải qua Đính (`conventions.md`); xem Q12.
+
+## Tham khảo đo Argon2id (không phải tham số)
+07/11/2026, máy Windows của Huy (i7-12700H, RAM 15,6 GB), JDK 21, BouncyCastle `bcprov-jdk18on` 1.80 (`Argon2BytesGenerator`), 15 lần sau 3 lần làm nóng, mật khẩu giả:
+
+| m (MiB) | t | p | Trung vị (ms) | p90 (ms) |
+|---|---|---|---|---|
+| 19 | 2 | 1 | 26 | 33 |
+| 46 | 1 | 1 | 37 | 39 |
+| 64 | 2 | 1 | 204 | 219 |
+| 64 | 3 | 1 | 309 | 322 |
+| 128 | 2 | 1 | 443 | 461 |
+
+Không ghi vào ADR-0008: ADR yêu cầu đo trên máy sẽ chạy, chưa chọn (Đính, trước M6); dự án chạy JDK 25 và bản BouncyCastle sẽ dùng chưa chốt.
+
 ## Câu hỏi còn mở
 | # | Câu hỏi | Ai trả lời |
 |---|---|---|
+| Q12 | Huy nhận chủ trì ADR-0008 (07/11/2026), CR-012 giao Đính chủ trì kiến trúc backend Spring. Đính đồng ý Huy chủ trì ADR-0008 như một ngoại lệ, hay cần CR? Thêm `bcprov` vào backend có cần Đính duyệt riêng không? | Đính |
 | Q1 | Lệnh xác thực công khai có cần `Idempotency-Key` không? Nếu có thì receipt lưu thế nào khi chưa có actor: đổi `actor_id` cho phép null, hay tách bảng? `logoutAccount`, `revokeOwnSession` có actor: có thêm header vào OpenAPI không? Thiếu khóa trả 422 (code hiện tại) hay 428 (`10-hop-dong-api.md` ghi "thiếu điều kiện trả 428")? | Đính, Huy |
 | Q2 | Có cấp V9 cho TB-8 không? Nội dung đề xuất: `auth_sessions.device_label`, bảng chấp thuận điều khoản (tài khoản, phiên bản, thời điểm), bảng đếm lần thử theo tài khoản và theo nguồn | Đính |
 | Q3 | Đã chọn Argon2id. Còn lại: tham số `m`, `t`, `p` đo trên máy chạy; có dùng pepper không; có chuẩn hóa Unicode mật khẩu không (xem ADR-0008) | Tham số: Huy. Pepper, Unicode: Đính, Huy |

@@ -50,7 +50,7 @@ Phụ huynh và gia sư tự đăng ký, xác minh email, đăng nhập bằng p
 - Phản hồi có `Cache-Control: private, no-store`.
 
 ## Trạng thái hiện tại
-Đã chạy `start-task`, viết bản nháp ADR-0008 (thuật toán đã chọn, tham số TBD). Ngày 06/11/2026 rebase lên `dev`, cập nhật theo nền backend. Chưa viết code: PR 1 chờ Q1, Q2, Q12; PR 2 chờ Q4–Q8; PR 3 chờ Q5, Q7, Q11.
+Đã chạy `start-task`, viết bản nháp ADR-0008 (thuật toán đã chọn, tham số TBD). Ngày 06/11/2026 rebase lên `dev`, cập nhật theo nền backend. Chưa viết code: PR 1 chờ Q1, Q2; PR 2 chờ Q4–Q8; PR 3 chờ Q5, Q7, Q11.
 
 ## Lệnh kiểm tra
 ```bash
@@ -69,7 +69,7 @@ Chưa chạy test trên nhánh này vì chưa có thay đổi code.
 - Huy, 06/11/2026, Q10: đồng ý ADR-0010 mục 1. TB-8 không dựng bộ lọc riêng, chỉ viết `SessionResolver` trong `identity`; giữ kế hoạch 3 PR.
 - Huy, 04/11/2026: bỏ qua OP-05 (cổng phỏng vấn) để làm TB-8. Đính đóng OP-05, OP-06 bằng chấp nhận rủi ro ngày 06/11/2026 (sổ quyết định ghi "Huy chưa xác nhận").
 
-- Huy, 07/11/2026: Huy chủ trì ADR-0008. Chưa có hiệu lực đầy đủ vì CR-012 giao Đính chủ trì kiến trúc backend Spring và thư viện mới phải qua Đính (`conventions.md`); xem Q12.
+- Huy, 07/11/2026: Huy chủ trì ADR-0008, kể cả thêm `bcprov`; Q12 không cần Đính duyệt. Ghi chú: CR-012 vẫn ghi Đính chủ trì kiến trúc backend Spring và `conventions.md` ghi thư viện mới qua Đính; Đính chưa có ý kiến về ngoại lệ này.
 
 ## Tham khảo đo Argon2id (không phải tham số)
 07/11/2026, máy Windows của Huy (i7-12700H, RAM 15,6 GB), JDK 21, BouncyCastle `bcprov-jdk18on` 1.80 (`Argon2BytesGenerator`), 15 lần sau 3 lần làm nóng, mật khẩu giả:
@@ -87,7 +87,6 @@ Không ghi vào ADR-0008: ADR yêu cầu đo trên máy sẽ chạy, chưa chọ
 ## Câu hỏi còn mở
 | # | Câu hỏi | Ai trả lời |
 |---|---|---|
-| Q12 | Huy nhận chủ trì ADR-0008 (07/11/2026), CR-012 giao Đính chủ trì kiến trúc backend Spring. Đính đồng ý Huy chủ trì ADR-0008 như một ngoại lệ, hay cần CR? Thêm `bcprov` vào backend có cần Đính duyệt riêng không? | Đính |
 | Q1 | Lệnh xác thực công khai có cần `Idempotency-Key` không? Nếu có thì receipt lưu thế nào khi chưa có actor: đổi `actor_id` cho phép null, hay tách bảng? `logoutAccount`, `revokeOwnSession` có actor: có thêm header vào OpenAPI không? Thiếu khóa trả 422 (code hiện tại) hay 428 (`10-hop-dong-api.md` ghi "thiếu điều kiện trả 428")? | Đính, Huy |
 | Q2 | Có cấp V9 cho TB-8 không? Nội dung đề xuất: `auth_sessions.device_label`, bảng chấp thuận điều khoản (tài khoản, phiên bản, thời điểm), bảng đếm lần thử theo tài khoản và theo nguồn | Đính |
 | Q3 | Đã chọn Argon2id. Còn lại: tham số `m`, `t`, `p` đo trên máy chạy; có dùng pepper không; có chuẩn hóa Unicode mật khẩu không (xem ADR-0008) | Tham số: Huy. Pepper, Unicode: Đính, Huy |

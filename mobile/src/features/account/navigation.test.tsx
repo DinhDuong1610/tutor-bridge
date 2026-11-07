@@ -1,6 +1,6 @@
-import { act, fireEvent, renderRouter, screen } from "expo-router/testing-library";
+import { act, fireEvent, renderRouter, screen, waitFor } from "expo-router/testing-library";
 import { json, mockApi } from "@/shared/test/mockApi";
-import { clearStore, fakeSession, storeSession } from "@/shared/test/session";
+import { clearStore, fakeSession, storedSession, storeSession } from "@/shared/test/session";
 
 beforeEach(() => {
   clearStore();
@@ -56,6 +56,31 @@ describe("account routes", () => {
     expect(await screen.findByRole("header", { name: header })).toBeOnTheScreen();
     expect(screen.getByRole("button", { name: button })).toBeOnTheScreen();
     expect(screen.queryByText(/không hợp lệ/)).toBeNull();
+  });
+
+  it("opens an email link while signed in instead of losing its token (Q8)", async () => {
+    storeSession(fakeSession("PARENT"));
+    renderRouter("./src/app", { initialUrl: "/verify-email?token=fake-verification-token-0001" });
+
+    expect(await screen.findByRole("header", { name: "Xác minh email" })).toBeOnTheScreen();
+    expect(screen).toHavePathname("/verify-email");
+  });
+
+  it("forgets this device's session after a password reset opened while signed in (Q8)", async () => {
+    const server = mockApi({ "POST /auth/reset": () => new Response(null, { status: 204 }) });
+    try {
+      storeSession(fakeSession("TUTOR"));
+      renderRouter("./src/app", { initialUrl: "/reset-password?token=fake-reset-token-000000001" });
+      await screen.findByRole("header", { name: "Đặt lại mật khẩu" });
+      fireEvent.changeText(screen.getByLabelText("Mật khẩu mới"), "mot cau mat khau moi du dai");
+
+      await act(async () => fireEvent.press(screen.getByRole("button", { name: "Đặt lại mật khẩu" })));
+
+      expect(await screen.findByRole("header", { name: "Đã đặt lại mật khẩu" })).toBeOnTheScreen();
+      await waitFor(() => expect(storedSession()).toBeUndefined());
+    } finally {
+      server.restore();
+    }
   });
 
   it.each([

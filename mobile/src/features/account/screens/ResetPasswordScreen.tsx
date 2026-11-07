@@ -1,9 +1,10 @@
 // AUTH05 Đặt lại mật khẩu (UC01, FR-39)
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useServerErrors } from "@/shared/form/serverErrors";
+import { useSession } from "@/shared/session/SessionProvider";
 import { Button } from "@/shared/ui/Button";
 import { CommandStatus } from "@/shared/ui/CommandStatus";
 import { Notice } from "@/shared/ui/Notice";
@@ -25,6 +26,15 @@ export function ResetPasswordScreen({ token, onGoToSignIn, onRequestNewLink }: P
   const reset = useResetPassword(validToken ?? "");
   const otherErrors = useServerErrors(reset.error, form.setError, ["newPassword"]);
   const [retriedAfterUnknown, setRetriedAfterUnknown] = useState(false);
+  const session = useSession();
+  const signedIn = session.status === "signedIn";
+  const { signOut } = session;
+
+  // The reset revoked every session on the server. A link opened while signed in (Q8) must not
+  // leave this device holding a dead token.
+  useEffect(() => {
+    if (reset.state === "confirmed" && signedIn) void signOut();
+  }, [reset.state, signedIn, signOut]);
 
   function retryReset() {
     setRetriedAfterUnknown(true);

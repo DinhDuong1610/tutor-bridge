@@ -37,6 +37,10 @@ Mức theo Impeccable: P1 phải sửa trước khi phát hành, P2 sửa ở l�
 | P1 | `Button` | Xác nhận phát hiện ở trên: nhãn dài ("Đăng xuất khỏi thiết bị này") tràn khỏi nút ở 200%. Thiết kế đã rút nhãn thành "Đăng xuất tài khoản"; code vẫn phải cho chữ trên nút xuống dòng | Như dòng `Button.tsx` ở trên |
 | P2 | `SessionCard` ở chữ 200% | Giờ "18:00–19:30" không có chỗ ngắt nên bị cắt mép phải khi khối ngày giữ cạnh trái | Khi cỡ chữ hệ thống lớn (khoảng 1,5 lần trở lên), xếp khối ngày lên trên nội dung; hoặc cho giờ xuống dòng sau dấu gạch nối. Đính chọn khi duyệt `SessionCard` |
 | P2 | `StatusLabel`, `VerificationLabel` ở chữ 200% | Nhãn dài ("Đang chờ gia sư trả lời", "Đã xác minh: Toán 8, đại số") không xuống dòng, bị cắt | Code cho chữ trong nhãn xuống dòng và nhãn rộng tối đa bằng khung chứa |
+| P2 | Nhóm lựa chọn ngang (PH04: 60/90/120 phút, 1/2/3 buổi) ở chữ 200% | Ba ô cạnh nhau cắt chữ ("60 phú") | Khi chữ lớn, xếp các lựa chọn theo cột dọc |
+| P2 | `CycleStrip` ở chữ 200% | Nhãn "Tuần 1"–"Tuần 4" bị cắt trong 4 cột | Khi chữ lớn, xếp 4 tuần thành 2 × 2 hoặc thành danh sách dọc |
+| P2 | `TimeChip` Booked ở chữ 200% | Chữ "đã có buổi" bị cắt | Như `StatusLabel`: chữ trong chip được xuống dòng |
+| Đã sửa trong thiết kế | GS04, phần chú thích | Khung giờ và lời giải thích cùng hàng làm chữ bị ép thành 1 ký tự mỗi dòng ở 200% | Xếp lời giải thích dưới khung giờ ở mọi cỡ chữ |
 | Đã sửa trong thiết kế | AUTH06, dòng thiết bị | Nút "Đăng xuất" và nhãn "Thiết bị này" đặt cùng hàng làm cột tên bị ép, gãy từng âm tiết ở 200% | Đặt hành động dưới tên thiết bị ở mọi cỡ chữ |
 
 ## Điều đang làm tốt

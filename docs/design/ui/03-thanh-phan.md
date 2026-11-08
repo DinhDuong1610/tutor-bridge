@@ -27,7 +27,8 @@ Trong Figma, `QueryScreen` và `CommandStatus` không là một khối hình mà
 | `VersionNotice` | PH03, PH05, PH06, PH08, GS02 | `stale` ("Đây là bản cũ"), `changed` ("Giá hoặc lịch đã đổi, hãy xem lại") | Bản cũ chỉ để đối chiếu, nút gửi ẩn (UC04) |
 | `Deadline` | PH08, PH09, GS05 | "Hết hạn lúc 18:00 20/11/2026" và "còn 5 giờ" | Thời điểm tuyệt đối luôn hiện, thời gian còn lại chỉ phụ trợ |
 | `TutorCard` | PH06 | Tên hiển thị, kinh nghiệm, `VerificationLabel`, `PriceBlock`, lịch chung tóm tắt, lý do khớp | Không có ảnh, không có liên hệ, không có số điểm (mục dưới) |
-| `WeekAvailability` (lịch rảnh tuần) | PH04, GS04 | Lưới 7 ngày theo khung giờ; ô `draft`, `effective`, `booked`; ngoại lệ theo ngày | Buổi đã đặt không sửa được ở đây (UC07); giờ 24 giờ |
+| `WeekAvailability` (lịch rảnh tuần) | PH04, GS04 | Danh sách 7 thứ, mỗi thứ một dòng các `TimeChip` và nút "Thêm giờ"; ngoại lệ theo ngày bên dưới. Không dùng lưới 7 cột × giờ vì chật trên khổ 360 | Buổi đã đặt không sửa được ở đây (UC07); giờ 24 giờ |
+| `TimeChip` | PH04, GS04 | `Draft` (viền nét đứt, chữ "nháp"), `Effective` (icon tích), `Booked` (nền primary, chữ "đã có buổi") | Ba loại khác hình và chữ, không chỉ khác màu |
 | `ChoiceGroup` | PH04, AUTH01 | Lựa chọn một trong vài giá trị cố định: thời lượng 60/90/120, số buổi 1–3, vai trò | Mỗi lựa chọn có chữ, vùng chạm ≥ 48 |
 | `StickyActionBar` | Mọi màn hình có nút chính trên mobile | Nút chính, nút phụ tùy chọn, `CommandStatus` phía trên | Không bị bàn phím che; chữ 200% vẫn thấy nút |
 | `ConfirmSheet` | PH05, PH08, PH09 (hủy), GS05, AUTH06 | Bảng từ dưới lên: tóm tắt điều sắp xảy ra, nút chính, "Quay lại" | Dùng cho lệnh không hoàn tác hoặc cam kết. Nút nêu đúng việc: "Hủy đề nghị" |

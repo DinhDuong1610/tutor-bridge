@@ -115,7 +115,7 @@ Khi vẽ xong và duyệt, nội dung của màn hình chuyển sang `screens/<m
 ### GS01 Trang chủ gia sư
 - **API:** `getOwnTutorProfile`, `listOffers`, `listSessions`, `listOwnNotifications`.
 - **Hiển thị:** "Việc cần làm" theo thứ tự: hoàn thiện hồ sơ, gửi duyệt, bổ sung theo yêu cầu, xác nhận lịch rảnh, đề nghị đang chờ (kèm `Deadline`); buổi sắp tới (`SessionCard`).
-- **Phải thấy:** vì sao hồ sơ chưa xuất hiện khi phụ huynh tìm. Không hiện nhật ký, bản soạn (ngoài Lát 1).
+- **Phải thấy:** vì sao hồ sơ chưa xuất hiện khi phụ huynh tìm. Không hiện nhật ký, bản soạn (ngoài Lát 1). Đề nghị và buổi học không có tên học sinh trong hợp đồng (OP-25).
 
 ### GS02 Hồ sơ chuyên môn và học phí
 - **API:** `getOwnTutorProfile`, `saveTutorProfile`. **UC03; BR02.**
@@ -142,7 +142,7 @@ Khi vẽ xong và duyệt, nội dung của màn hình chuyển sang `screens/<m
 
 ### GS05 Đề nghị nhận lớp
 - **API:** `listOffers`, `getOffer`, `acceptOffer`, `rejectOffer`. **UC06; BR05.**
-- **Hiển thị:** danh sách đề nghị, đang chờ lên đầu, `Deadline`; chi tiết: học sinh (tên hiển thị, lớp), mục tiêu, `PriceBlock`, đủ từng buổi (`SessionCard` `proposed`, `CycleStrip`).
+- **Hiển thị:** danh sách đề nghị, đang chờ lên đầu, `Deadline`; chi tiết: mục tiêu (ảnh chụp `goalSnapshot`), `PriceBlock`, đủ từng buổi (`SessionCard` `proposed`, `CycleStrip`). Hợp đồng `Offer` không có tên học sinh: không hiện tên (TBD OP-25).
 - **Tác vụ:** "Chấp nhận đề nghị" (`ConfirmSheet`: "Chấp nhận là đồng ý nguyên bản các điều kiện và toàn bộ buổi học"); "Từ chối".
 - **Trạng thái riêng:** xung đột lịch: không nhận được, không buổi nào được đặt; đã hết hạn; phụ huynh đã hủy; đã chốt với gia sư khác; chưa rõ kết quả.
 - **Phải thấy:** chỉ báo "Đã nhận lớp" sau khi máy chủ xác nhận toàn bộ lớp và buổi. Muốn đổi điều kiện thì phải từ chối, không có nút "đề xuất thay đổi".

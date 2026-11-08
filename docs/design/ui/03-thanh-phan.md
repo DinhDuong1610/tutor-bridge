@@ -33,6 +33,7 @@ Trong Figma, `QueryScreen` và `CommandStatus` không là một khối hình mà
 | `ConfirmSheet` | PH05, PH08, PH09 (hủy), GS05, AUTH06 | Bảng từ dưới lên: tóm tắt điều sắp xảy ra, nút chính, "Quay lại" | Dùng cho lệnh không hoàn tác hoặc cam kết. Nút nêu đúng việc: "Hủy đề nghị" |
 | `NotificationItem` | COM01, PH01, GS01 | `unread` (chấm và chữ "Chưa đọc"), `read` | Tiêu đề không chứa dữ liệu riêng (UC15) |
 | `DataTable` | AD03 | Tiêu đề cột, dòng, lọc theo trạng thái, phân trang bằng "Xem thêm" | Phân trang bằng `cursor` theo hợp đồng, không có số trang |
+| `FileRow` | GS03 | Tệp minh chứng: tên (tối đa 2 dòng), loại và dung lượng, `StatusLabel` theo `TutorEvidenceRecord.state` (Đang tải lên, Đang kiểm tra, Sẵn sàng, Lỗi) | Không có xóa tệp trong Lát 1 |
 | `EvidenceViewer` | AD04 | Xem tệp minh chứng cạnh biểu mẫu quyết định | Chỉ hồ sơ được giao |
 
 ## Thẻ lịch buổi học (`SessionCard`)

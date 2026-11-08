@@ -122,14 +122,16 @@ Khi vẽ xong và duyệt, nội dung của màn hình chuyển sang `screens/<m
 - **Hiển thị:** môn và khối (Toán 8, cố định); mô tả cách dạy (50–3.000 ký tự); kinh nghiệm liên quan (0–600 tháng, 0 hợp lệ); giá VND cho 60 phút (số nguyên dương); `StatusLabel`; "Bản đang công khai" và "Bản đang sửa" khi khác nhau.
 - **Tác vụ:** "Lưu nháp".
 - **Trạng thái riêng:** bản cũ; sửa chuyên môn của bản đã duyệt: báo "Phần chuyên môn sẽ phải duyệt lại".
-- **Phải thấy:** đổi giá chỉ áp dụng cho đề nghị mới, lớp đã chốt giữ giá cũ.
+- **Phải thấy:** đổi giá chỉ áp dụng cho đề nghị mới, lớp đã chốt giữ giá cũ. Kinh nghiệm luôn là tự khai (`TutorPublic.experienceLabel = SELF_DECLARED`).
+- **TBD (OP-24):** khi bản sửa đang chờ xác minh, phụ huynh còn thấy bản đang công khai không; khi đang chờ xác minh, gia sư có được sửa tiếp không; sau khi bị từ chối có được sửa và gửi lại không.
 
 ### GS03 Minh chứng và kết quả xác minh
 - **API:** `createEvidenceUpload`, `completeEvidenceUpload`, `submitTutorProfile`. **UC03.**
 - **Hiển thị:** tệp minh chứng đã tải (tên, trạng thái tải); kết quả xác minh: phạm vi, lý do, phiên bản, thời điểm.
 - **Tác vụ:** "Tải minh chứng"; "Gửi duyệt" (`ConfirmSheet`).
 - **Trạng thái riêng:** đang tải tệp; tải lỗi; tệp không hỗ trợ; đang chờ xác minh; cần bổ sung (lý do); chưa được duyệt (lý do).
-- **Phải thấy:** minh chứng chỉ người xác minh xem, không công khai cho phụ huynh. Giới hạn tệp minh chứng chờ D07-04: TBD, không tự đặt số.
+- **Phải thấy:** minh chứng chỉ người xác minh xem, không công khai cho phụ huynh. Tệp PDF, JPEG, PNG; mỗi tệp tối đa 5 MiB; 1–10 tệp mỗi lần gửi (G3-D07-04 đã chốt, khớp hợp đồng). Trạng thái tệp theo `TutorEvidenceRecord.state`. Hợp đồng không có thao tác xóa tệp.
+- **TBD (OP-23):** G3-D07-05 đã chốt "cần bổ sung" phải hiện lý do, nhưng `VerificationRecord` không có trường lý do và gia sư không có API đọc kết quả xác minh. Trạng thái "Cần bổ sung" và "Chưa được duyệt" dừng ở khung TBD tới khi có contract-change.
 
 ### GS04 Lịch rảnh và ngoại lệ
 - **API:** `getTutorCalendar`, `replaceTutorCalendar`. **UC07; BR04.**

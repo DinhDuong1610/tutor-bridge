@@ -68,6 +68,8 @@ Gói Education tương đương Professional về tính năng. Theo tài liệu 
 | `TopAppBar` (có, không có nút quay lại), `StickyActionBar`, `ConfirmSheet` | [6:222](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=6-222), [7:288](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=7-288), [7:289](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=7-289) | Nháp |
 | `NavigationBar` (Phụ huynh, Gia sư × 5 tab; số chưa đọc) | [8:428](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=8-428) | Nháp |
 | `PriceBlock`, `StudentSwitcher`, `CycleStrip` (Scheduled, Proposed × 1–3 buổi/tuần) | [7:124](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=7-124), [7:127](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=7-127), [7:279](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=7-279) | Nháp, chưa dùng trong màn hình |
+| `StatusLabel` (Neutral, Info, Success, Warning, Danger), `VerificationLabel` (Tự khai, Đã xác minh), `FileRow` (4 trạng thái tệp) | [14:212](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=14-212), [14:221](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=14-221), [14:263](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=14-263) | Nháp |
+| Trang `F01 Tài khoản`: PH02, GS02, GS03 (GS02, GS03 có khung TBD đỏ nét đứt) | PH02 [15:1418](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=15-1418), GS02 [16:1925](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=16-1925), GS03 [17:2447](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=17-2447) | Nháp |
 | Trang `F01 Tài khoản`: AUTH01–AUTH06, mỗi màn hình một section đủ trạng thái, frame chữ 200%, frame dữ liệu xấu nhất | AUTH01 [9:330](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=9-330), AUTH02 [11:316](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=11-316), AUTH03 [12:691](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=12-691), AUTH04 [11:484](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=11-484), AUTH05 [11:673](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=11-673), AUTH06 [12:1287](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=12-1287) | Nháp |
 
 Ghi chú khi dựng:
@@ -76,6 +78,8 @@ Ghi chú khi dựng:
 - `SessionCard` Proposed: viền nét đứt, khối ngày rỗng; Cancelled: giờ gạch ngang. Bản Compact xếp giờ trên trạng thái để nhãn "Trong đề nghị, chưa chốt" không đè giờ.
 - Thuộc tính chữ của component dùng một giá trị mặc định chung cho mọi variant; đặt câu thật ở instance.
 - Frame màn hình: phần trên (thanh trạng thái, thanh tiêu đề, nội dung) và phần dưới (thông báo trạng thái lệnh, thanh nút, thanh điều hướng) đẩy về hai đầu. Màn hình ngắn: thanh nút sát đáy 800; màn hình dài: frame dài theo nội dung, nghĩa là trang cuộn, thanh nút vẫn cố định khi làm.
+- Chữ có giới hạn số dòng: bật cắt chữ (`ENDING`) trước rồi mới đặt số dòng tối đa, ngược lại Figma giữ 1 dòng.
+- Hàng "Trạng thái" + `StatusLabel` cho phép xuống dòng, để nhãn không tràn ở chữ 200%.
 - Frame chữ 200% là bản tách instance (detach) rồi nhân đôi cỡ chữ, vì Figma không cho đổi cỡ chữ có style bên trong instance. Không sửa component từ frame này; icon giữ cỡ vì Android tính icon theo dp.
 
 ## Agent đọc Figma

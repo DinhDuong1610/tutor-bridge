@@ -3,7 +3,7 @@
 "AI slop" là giao diện trông như do máy sinh ra theo mặc định: giống mọi app khác, trang trí không mang nghĩa, câu chữ chung chung. Với TutorBridge, rủi ro lớn hơn vẻ ngoài: thẻ đẹp nhưng không nói rõ đã chốt hay chưa, nút "Xác nhận" không nói xác nhận cái gì.
 
 ## Nguồn tham khảo
-Tra cứu ngày 07/11/2026. Dùng làm checklist và để rà, **không** cài vào repo hay thêm vào CI khi Đính chưa quyết. Lời khuyên của các nguồn này chỉ áp dụng khi không trái với tài liệu này: ví dụ frontend-design khuyên "dám mạo hiểm về thẩm mỹ", còn TutorBridge đã chọn tiết chế và chỉ có một điểm nhấn.
+Tra cứu ngày 07/11/2026. Ngày 08/11/2026 đã cài vào máy của Đính ở `~/.claude/skills` (không cài vào repo, không vào CI), danh sách phiên bản trong `~/.claude/skills/SOURCES.md`. Người hoặc agent khác không cần các skill này: tài liệu này đã ghi lại luật cần theo. Lời khuyên của các nguồn này chỉ áp dụng khi không trái với tài liệu này: ví dụ frontend-design khuyên "dám mạo hiểm về thẩm mỹ", còn TutorBridge đã chọn tiết chế và chỉ có một điểm nhấn.
 
 | Nguồn | Dùng để |
 |---|---|
@@ -11,7 +11,8 @@ Tra cứu ngày 07/11/2026. Dùng làm checklist và để rà, **không** cài 
 | [pbakaus/impeccable](https://github.com/pbakaus/impeccable) | Skill và CLI phát hiện mẫu AI (`npx impeccable detect`), lệnh `critique` và `audit` để rà. Apache 2.0 |
 | [vercel-labs/web-interface-guidelines](https://github.com/vercel-labs/web-interface-guidelines) | Rà web quản trị: bàn phím, focus, form, chuyển động |
 | [nextlevelbuilder/ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | Tra cứu mẫu UX, cặp font, bảng màu khi cần so sánh phương án. Không dùng để chọn phong cách thay Đính |
-| [funboy322/avoid-ai-design](https://github.com/funboy322/avoid-ai-design) | Rà code giao diện đã viết, tìm mẫu mặc định của shadcn/ui |
+| [emilkowalski/skills](https://github.com/emilkowalski/skills): `break-ui`, `animate-expo` | Thử giao diện với dữ liệu xấu nhất ([11](11-du-lieu-xau-nhat.md)); chuyển động trên Expo khi thật cần |
+| [figma/mcp-server-guide](https://github.com/figma/mcp-server-guide), thư mục `skills/` | `figma-use`, `figma-generate-library`, `figma-generate-design`, `figma-design-to-code`: cách agent đọc và vẽ Figma đúng |
 | [Figma MCP: hướng dẫn và giới hạn](https://developers.figma.com/docs/figma-mcp-server/) | Component, variable, auto layout, ghi chú để agent đọc đúng |
 
 ## Không làm
@@ -19,6 +20,10 @@ Tra cứu ngày 07/11/2026. Dùng làm checklist và để rà, **không** cài 
 - Gradient, nhất là tím sang xanh; nền kem với điểm nhấn cam đất; nền gần đen với một màu nhấn chói.
 - Chữ xám trên nền màu. Màu trạng thái dùng để trang trí.
 - Bóng xám giống nhau cho mọi thẻ.
+
+**Thông báo và nhãn**
+- Viền màu dày một bên (trái hoặc phải, quá 1 px) ở thông báo, thẻ, dòng danh sách. Nền hiện tại đang có ở `Notice` ([10](10-ra-soat-nen-08-11.md)).
+- Nhãn nhỏ đứng riêng phía trên tiêu đề hay nội dung. Chữ trạng thái cần thiết thì đứng đầu câu hoặc đi cùng icon.
 
 **Bố cục**
 - Thẻ lồng trong thẻ. Mọi thứ đều là thẻ bo góc giống hệt nhau.
@@ -43,6 +48,19 @@ Tra cứu ngày 07/11/2026. Dùng làm checklist và để rà, **không** cài 
 - Màn hình rỗng không có việc làm tiếp.
 - Câu quảng cáo, hứa hẹn kết quả học tập.
 
+## Android
+Theo luật Android của Impeccable: Material 3 quyết định cấu trúc và tương tác, thương hiệu thể hiện qua màu, chữ, hình khối.
+- Thanh điều hướng dưới 3–5 mục (ta có 5). Nút Back và cử chỉ Back của hệ thống luôn hoạt động, không chặn.
+- Nội dung không nằm dưới thanh trạng thái, thanh điều hướng hệ thống hay bàn phím.
+- Bảng từ dưới lên cho xác nhận, thông báo tạm (snackbar) cho phản hồi ngắn, hộp thoại chỉ cho quyết định phải ngắt.
+- Không mượn điều khiển kiểu iOS (công tắc, hộp thoại, nút quay lại riêng).
+- Cỡ chữ theo cài đặt hệ thống (không chặn phóng chữ).
+- Ảnh chụp để duyệt lấy từ máy Android hoặc giả lập, không từ trình duyệt; chụp thêm ở cỡ chữ lớn.
+
+## Không theo
+- Vercel khuyên viết hoa chữ đầu mỗi từ (Title Case) cho tiêu đề và nút. Tiếng Việt chỉ viết hoa chữ đầu câu ([04](04-trang-thai-cau-chu.md#quy-tắc-viết)).
+- Lời khuyên "mạo hiểm thẩm mỹ", `bolder`, `overdrive`, `delight` của các skill: TutorBridge chọn tiết chế, một điểm nhấn.
+
 ## Phải có
 - Mỗi màn hình trả lời được ba câu trong 3 giây: đây là của ai (con nào, lớp nào), trạng thái là gì, việc tiếp theo là gì.
 - Một nút chính mỗi màn hình. Điểm nhấn hình khối chỉ ở thẻ lịch buổi học.
@@ -61,5 +79,22 @@ Tra cứu ngày 07/11/2026. Dùng làm checklist và để rà, **không** cài 
 - [ ] Tương phản đạt bảng ở [02](02-nen-thiet-ke.md)
 - [ ] So với ảnh chụp đã duyệt: khác chỗ nào, vì sao
 
-## Công cụ rà tự động (TBD)
-Có thể chạy `npx impeccable detect` cho web và `critique` trên ảnh chụp mobile. Đưa vào CI hay không là quyết định của Đính, theo dõi ở OP-19. Trước đó chỉ chạy tay khi rà.
+## Chạy công cụ rà
+Đưa vào CI hay không là quyết định của Đính (OP-19). Trước đó chạy tay khi rà, trên máy đã cài:
+
+```bash
+# Engine đã kiểm SHA-256 theo engine-checksums.txt của skill; telemetry đã tắt
+B=~/.impeccable/bin/0.1.19/impeccable.exe
+$B detect web/src mobile/src                         # quét tĩnh, thiếu các luật cần trang render
+npm run dev --workspace @tutorbridge/web -- --port 3100
+$B detect http://localhost:3100/admin/sign-in        # quét trang thật, thêm --viewport 390x844
+```
+
+| Khi | Skill | Việc |
+|---|---|---|
+| Duyệt một màn hình Figma | `impeccable` (`critique`) | Chấm UX trên ảnh chụp các trạng thái |
+| Trước khi duyệt | `break-ui` | Kiểm frame dữ liệu xấu nhất theo [11](11-du-lieu-xau-nhat.md) |
+| Rà PR web | `web-interface-guidelines`, `impeccable detect` | Bàn phím, focus, form; mẫu AI |
+| Rà PR mobile | `impeccable` (`audit`, bản native) | Trợ năng, Material 3, inset, chữ lớn |
+
+Impeccable tìm `PRODUCT.md` và `DESIGN.md` trong `mobile/` và `web/`. Dự án chưa tạo hai file này vì nội dung đã nằm ở `docs/design/ui/` (OP-21). Khi chạy, cho skill đọc `01`, `02` thay thế.

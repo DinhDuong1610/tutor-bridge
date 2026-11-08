@@ -7,7 +7,7 @@ Bộ tài liệu giao diện của TutorBridge. Dùng khi thiết kế trên Fig
 ## Đọc gì
 | Bạn đang làm | Đọc |
 |---|---|
-| Thiết kế trên Figma | [01](01-dinh-huong.md), [02](02-nen-thiet-ke.md), [07](07-figma.md), [08](08-chong-ai-slop.md), rồi đặc tả màn hình ở [06](06-man-hinh-lat-1.md) |
+| Thiết kế trên Figma | [01](01-dinh-huong.md), [02](02-nen-thiet-ke.md), [07](07-figma.md), [08](08-chong-ai-slop.md), [10](10-ra-soat-nen-08-11.md), rồi đặc tả màn hình ở [06](06-man-hinh-lat-1.md) và dữ liệu ở [11](11-du-lieu-xau-nhat.md) |
 | Issue giao diện (agent hay người) | `screens/<mã>.md` của màn hình, [04](04-trang-thai-cau-chu.md), [09](09-quy-trinh.md) mục "Agent triển khai", [03](03-thanh-phan.md) |
 | Rà PR giao diện | [09](09-quy-trinh.md) mục "Rà PR", [08](08-chong-ai-slop.md) mục "Checklist" |
 
@@ -23,6 +23,8 @@ Bộ tài liệu giao diện của TutorBridge. Dùng khi thiết kế trên Fig
 | [07-figma.md](07-figma.md) | Cấu trúc file Figma, đặt tên, variable, phiên bản, giới hạn gói |
 | [08-chong-ai-slop.md](08-chong-ai-slop.md) | Mẫu cần tránh, nguồn tham khảo, checklist |
 | [09-quy-trinh.md](09-quy-trinh.md) | Vẽ → rà → duyệt → bàn giao, agent triển khai, rà PR, đổi sau duyệt |
+| [10-ra-soat-nen-08-11.md](10-ra-soat-nen-08-11.md) | Kết quả rà nền giao diện hiện tại bằng các skill chống AI slop, việc phải sửa trong Foundations |
+| [11-du-lieu-xau-nhat.md](11-du-lieu-xau-nhat.md) | Giới hạn trường theo hợp đồng và bộ dữ liệu xấu nhất cho mỗi màn hình |
 | [screens/](screens/TEMPLATE.md) | Mỗi màn hình đã duyệt một file, kèm ảnh chụp từng trạng thái |
 
 ## Thứ tự ưu tiên
@@ -63,4 +65,4 @@ Cập nhật khi đổi trạng thái. **Chưa vẽ** → **Nháp** → **Đã d
 Số Issue lấy từ [kế hoạch Lát 1](../../plan/lat-1-ke-hoach.md). WEB01, WEB02 không thuộc 26 màn hình của Lát 1 ([r0a-scope](../../context/r0a-scope.md)), hiện là trang chờ; thiết kế khi đưa vào phạm vi.
 
 ## Câu hỏi còn mở
-Theo dõi ở [sổ quyết định](../../decisions/decision-register.md), mục OP-16 đến OP-18: file logo, link file Figma, giới hạn MCP của gói Education.
+Theo dõi ở [sổ quyết định](../../decisions/decision-register.md), mục OP-16 đến OP-21: file logo, link file Figma, giới hạn MCP của gói Education, rà tự động trên CI, giá không có trần trong hợp đồng, có tạo `PRODUCT.md` và `DESIGN.md` cho Impeccable không.

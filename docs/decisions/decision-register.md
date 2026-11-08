@@ -107,3 +107,5 @@ Bản Markdown của sổ TB HS 02 (42 mục), dùng làm nguồn tra cứu khi 
 | OP-17 | Tạo file Figma, ghi link và file key vào `docs/design/ui/07-figma.md` | ADR-0011 | Đính | Chặn bàn giao màn hình đầu tiên |
 | OP-18 | Kiểm giới hạn Figma MCP và Dev Mode của gói Education trên trang chính thức của Figma; ghi số vào `07-figma.md` | ADR-0011 | Đính | Không |
 | OP-19 | Có đưa rà tự động chống AI slop (`impeccable detect` hoặc tương đương) vào CI không | ADR-0011 | Đính | Không |
+| OP-20 | Hợp đồng chỉ có `minimum: 1` cho `rateVnd60` và `budgetVndSession`, không có trần. Có cần trần (chống nhập nhầm, giới hạn hiển thị) không. Phát hiện khi rà dữ liệu xấu nhất ngày 08/11/2026 | BR02, `docs/design/ui/11-du-lieu-xau-nhat.md` | Đính | Không |
+| OP-21 | Có tạo `PRODUCT.md`, `DESIGN.md` trong `mobile/`, `web/` cho Impeccable đọc không, hay giữ một nguồn ở `docs/design/ui/` | ADR-0011 | Đính | Không |

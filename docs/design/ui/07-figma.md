@@ -41,6 +41,7 @@ Gói Education tương đương Professional về tính năng. Theo tài liệu 
 ## Cách vẽ
 - **Auto layout** cho mọi khung. Khoảng cách bằng variable `space`.
 - Khung theo [02](02-nen-thiet-ke.md#kích-thước-và-lưới). Mỗi màn hình mobile có thêm một frame cỡ chữ 200% cho trạng thái nhiều chữ nhất.
+- Mỗi màn hình có frame `Dữ liệu xấu nhất`, và `Rỗng`, `Một mục`, `Nhiều mục` khi là danh sách, theo [11](11-du-lieu-xau-nhat.md).
 - Chữ thật tiếng Việt theo [04](04-trang-thai-cau-chu.md), dữ liệu giả rõ ràng. Không "Lorem ipsum".
 - **Ghi chú (annotation)** trên frame cho điều không nhìn thấy: hành vi khi bấm, thứ tự focus trên web, nhãn trợ năng của icon, điều kiện ẩn hiện, API dùng.
 - Prototype nối theo các luồng ở [05](05-dieu-huong-luong.md), kể cả nhánh lỗi.

@@ -7,7 +7,7 @@ Mỗi component trong Figma có **cùng tên và cùng variant** với component
 |---|---|---|---|
 | `Button` | `Button.tsx` | `button.tsx` (shadcn) | `variant`: primary, secondary (web thêm destructive, outline, ghost); `busy`; `disabled`. Nhãn là động từ nói đúng kết quả: "Gửi đề nghị", không "Xác nhận" |
 | `TextField` | `TextField.tsx`, `FormTextField` | `input.tsx`, `form-field.tsx` | Nhãn luôn hiện phía trên (không dùng placeholder làm nhãn); gợi ý; lỗi cạnh trường; bộ đếm ký tự khi có giới hạn |
-| `Notice` | `Notice.tsx` | `notice.tsx` | `tone`: info, success, warning, danger. Có chữ nhãn tone ("Thông tin", "Đã xong", "Lưu ý", "Lỗi"); `action` tùy chọn |
+| `Notice` | `Notice.tsx` | `notice.tsx` | `tone`: info, success, warning, danger. Có chữ nhãn tone ("Thông tin", "Đã xong", "Lưu ý", "Lỗi"); `action` tùy chọn. **Thiết kế lại trước tiên:** bỏ viền màu một bên và dòng nhãn riêng phía trên ([10](10-ra-soat-nen-08-11.md)); giữ chữ trạng thái bằng icon có nhãn hoặc chữ đầu câu |
 | `QueryScreen` | `QueryScreen.tsx` | `StateMessage`, `EmptyState` trong `admin-page.tsx` | Khung đọc dữ liệu: tải, rỗng, lỗi, mất quyền, không tìm thấy, dữ liệu cũ |
 | `CommandStatus` | `CommandStatus.tsx` | `command-status.tsx` | `state`: sending, confirmed, failed, unknown. Đặt ngay cạnh nút gửi |
 | `AdminPage` | | `admin-page.tsx` | Khung trang quản trị: tiêu đề, mô tả, nội dung |

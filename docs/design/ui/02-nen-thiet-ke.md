@@ -95,7 +95,7 @@ Web: `--radius` đổi từ `0.625rem` sang `0.75rem` để shadcn/ui ra 8 và 1
 Không dùng bóng làm mặc định. Phân lớp bằng nền `surface` và viền `divider`. Chỉ thanh tác vụ cố định ở cuối màn hình mobile có viền trên `divider`. Hộp thoại và bảng chọn dùng nền tối mờ phía sau, không thêm bóng.
 
 ## Icon
-- Một bộ icon dạng nét, độ dày 2, khung 24. Gợi ý: Lucide (web đã có qua shadcn/ui). Mobile cần gói icon thì Đính duyệt khi làm. Trong Figma dùng bản SVG của cùng bộ.
+- Một bộ icon dạng nét cho mỗi kênh, không trộn bộ. Đề xuất: Android dùng Material Symbols (Outlined), vì luật Android của Impeccable coi icon ngoài bộ của nền tảng là dấu hiệu app bê từ web sang; web quản trị dùng Lucide (đã có qua shadcn/ui). Mobile cần gói icon thì Đính duyệt khi làm. Trong Figma dùng bản SVG của đúng bộ.
 - Icon mang nghĩa luôn đi kèm chữ, hoặc có nhãn trợ năng nếu đứng một mình.
 - Không đặt icon trang trí trên mỗi tiêu đề.
 
@@ -114,5 +114,6 @@ Không dùng bóng làm mặc định. Phân lớp bằng nền `surface` và vi
 ## Trợ năng (NFR12)
 - Tương phản theo bảng trên. Đổi màu thì đo lại và ghi số ở đây.
 - Chữ phóng 200%: mỗi màn hình có một khung Figma ở cỡ chữ 200% cho trạng thái nhiều chữ nhất, nút chính vẫn thấy và bấm được.
-- Web: thứ tự Tab theo thứ tự đọc; focus thấy rõ, viền 2 màu `primary` cách 2; mọi tác vụ dùng được bằng bàn phím.
+- Web: thứ tự Tab theo thứ tự đọc; focus thấy rõ, viền 2 màu `primary` đặc cách 2 (tương phản 6,67:1). Không dùng vòng focus mờ: `ring-ring/50` của shadcn chỉ đạt 2,33:1 ([10](10-ra-soat-nen-08-11.md)). Mọi tác vụ dùng được bằng bàn phím.
+- Web: tạo kiểu cho vùng chọn chữ, thanh cuộn, `theme-color` theo token, không để mặc định của trình duyệt.
 - Mobile: mỗi nút, icon, ô nhập có nhãn trợ năng; thông báo trạng thái dùng vùng đọc tự động (`accessibilityLiveRegion`), như `QueryScreen` đang làm.

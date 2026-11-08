@@ -3,8 +3,8 @@
 Đính làm và duyệt toàn bộ UX-UI, kể cả PR tài liệu UX-UI ([CR-013](../../decisions/change-requests.md)). Code giao diện vẫn theo quy tắc review của [git-workflow](../../process/git-workflow.md).
 
 ## Thứ tự làm
-1. **Foundations.** Variables, text styles, logo, bảng tương phản ở trang `01 Foundations`. Duyệt xong thì một PR đưa token vào `theme.ts`, `globals.css` và [02](02-nen-thiet-ke.md).
-2. **Components.** `SessionCard` và `CycleStrip` trước (điểm nhấn), rồi các component ở [03](03-thanh-phan.md) theo màn hình sắp làm.
+1. **Foundations.** Sửa trước những điểm ở [báo cáo rà nền](10-ra-soat-nen-08-11.md). Variables, text styles, logo, bảng tương phản ở trang `01 Foundations`. Duyệt xong thì một PR đưa token vào `theme.ts`, `globals.css` và [02](02-nen-thiet-ke.md).
+2. **Components.** `Notice` trước (mọi trạng thái dùng nó), `SessionCard` và `CycleStrip` (điểm nhấn), rồi các component ở [03](03-thanh-phan.md) theo màn hình sắp làm.
 3. **Patterns.** Bộ khung trạng thái ([04](04-trang-thai-cau-chu.md)).
 4. **Luồng theo mốc** của [kế hoạch Lát 1](../../plan/lat-1-ke-hoach.md): F01 (AUTH01–06, cho TB-10) → PH02 → PH01, GS01–GS03 → GS04, PH03–PH05 → PH06, PH07 → PH08, PH09, GS05 → CL01, CL02, COM01. AD01, AD03, AD04 vẽ trước Issue giao diện quản trị.
 
@@ -14,7 +14,7 @@ Một màn hình nên được duyệt **trước khi** Issue giao diện của 
 | Bước | Ai | Việc | Ra |
 |---|---|---|---|
 | 1. Vẽ nháp | Đính, có thể nhờ agent vẽ nháp qua Figma MCP | Theo đặc tả ở [06](06-man-hinh-lat-1.md), bản mẫu G3 ([13-ban-mau-ux.md](../13-ban-mau-ux.md)) để tham khảo bố cục | Section `Nháp` đủ trạng thái |
-| 2. Rà | Đính, agent rà hộ | So với UC, BR, [06](06-man-hinh-lat-1.md); checklist ở [08](08-chong-ai-slop.md) | Danh sách điểm sửa |
+| 2. Rà | Đính, agent rà hộ | So với UC, BR, [06](06-man-hinh-lat-1.md); checklist ở [08](08-chong-ai-slop.md); `impeccable critique` trên ảnh chụp; frame dữ liệu xấu nhất theo [11](11-du-lieu-xau-nhat.md) | Danh sách điểm sửa |
 | 3. Duyệt | Đính | Đổi nhãn sang `Đã duyệt v<n>`, tạo named version | Version Figma |
 | 4. Bàn giao | Đính hoặc agent | Viết `screens/<mã>.md` theo [TEMPLATE](screens/TEMPLATE.md), xuất ảnh PNG từng trạng thái vào `screens/<mã>/`, cập nhật bảng ở [README](README.md) | PR `docs(design): ... [TB-<Issue>]` |
 

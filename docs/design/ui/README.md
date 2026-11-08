@@ -2,7 +2,7 @@
 
 Bộ tài liệu giao diện của TutorBridge. Dùng khi thiết kế trên Figma và khi agent làm Issue giao diện. Quyết định nền ở [ADR-0011](../../decisions/adr/0011-figma-nguon-thiet-ke.md); người làm và duyệt là Đính ([CR-013](../../decisions/change-requests.md)).
 
-**Trạng thái (08/11/2026):** đã có [file Figma](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl) với Foundations, `Notice`, `SessionCard` ở dạng nháp ([07](07-figma.md#đã-có-trong-file-08112026)). Chưa màn hình nào được vẽ hay duyệt.
+**Trạng thái (08/11/2026):** đã có [file Figma](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl) với Foundations, 13 component và luồng F01 tài khoản (AUTH01–06) ở dạng nháp ([07](07-figma.md#đã-có-trong-file-08112026)). Chưa màn hình nào được duyệt.
 
 ## Đọc gì
 | Bạn đang làm | Đọc |
@@ -33,14 +33,14 @@ Thiết kế đã duyệt quyết định **phần nhìn và bố cục**. Hành
 ## Trạng thái màn hình Lát 1
 Cập nhật khi đổi trạng thái. **Chưa vẽ** → **Nháp** → **Đã duyệt vN**. Issue giao diện chỉ bắt đầu khi màn hình là "Đã duyệt".
 
-| Mã | Màn hình | Kênh | Luồng | Issue giao diện | Thiết kế | Version Figma |
+| Mã | Màn hình | Kênh | Luồng | Issue giao diện | Thiết kế | Version Figma (khi duyệt) hoặc node nháp |
 |---|---|---|---|---|---|---|
-| AUTH01 | Đăng ký và chọn vai trò | Android | F01 | TB-10 | Chưa vẽ | |
-| AUTH02 | Xác minh email | Android | F01 | TB-10 | Chưa vẽ | |
-| AUTH03 | Đăng nhập | Android | F01 | TB-10 | Chưa vẽ | |
-| AUTH04 | Yêu cầu khôi phục mật khẩu | Android | F01 | TB-10 | Chưa vẽ | |
-| AUTH05 | Đặt lại mật khẩu | Android | F01 | TB-10 | Chưa vẽ | |
-| AUTH06 | Bảo mật và quản lý phiên | Android | F01 | TB-10 | Chưa vẽ | |
+| AUTH01 | Đăng ký và chọn vai trò | Android | F01 | TB-10 | Nháp | [9:330](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=9-330) (section) |
+| AUTH02 | Xác minh email | Android | F01 | TB-10 | Nháp | [11:316](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=11-316) (section) |
+| AUTH03 | Đăng nhập | Android | F01 | TB-10 | Nháp | [12:691](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=12-691) (section) |
+| AUTH04 | Yêu cầu khôi phục mật khẩu | Android | F01 | TB-10 | Nháp | [11:484](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=11-484) (section) |
+| AUTH05 | Đặt lại mật khẩu | Android | F01 | TB-10 | Nháp | [11:673](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=11-673) (section) |
+| AUTH06 | Bảo mật và quản lý phiên | Android | F01 | TB-10 | Nháp | [12:1287](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=12-1287) (section) |
 | COM01 | Hộp thông báo | Android | Chung | #74 | Chưa vẽ | |
 | PH01 | Trang chủ phụ huynh | Android | F02 | TB-14 | Chưa vẽ | |
 | PH02 | Hồ sơ các con | Android | F01 | #67 | Chưa vẽ | |

@@ -62,12 +62,21 @@ Gói Education tương đương Professional về tính năng. Theo tài liệu 
 | `Notice` (Info, Success, Warning, Danger; thuộc tính Nội dung, Có nút) | [3:56](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=3-56) | Nháp |
 | `SessionCard` (Scheduled, Proposed, Cancelled, Past × Default, Compact) | [4:101](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=4-101) | Nháp |
 | Khung trình bày Notice và SessionCard với câu thật và dữ liệu xấu nhất | [5:201](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=5-201) | Có |
+| `Button` thêm trục State (Default, Busy, Disabled) | [3:27](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=3-27) | Nháp |
+| `TextField` (Default, Focused, Error, Disabled; nút hiện mật khẩu) | [6:182](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=6-182) | Nháp |
+| `ChoiceOption` (thẻ chọn một), `Checkbox` (Checked, Unchecked, Error) | [6:195](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=6-195), [6:214](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=6-214) | Nháp |
+| `TopAppBar` (có, không có nút quay lại), `StickyActionBar`, `ConfirmSheet` | [6:222](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=6-222), [7:288](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=7-288), [7:289](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=7-289) | Nháp |
+| `NavigationBar` (Phụ huynh, Gia sư × 5 tab; số chưa đọc) | [8:428](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=8-428) | Nháp |
+| `PriceBlock`, `StudentSwitcher`, `CycleStrip` (Scheduled, Proposed × 1–3 buổi/tuần) | [7:124](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=7-124), [7:127](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=7-127), [7:279](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=7-279) | Nháp, chưa dùng trong màn hình |
+| Trang `F01 Tài khoản`: AUTH01–AUTH06, mỗi màn hình một section đủ trạng thái, frame chữ 200%, frame dữ liệu xấu nhất | AUTH01 [9:330](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=9-330), AUTH02 [11:316](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=11-316), AUTH03 [12:691](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=12-691), AUTH04 [11:484](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=11-484), AUTH05 [11:673](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=11-673), AUTH06 [12:1287](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=12-1287) | Nháp |
 
 Ghi chú khi dựng:
 - Bộ Material 3 Design Kit (cộng đồng) không có icon lịch, đồng hồ, hủy lịch, nên icon được dựng từ path của Material Icons.
 - `Notice` phân biệt tone bằng icon khác hình dạng; nhãn trợ năng của icon là chữ tone. Không còn viền màu một bên và dòng nhãn phía trên ([10](10-ra-soat-nen-08-11.md)).
 - `SessionCard` Proposed: viền nét đứt, khối ngày rỗng; Cancelled: giờ gạch ngang. Bản Compact xếp giờ trên trạng thái để nhãn "Trong đề nghị, chưa chốt" không đè giờ.
 - Thuộc tính chữ của component dùng một giá trị mặc định chung cho mọi variant; đặt câu thật ở instance.
+- Frame màn hình: phần trên (thanh trạng thái, thanh tiêu đề, nội dung) và phần dưới (thông báo trạng thái lệnh, thanh nút, thanh điều hướng) đẩy về hai đầu. Màn hình ngắn: thanh nút sát đáy 800; màn hình dài: frame dài theo nội dung, nghĩa là trang cuộn, thanh nút vẫn cố định khi làm.
+- Frame chữ 200% là bản tách instance (detach) rồi nhân đôi cỡ chữ, vì Figma không cho đổi cỡ chữ có style bên trong instance. Không sửa component từ frame này; icon giữ cỡ vì Android tính icon theo dp.
 
 ## Agent đọc Figma
 Lấy link node bằng "Copy link to selection" trên section màn hình, ghi vào `screens/<mã>.md`. Agent chạy theo thứ tự ở [09](09-quy-trinh.md#agent-triển-khai): đọc `screens/<mã>.md`, rồi mới gọi MCP (`get_design_context`, `get_screenshot`, `get_variable_defs`) cho đúng node đó nếu còn lượt.

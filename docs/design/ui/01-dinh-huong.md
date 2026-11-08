@@ -41,7 +41,7 @@ Thẻ lịch có:
 Biến thể của thẻ ở [03](03-thanh-phan.md#thẻ-lịch-buổi-học-sessioncard). Thẻ này được thiết kế kỹ nhất và duyệt trước mọi màn hình dùng nó.
 
 ## Logo
-Đã có logo (Đính). File chưa có trong repo, theo dõi ở OP-16. Khi có: đặt bản gốc trong Figma trang `01 Foundations`, xuất SVG cho web và PNG cho Android bằng PR riêng. Logo không đổi màu tùy tiện; vùng trống quanh logo và cỡ nhỏ nhất ghi trong Figma.
+Đã có logo bản demo (Đính, 08/11/2026), chỉ là tạm. **Màu giao diện không theo logo:** `primary` giữ #0B5CAD (Đính, 08/11/2026: "log chỉ là tạm nên màu cứ theo bạn chọn, không cần quan tâm hay liên quan đến logo"). File chưa có trong repo, theo dõi ở OP-16. Khi có: đặt bản gốc trong Figma trang `01 Foundations`, xuất SVG cho web và PNG cho Android bằng PR riêng. Logo không đổi màu tùy tiện; vùng trống quanh logo và cỡ nhỏ nhất ghi trong Figma.
 
 ## Ngoài phạm vi ở Lát 1
 - Chế độ tối. Token vẫn đặt tên theo vai trò (`surface`, `textMuted`) để thêm sau không phải sửa màn hình.

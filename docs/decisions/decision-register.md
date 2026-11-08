@@ -103,9 +103,10 @@ Bản Markdown của sổ TB HS 02 (42 mục), dùng làm nguồn tra cứu khi 
 | OP-06 | Đã đóng 06/11/2026: Đính chọn chấp nhận rủi ro, không thử bản mẫu trước M2. Giữ hay đổi tiêu chí 5 người vẫn chưa chọn. Huy xác nhận cùng ngày | XC05 | Đính, Huy | Không |
 | OP-07 | Người duyệt Toán, người rà dữ liệu trẻ em, người xác minh và hỗ trợ, trần tiền AI | XC07, XC08, XC10 | Đính, Huy | Chặn dữ liệu thật và AI thật (GATE02, GATE03) |
 | OP-08 | Bên nhận hồ sơ và mức phân phối | XC11 | Đính | Chặn gửi ngoài |
-| OP-16 | Logo: Đính gửi bản demo ngày 08/11/2026, "sau này sẽ có nhiều thay đổi"; đã đặt vào trang `01 Foundations` của Figma, chưa đưa vào repo. Còn chờ bản chốt (SVG cho web, PNG cho Android) và quyết định màu `primary` có theo màu logo không | ADR-0011 | Đính | Chặn duyệt Foundations |
+| OP-16 | Logo: Đính gửi bản demo ngày 08/11/2026, "sau này sẽ có nhiều thay đổi"; đã đặt vào trang `01 Foundations` của Figma, chưa đưa vào repo. Màu giao diện không theo logo, `primary` giữ #0B5CAD (Đính, 08/11/2026). Còn chờ bản logo chốt (SVG cho web, PNG cho Android) | ADR-0011 | Đính | Không |
 | OP-17 | Đã đóng 08/11/2026: tạo file [TutorBridge UX-UI](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl) trong team Verijob (gói Education) theo lựa chọn của Đính; link và file key ghi ở `docs/design/ui/07-figma.md` | ADR-0011 | Đính | Không |
 | OP-18 | Kiểm giới hạn Figma MCP và Dev Mode của gói Education trên trang chính thức của Figma; ghi số vào `07-figma.md` | ADR-0011 | Đính | Không |
 | OP-19 | Có đưa rà tự động chống AI slop (`impeccable detect` hoặc tương đương) vào CI không | ADR-0011 | Đính | Không |
 | OP-20 | Hợp đồng chỉ có `minimum: 1` cho `rateVnd60` và `budgetVndSession`, không có trần. Có cần trần (chống nhập nhầm, giới hạn hiển thị) không. Phát hiện khi rà dữ liệu xấu nhất ngày 08/11/2026 | BR02, `docs/design/ui/11-du-lieu-xau-nhat.md` | Đính | Không |
 | OP-21 | Có tạo `PRODUCT.md`, `DESIGN.md` trong `mobile/`, `web/` cho Impeccable đọc không, hay giữ một nguồn ở `docs/design/ui/` | ADR-0011 | Đính | Không |
+| OP-22 | Nhãn 5 tab của thanh điều hướng gãy chữ ở cỡ chữ 200% trên khổ 360. Chọn: giới hạn phóng riêng nhãn tab, hay chỉ hiện nhãn tab đang mở khi chữ lớn, hay cách khác. Phát hiện khi thử frame 200% ngày 08/11/2026 | NFR12, `docs/design/ui/10-ra-soat-nen-08-11.md` | Đính | Chặn duyệt `NavigationBar` |

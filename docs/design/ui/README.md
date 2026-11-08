@@ -2,7 +2,7 @@
 
 Bộ tài liệu giao diện của TutorBridge. Dùng khi thiết kế trên Figma và khi agent làm Issue giao diện. Quyết định nền ở [ADR-0011](../../decisions/adr/0011-figma-nguon-thiet-ke.md); người làm và duyệt là Đính ([CR-013](../../decisions/change-requests.md)).
 
-**Trạng thái (07/11/2026):** đã chốt định hướng, chưa có file Figma. Chưa màn hình nào được duyệt.
+**Trạng thái (08/11/2026):** đã có [file Figma](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl) với Foundations, `Notice`, `SessionCard` ở dạng nháp ([07](07-figma.md#đã-có-trong-file-08112026)). Chưa màn hình nào được vẽ hay duyệt.
 
 ## Đọc gì
 | Bạn đang làm | Đọc |

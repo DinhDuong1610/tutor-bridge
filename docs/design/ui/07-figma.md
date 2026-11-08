@@ -4,8 +4,9 @@ Một file Figma cho cả mobile và web, Đính là chủ file. Link file ghi �
 
 | Mục | Giá trị |
 |---|---|
-| File | TBD (OP-17) |
-| File key | TBD |
+| File | [TutorBridge UX-UI](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl), tạo 08/11/2026 |
+| File key | `uuEo9SH3LxWcFbbHHFFBgl` |
+| Team | Verijob (gói student, tức Education; ghế Full; Đính là admin). Đính chọn ngày 08/11/2026. Có thể dời file sang team riêng sau |
 | Gói | Figma Education (Đính, 07/11/2026) |
 
 ## Giới hạn của gói và cách bù
@@ -50,6 +51,23 @@ Gói Education tương đương Professional về tính năng. Theo tài liệu 
 - Section mỗi màn hình có nhãn trạng thái: `Nháp`, `Đang rà`, `Đã duyệt v1`. Chỉ Đính đổi sang "Đã duyệt".
 - Khi duyệt: tạo **named version** trong lịch sử phiên bản, tên `<mã> v<n> <ngày>`, ví dụ `PH04 v1 2026-11-20`. Ghi tên version vào bảng trạng thái ở [README](README.md) và `screens/<mã>.md`.
 - Sửa sau khi duyệt: làm trên bản sao của section ở trang đó với nhãn `Nháp v2`, duyệt xong thì thay bản cũ, chuyển bản cũ sang trang `Lưu trữ`.
+
+## Đã có trong file (08/11/2026)
+| Thứ | Node | Trạng thái |
+|---|---|---|
+| Trang `00 Đọc trước` | [0:1](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=0-1) | Có |
+| Foundations: 26 biến (`color` 17, `space` 6, `radius` 3) có scope và tên biến cho web (`var(--…)`) và mobile (`colors.…`); 7 text style; logo demo; bảng tương phản | [5:2](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=5-2) | Nháp |
+| Icon (Material Icons, Apache 2.0): info, check-circle, warning, error, event-available, schedule, event-busy | trang `02 Components / Mobile` | Nháp |
+| `Button` (Primary, Secondary) | [3:27](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=3-27) | Nháp tối thiểu |
+| `Notice` (Info, Success, Warning, Danger; thuộc tính Nội dung, Có nút) | [3:56](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=3-56) | Nháp |
+| `SessionCard` (Scheduled, Proposed, Cancelled, Past × Default, Compact) | [4:101](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=4-101) | Nháp |
+| Khung trình bày Notice và SessionCard với câu thật và dữ liệu xấu nhất | [5:201](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=5-201) | Có |
+
+Ghi chú khi dựng:
+- Bộ Material 3 Design Kit (cộng đồng) không có icon lịch, đồng hồ, hủy lịch, nên icon được dựng từ path của Material Icons.
+- `Notice` phân biệt tone bằng icon khác hình dạng; nhãn trợ năng của icon là chữ tone. Không còn viền màu một bên và dòng nhãn phía trên ([10](10-ra-soat-nen-08-11.md)).
+- `SessionCard` Proposed: viền nét đứt, khối ngày rỗng; Cancelled: giờ gạch ngang. Bản Compact xếp giờ trên trạng thái để nhãn "Trong đề nghị, chưa chốt" không đè giờ.
+- Thuộc tính chữ của component dùng một giá trị mặc định chung cho mọi variant; đặt câu thật ở instance.
 
 ## Agent đọc Figma
 Lấy link node bằng "Copy link to selection" trên section màn hình, ghi vào `screens/<mã>.md`. Agent chạy theo thứ tự ở [09](09-quy-trinh.md#agent-triển-khai): đọc `screens/<mã>.md`, rồi mới gọi MCP (`get_design_context`, `get_screenshot`, `get_variable_defs`) cho đúng node đó nếu còn lượt.

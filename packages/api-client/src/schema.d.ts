@@ -1387,7 +1387,7 @@ export interface paths {
         put?: never;
         /**
          * loginAccount
-         * @description 5 failures/15min then 15min delay; reject locked/unverified; no token in log. Errors 401 AUTHENTICATION_FAILED for an unknown email or a wrong password (same body for both), 403 ACCOUNT_UNVERIFIED (only after a correct password), 403 ACCOUNT_LOCKED, 429 LOGIN_DELAYED with Retry-After. No Idempotency-Key (CR-014).
+         * @description 5 failures/15min then 15min delay; reject locked/unverified; no token in log. Errors 401 AUTHENTICATION_FAILED for an unknown email or a wrong password (same body for both), 403 ACCOUNT_UNVERIFIED (only after a correct password), 403 ACCOUNT_LOCKED, 429 LOGIN_DELAYED with Retry-After. An ADMIN account gets the same 401 AUTHENTICATION_FAILED and no session; admins sign in through a separate web endpoint (TB-13). No Idempotency-Key (CR-014).
          */
         post: operations["loginAccount"];
         delete?: never;

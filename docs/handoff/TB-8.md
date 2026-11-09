@@ -3,7 +3,7 @@
 - **Chủ task:** Huy
 - **Nhánh:** PR 1 `feature/TB-8-auth-contract` (Draft PR #92 vào `dev`); PR 2 và PR 3 trên `feature/TB-8-account-sessions` (Draft PR #39), rebase lên `dev` sau khi PR 1 merge
 - **Agent đang làm:** Claude (Claude Code). PR 1 xong trên máy, chưa có code nghiệp vụ
-- **Cập nhật lần cuối:** 10/11/2026, ghi câu trả lời của Huy cho Q13, Q14 và thêm hai mã của Q13 vào #92
+- **Cập nhật lần cuối:** 10/11/2026, ghi câu trả lời của Huy cho Q13, Q14, Q17 và cập nhật mô tả `loginAccount` trong #92
 - **Mã liên quan:** FR-01, FR-02; UC01; AC-UC01-01, AC-UC01-02, AC-UC01-03, AC-UC01-04; INV-01, INV-03, INV-06, INV-18, INV-20, INV-21, INV-63, INV-80, INV-83; ADR-0004
 
 ## Mục tiêu
@@ -104,6 +104,10 @@ Máy Windows của Huy: Gradle báo lỗi chứng chỉ TLS (PKIX) khi tải th�
   - ADMIN đăng nhập qua luồng mobile nhận 401 `AUTHENTICATION_FAILED`, cùng cấu trúc và thông báo như sai mật khẩu; không có thông báo riêng lộ vai trò quản trị; không cấp phiên hay token.
   - Chỉ áp dụng cho mobile; đăng nhập quản trị trên web vẫn xác thực và MFA theo thiết kế.
   - Điều kiện: nếu mobile và web dùng chung endpoint thì phải chốt cách backend phân biệt hai luồng trước khi áp dụng; không chặn ADMIN trên toàn bộ endpoint, không dựa vào việc client tự khai báo vai trò. Agent kiểm hợp đồng: hai bên **dùng chung** `/auth/login` (xem Q17).
+- Huy, 10/11/2026, Q17: chọn phương án (b), tách endpoint đăng nhập quản trị riêng cho web. Cần Đính đồng ý (câu hai người cùng chốt). Hệ quả agent ghi lại:
+  - `/auth/login` luôn từ chối ADMIN bằng 401 `AUTHENTICATION_FAILED`, cùng phản hồi như sai mật khẩu, không cấp phiên hay token. Khớp cả Q7 của Đính ("TB-8 chặn ADMIN") lẫn điều kiện của Huy ở Q14 (không chặn ADMIN trên toàn bộ đăng nhập, vì ADMIN có endpoint riêng). Đã ghi vào mô tả `loginAccount` trong #92.
+  - Endpoint quản trị mới và việc bỏ `AdminMfaChallenge` khỏi `LoginResult` thuộc TB-13 (Đính), làm bằng PR `contract-change` riêng. #92 không thêm endpoint, không đổi schema.
+  - Ca kiểm thử của PR 3: ADMIN với mật khẩu đúng nhận phản hồi tương đương sai mật khẩu, không có dòng mới trong `auth_sessions`.
 - Agent chọn trong PR 1, cần người rà xem:
   - Mã lỗi ghi trong `description` của từng thao tác vì `Problem.code` là chuỗi tự do; thêm `enum` sẽ là thay đổi phá vỡ. Cách ghi theo mẫu `Missing -> 428` sẵn có của `If-Match`.
   - Khóa sai độ dài vẫn trả 422 `IDEMPOTENCY_KEY_INVALID`; CR-014 chỉ đổi trường hợp thiếu khóa.
@@ -130,8 +134,8 @@ Q1–Q8, Q11 đã đóng ngày 08/11/2026 (xem Quyết định đã chọn). Câ
 | # | Câu hỏi | Ai trả lời | Cần trước |
 |---|---|---|---|
 | Q13 | Mã 401 và 429. Huy trả lời 10/11/2026 (xem Quyết định đã chọn); chờ Đính đồng ý | Đính | PR 2 |
-| Q14 | Phản hồi khi chặn ADMIN. Huy trả lời 10/11/2026: 401 `AUTHENTICATION_FAILED` cho luồng mobile, có điều kiện (Q17); chờ Đính đồng ý | Đính | PR 3 |
-| Q17 | Mobile và web dùng chung `/auth/login` (`LoginResult` = `SessionCredential` hoặc `AdminMfaChallenge`, web gọi tiếp `/auth/admin-mfa`). Theo điều kiện của Huy ở Q14, cần chốt cách backend phân biệt luồng mobile và web, không dựa vào client tự khai báo. Ngoài ra Q7 (Đính, 08/11) ghi "TB-8 chặn ADMIN đăng nhập", còn Huy ghi "không chặn ADMIN trên toàn bộ endpoint": cần Đính và Huy thống nhất cách hiểu trước PR 3. Phương án agent thấy, chưa ai chọn: (a) giữ một endpoint, trước TB-13 chặn ADMIN trên toàn endpoint như một bước tạm, vì chưa có MFA nên không cổng nào cấp được phiên quản trị; từ TB-13 trả `AdminMfaChallenge` cho mọi client, ranh giới an toàn là MFA chứ không phải loại client, app mobile vẫn chỉ hiện câu "đăng nhập trên trang quản trị". (b) tách endpoint đăng nhập quản trị riêng cho web (thêm vào hợp đồng, không phá vỡ), `/auth/login` từ chối ADMIN bằng 401. (c) phân biệt bằng cách gửi phiên (cookie và CSRF của web so với bearer của mobile); phần này vẫn do client gửi lên nên trái điều kiện của Huy | Đính, Huy | PR 3 |
+| Q14 | Phản hồi khi chặn ADMIN. Huy trả lời 10/11/2026: 401 `AUTHENTICATION_FAILED`; cách phân biệt luồng chốt ở Q17. Chờ Đính đồng ý | Đính | PR 3 |
+| Q17 | Mobile và web dùng chung `/auth/login`. Huy chọn (b) ngày 10/11/2026: tách endpoint đăng nhập quản trị riêng cho web (TB-13), `/auth/login` từ chối ADMIN bằng 401 (xem Quyết định đã chọn). Hai phương án không chọn: (a) giữ một endpoint, MFA là ranh giới; (c) phân biệt theo cookie hay bearer, trái điều kiện của Huy vì client tự gửi. Chờ Đính đồng ý | Đính | PR 3 |
 | Q15 | CR-013 (UX-UI) chưa có trên GitHub: `dev` mới đến CR-012 và chưa có nhánh TB-87. Cần Đính push để không trùng số | Đính | Trước khi PR 1 merge |
 | Q16 | `changePassword` (TB-09) là lệnh ghi có actor nhưng hợp đồng không khai báo `Idempotency-Key`, khác INV-20. Thêm header bắt buộc là thay đổi phá vỡ | Đính, Huy | TB-09 |
 

@@ -32,7 +32,7 @@ Khi vẽ xong và duyệt, nội dung của màn hình chuyển sang `screens/<m
 
 ### AUTH05 Đặt lại mật khẩu
 - **API:** `resetPassword`.
-- **Hiển thị:** mật khẩu mới, nhập lại.
+- **Hiển thị:** mật khẩu mới, có nút hiện/ẩn mật khẩu. Không có ô nhập lại (Đính chốt 10/11/2026, Q9 của TB-10, #91).
 - **Trạng thái riêng:** liên kết hết hạn hoặc đã dùng; thành công: "Đã đổi mật khẩu. Mọi phiên đăng nhập cũ đã bị đăng xuất." và nút "Đăng nhập".
 
 ### AUTH06 Bảo mật và quản lý phiên
@@ -177,9 +177,11 @@ Khi vẽ xong và duyệt, nội dung của màn hình chuyển sang `screens/<m
 - **Hiển thị:** `DataTable`: gia sư, phiên bản hồ sơ, ngày gửi, trạng thái, người xử lý; lọc theo trạng thái.
 - **Trạng thái riêng:** rỗng "Không có hồ sơ nào được giao cho bạn."
 - **Phải thấy:** chỉ hồ sơ được giao.
+- **TBD (OP-28):** `VerificationRecord` chỉ có id, profileVersionId, assignedTo, status, scope, revision: không có tên gia sư, ngày gửi; `listAssignedVerifications` không có tham số lọc. Bản nháp lọc trên trang đã tải.
 
 ### AD04 Thẩm định hồ sơ và minh chứng
 - **API:** `readAssignedEvidence`, `decideVerification`. **UC03; AC-UC03-02.**
 - **Hiển thị:** bên trái nội dung hồ sơ đúng phiên bản và `EvidenceViewer`; bên phải biểu mẫu quyết định: kết quả (Xác minh, Yêu cầu bổ sung, Từ chối), phạm vi môn và khối khi xác minh, lý do.
 - **Trạng thái riêng:** hồ sơ đã đổi phiên bản trong lúc xem; không được tự duyệt hồ sơ của mình; đã quyết định.
-- **Phải thấy:** nhãn kết quả nói đúng phạm vi đã kiểm, không có từ "đảm bảo".
+- **Phải thấy:** nhãn kết quả nói đúng phạm vi đã kiểm, không có từ "đảm bảo". `decideVerification` cần phạm vi (1–200) và lý do (1–2.000) cho mọi kết quả.
+- **TBD (OP-28):** hợp đồng chưa có thao tác cho người xác minh đọc nội dung hồ sơ đã gửi và danh sách minh chứng (`readAssignedEvidence` cần evidenceId không có nguồn). Cột hồ sơ và minh chứng dừng ở khung TBD.

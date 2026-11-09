@@ -20,16 +20,17 @@ function SessionStatus() {
   return <Text>{session.status === "signedIn" ? `signed in as ${session.session.role}` : "signed out"}</Text>;
 }
 
-async function signIn() {
+async function signIn(onResendVerification = jest.fn()) {
   await renderScreen(
     <>
-      <SignInScreen onGoToRegister={jest.fn()} onForgotPassword={jest.fn()} />
+      <SignInScreen onGoToRegister={jest.fn()} onForgotPassword={jest.fn()} onResendVerification={onResendVerification} />
       <SessionStatus />
     </>,
   );
   fireEvent.changeText(screen.getByLabelText("Email"), "phu.huynh@example.test");
   fireEvent.changeText(screen.getByLabelText("Mật khẩu"), PASSWORD);
   await act(async () => fireEvent.press(screen.getByRole("button", { name: "Đăng nhập" })));
+  return onResendVerification;
 }
 
 describe("AUTH03 SignInScreen", () => {
@@ -51,7 +52,7 @@ describe("AUTH03 SignInScreen", () => {
 
   it("checks the form before sending anything", async () => {
     server = mockApi({});
-    await renderScreen(<SignInScreen onGoToRegister={jest.fn()} onForgotPassword={jest.fn()} />);
+    await renderScreen(<SignInScreen onGoToRegister={jest.fn()} onForgotPassword={jest.fn()} onResendVerification={jest.fn()} />);
 
     await act(async () => fireEvent.press(screen.getByRole("button", { name: "Đăng nhập" })));
 
@@ -72,6 +73,30 @@ describe("AUTH03 SignInScreen", () => {
     expect(screen.getByText("signed out")).toBeOnTheScreen();
     expect(screen.getByLabelText("Email")).toHaveDisplayValue("phu.huynh@example.test");
     expect(storedSession()).toBeUndefined();
+  });
+
+  it("UC01_an_unverified_account_is_sent_to_ask_for_a_new_verification_link", async () => {
+    server = mockApi({
+      "POST /auth/login": () => problem(403, "ACCOUNT_UNVERIFIED", "Email của bạn chưa được xác minh."),
+    });
+
+    const onResendVerification = await signIn();
+
+    expect(await screen.findByText("Email của bạn chưa được xác minh.")).toBeOnTheScreen();
+    expect(screen.getByText("signed out")).toBeOnTheScreen();
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Gửi lại liên kết xác minh" })));
+    expect(onResendVerification).toHaveBeenCalledTimes(1);
+  });
+
+  it("offers a new verification link only for an unverified account", async () => {
+    server = mockApi({
+      "POST /auth/login": () => problem(403, "ACCOUNT_LOCKED", "Tài khoản đang bị khóa."),
+    });
+
+    await signIn();
+
+    expect(await screen.findByText("Tài khoản đang bị khóa.")).toBeOnTheScreen();
+    expect(screen.queryByRole("button", { name: "Gửi lại liên kết xác minh" })).toBeNull();
   });
 
   it("UC01_shows_the_delay_after_repeated_failures", async () => {

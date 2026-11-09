@@ -1,5 +1,5 @@
 import { act, fireEvent, renderRouter, screen, waitFor } from "expo-router/testing-library";
-import { json, mockApi } from "@/shared/test/mockApi";
+import { json, mockApi, problem } from "@/shared/test/mockApi";
 import { clearStore, fakeSession, storedSession, storeSession } from "@/shared/test/session";
 
 beforeEach(() => {
@@ -31,6 +31,28 @@ describe("account routes", () => {
 
     expect(await screen.findByRole("header", { name: "Đăng nhập" })).toBeOnTheScreen();
     expect(screen).toHavePathname("/sign-in");
+  });
+
+  it("sends an unverified account from sign-in to ask for a new verification link", async () => {
+    const server = mockApi({
+      "POST /auth/login": () => problem(403, "ACCOUNT_UNVERIFIED", "Email của bạn chưa được xác minh."),
+    });
+    try {
+      renderRouter("./src/app", { initialUrl: "/sign-in" });
+      expect(await screen.findByRole("header", { name: "Đăng nhập" })).toBeOnTheScreen();
+      fireEvent.changeText(screen.getByLabelText("Email"), "phu.huynh@example.test");
+      fireEvent.changeText(screen.getByLabelText("Mật khẩu"), "mat khau rat bi mat 2026");
+      await act(async () => fireEvent.press(screen.getByRole("button", { name: "Đăng nhập" })));
+
+      const resend = await screen.findByRole("button", { name: "Gửi lại liên kết xác minh" });
+      await act(async () => fireEvent.press(resend));
+
+      expect(await screen.findByRole("header", { name: "Xác minh email" })).toBeOnTheScreen();
+      expect(screen).toHavePathname("/verify-email");
+      expect(screen.getByRole("button", { name: "Gửi lại liên kết" })).toBeOnTheScreen();
+    } finally {
+      server.restore();
+    }
   });
 
   it("goes from sign-in to password recovery and back", async () => {

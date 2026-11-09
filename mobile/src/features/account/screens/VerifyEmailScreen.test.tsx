@@ -43,19 +43,33 @@ describe("AUTH02 VerifyEmailScreen", () => {
     expect(server.unexpected).toEqual([]);
   });
 
-  it("AC_UC01_02_expired_or_used_link_shows_the_server_message_and_offers_a_new_link", async () => {
+  it("AC_UC01_02_expired_link_shows_the_server_message_and_offers_a_new_link", async () => {
     server = mockApi({
-      "POST /auth/verify": () => problem(409, "LINK_USED", "Liên kết đã được dùng hoặc đã hết hạn."),
+      "POST /auth/verify": () => problem(400, "LINK_EXPIRED", "Liên kết đã hết hạn."),
     });
     await show(TOKEN);
 
     await press("Xác minh email");
 
-    expect(await screen.findByText("Liên kết đã được dùng hoặc đã hết hạn.")).toBeOnTheScreen();
+    expect(await screen.findByText("Liên kết đã hết hạn.")).toBeOnTheScreen();
     expect(screen.queryByRole("header", { name: "Email đã được xác minh" })).toBeNull();
     expect(screen.getByText("Gửi lại liên kết xác minh")).toBeOnTheScreen();
+    expect(screen.queryByText(/đã được dùng/)).toBeNull();
     // Only after a retry of an unknown outcome may the first attempt have worked.
     expect(screen.queryByText(/Lần gửi trước có thể đã xác minh/)).toBeNull();
+  });
+
+  it("AC_UC01_02_used_link_is_told_apart_from_an_expired_one", async () => {
+    server = mockApi({
+      "POST /auth/verify": () => problem(409, "LINK_USED", "Liên kết đã được dùng."),
+    });
+    await show(TOKEN);
+
+    await press("Xác minh email");
+
+    expect(await screen.findByText("Liên kết đã được dùng.")).toBeOnTheScreen();
+    expect(screen.getByText("Liên kết này đã được dùng. Nếu email của bạn đã được xác minh, hãy đăng nhập.")).toBeOnTheScreen();
+    expect(screen.getByText("Gửi lại liên kết xác minh")).toBeOnTheScreen();
   });
 
   it.each([[undefined], ["too-short"], [["two", "values"]]])("does not send a missing or malformed token: %p", async (token) => {

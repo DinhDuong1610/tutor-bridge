@@ -76,6 +76,9 @@ export function ResetPasswordScreen({ token, onGoToSignIn, onRequestNewLink }: P
           {reset.state === "failed" && retriedAfterUnknown ? (
             // The first attempt may have changed the password before the connection dropped.
             <Text style={styles.body}>Lần gửi trước có thể đã đổi mật khẩu. Hãy thử đăng nhập bằng mật khẩu mới trước.</Text>
+          ) : reset.state === "failed" && reset.error?.code === "LINK_USED" ? (
+            // LINK_USED and LINK_EXPIRED differ (TB-8 error codes): a used link usually means the password was changed.
+            <Text style={styles.body}>Liên kết này đã được dùng. Nếu bạn vừa đặt lại mật khẩu, hãy đăng nhập bằng mật khẩu mới.</Text>
           ) : null}
           <Button
             title="Đặt lại mật khẩu"

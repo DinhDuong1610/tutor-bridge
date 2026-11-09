@@ -1,7 +1,7 @@
 # TB-8 Đăng ký, xác minh, đăng nhập, phiên; ADR băm mật khẩu
 
 - **Chủ task:** Huy
-- **Nhánh:** PR 1 `feature/TB-8-auth-contract` (tách từ `dev`, chưa push); PR 2 và PR 3 trên `feature/TB-8-account-sessions` (Draft PR #39), rebase lên `dev` sau khi PR 1 merge
+- **Nhánh:** PR 1 `feature/TB-8-auth-contract` (Draft PR #92 vào `dev`); PR 2 và PR 3 trên `feature/TB-8-account-sessions` (Draft PR #39), rebase lên `dev` sau khi PR 1 merge
 - **Agent đang làm:** Claude (Claude Code). PR 1 xong trên máy, chưa có code nghiệp vụ
 - **Cập nhật lần cuối:** 09/11/2026, PR 1 theo `contract-change` (CR-014, V9, ADR-0008, OpenAPI)
 - **Mã liên quan:** FR-01, FR-02; UC01; AC-UC01-01, AC-UC01-02, AC-UC01-03, AC-UC01-04; INV-01, INV-03, INV-06, INV-18, INV-20, INV-21, INV-63, INV-80, INV-83; ADR-0004
@@ -27,7 +27,7 @@ Phụ huynh và gia sư tự đăng ký, xác minh email, đăng nhập bằng p
 
 ## Kế hoạch
 Đề xuất chia Issue #8 thành 3 PR. Đính chốt việc chia, Đính cấp số migration.
-- [x] **PR 1, theo `contract-change`** (`feature/TB-8-auth-contract`, chưa push): CR-014; ADR-0008 hoàn chỉnh và `bcprov-jdk18on` 1.86; V9 (`auth_sessions.device_label`, `terms_acceptances`, `auth_rate_counters`); OpenAPI ghi mã lỗi và "No Idempotency-Key (CR-014)" trong mô tả, sinh lại client; `IdempotencyKey` trả 400 khi thiếu khóa; INV-20, `module-map`, `m0-ban-giao`. PR riêng, merge trước code.
+- [x] **PR 1, theo `contract-change`** (#92): CR-014; ADR-0008 hoàn chỉnh và `bcprov-jdk18on` 1.86; V9 (`auth_sessions.device_label`, `terms_acceptances`, `auth_rate_counters`); OpenAPI ghi mã lỗi và "No Idempotency-Key (CR-014)" trong mô tả, sinh lại client; `IdempotencyKey` trả 400 khi thiếu khóa; INV-20, `module-map`, `m0-ban-giao`. PR riêng, merge trước code.
 - [ ] **PR 2, theo `implement-slice`:** `registerAccount`, `verifyEmail`, `resendVerification`. Gửi email qua outbox, không gửi trong giao dịch (INV-18).
 - [ ] **PR 3, theo `implement-slice`:** `SessionResolver` trong `identity` tra `auth_sessions` và `auth_epoch` mỗi yêu cầu (ADR-0004, ADR-0010; điều kiện theo hàm `valid_session` của V5), bean `PublicEndpoints` cho các thao tác công khai, `loginAccount`, `logoutAccount`, `listOwnSessions`, `revokeOwnSession`.
 
@@ -50,7 +50,7 @@ Phụ huynh và gia sư tự đăng ký, xác minh email, đăng nhập bằng p
 - Phản hồi có `Cache-Control: private, no-store`.
 
 ## Trạng thái hiện tại
-Đính trả lời toàn bộ câu hỏi ngày 08/11/2026 trên #39. PR 1 đã làm xong trên máy ngày 09/11/2026, chưa push, chờ Huy cho phép mở PR. Chưa có code nghiệp vụ; PR 2 bắt đầu sau khi PR 1 merge (cả hai người duyệt).
+Đính trả lời toàn bộ câu hỏi ngày 08/11/2026 trên #39. PR 1 mở Draft PR #92 ngày 10/11/2026, chờ Huy viết phần tác giả và cả hai người duyệt. Q13–Q16 đã gửi Đính trên #39. Chưa có code nghiệp vụ; PR 2 bắt đầu sau khi PR 1 merge (cả hai người duyệt).
 
 ## Lệnh kiểm tra
 ```bash
@@ -125,6 +125,6 @@ Q1–Q8, Q11 đã đóng ngày 08/11/2026 (xem Quyết định đã chọn). Câ
 | Q16 | `changePassword` (TB-09) là lệnh ghi có actor nhưng hợp đồng không khai báo `Idempotency-Key`, khác INV-20. Thêm header bắt buộc là thay đổi phá vỡ | Đính, Huy | TB-09 |
 
 ## Bước kế tiếp
-1. Huy cho phép thì push `feature/TB-8-auth-contract` và mở Draft PR vào `dev` (PR 1). Huy viết phần tác giả. Cả hai người duyệt rồi merge.
+1. #92 (PR 1): Huy viết phần tác giả; cả hai người duyệt rồi merge.
 2. Trả lời Q13 trước khi bắt đầu PR 2 (`registerAccount`, `verifyEmail`, `resendVerification`, theo `implement-slice`).
 3. Sau khi PR 1 merge: rebase `feature/TB-8-account-sessions` lên `dev` (`--force-with-lease`), làm PR 2, rồi PR 3.

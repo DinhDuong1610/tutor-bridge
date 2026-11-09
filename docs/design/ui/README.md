@@ -2,7 +2,7 @@
 
 Bộ tài liệu giao diện của TutorBridge. Dùng khi thiết kế trên Figma và khi agent làm Issue giao diện. Quyết định nền ở [ADR-0011](../../decisions/adr/0011-figma-nguon-thiet-ke.md); người làm và duyệt là Đính ([CR-013](../../decisions/change-requests.md)).
 
-**Trạng thái (08/11/2026):** đã có [file Figma](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl) với Foundations, 17 component, toàn bộ 23 màn hình mobile của Lát 1 ở dạng nháp; còn 3 màn hình web quản trị ([07](07-figma.md#đã-có-trong-file-08112026)). Chưa màn hình nào được duyệt.
+**Trạng thái (08/11/2026):** đã có [file Figma](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl) với Foundations, 17 component, đủ 26 màn hình Lát 1 (23 mobile, 3 web quản trị) ở dạng nháp ([07](07-figma.md#đã-có-trong-file-08112026)). Chưa màn hình nào được duyệt.
 
 ## Đọc gì
 | Bạn đang làm | Đọc |
@@ -58,9 +58,9 @@ Cập nhật khi đổi trạng thái. **Chưa vẽ** → **Nháp** → **Đã d
 | GS05 | Đề nghị nhận lớp | Android | F02 | #72 | Nháp, có TBD | [35:5145](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=35-5145) (section) |
 | CL01 | Lớp học và thỏa thuận (chỉ xem) | Android | F02 | #73 | Nháp, có TBD | [36:5492](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=36-5492) (section) |
 | CL02 | Lịch lớp và chi tiết buổi (chỉ xem) | Android | F02 | #73 | Nháp | [37:5838](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=37-5838) (section) |
-| AD01 | Đăng nhập và xác thực quản trị | Web | F01 | Chưa có | Chưa vẽ | |
-| AD03 | Hàng chờ xác minh gia sư | Web | F01 | Chưa có | Chưa vẽ | |
-| AD04 | Thẩm định hồ sơ và minh chứng | Web | F01 | Chưa có | Chưa vẽ | |
+| AD01 | Đăng nhập và xác thực quản trị | Web | F01 | Chưa có | Nháp | [39:212](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=39-212) (section) |
+| AD03 | Hàng chờ xác minh gia sư | Web | F01 | Chưa có | Nháp, có TBD | [40:435](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=40-435) (section) |
+| AD04 | Thẩm định hồ sơ và minh chứng | Web | F01 | Chưa có | Nháp, có TBD | [41:675](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=41-675) (section) |
 
 Số Issue lấy từ [kế hoạch Lát 1](../../plan/lat-1-ke-hoach.md). WEB01, WEB02 không thuộc 26 màn hình của Lát 1 ([r0a-scope](../../context/r0a-scope.md)), hiện là trang chờ; thiết kế khi đưa vào phạm vi.
 

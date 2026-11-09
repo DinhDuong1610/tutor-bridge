@@ -23,9 +23,10 @@ Gói Education tương đương Professional về tính năng. Theo tài liệu 
 | `02 Components / Mobile` | Component mobile theo [03](03-thanh-phan.md), mỗi component một section kèm mọi variant |
 | `03 Components / Web` | Component web quản trị, theo shadcn/ui đã dùng |
 | `04 Patterns` | Bộ khung trạng thái ([04](04-trang-thai-cau-chu.md)), biểu mẫu mẫu, danh sách mẫu |
-| `F01 Tài khoản` | AUTH01–06, PH02, GS02, GS03, AD01, AD03, AD04 |
+| `F01 Tài khoản` | AUTH01–06, PH02, GS02, GS03 |
 | `F02 Nhu cầu đến chốt lớp` | PH01, PH03–PH09, GS01, GS04, GS05, CL01, CL02 |
 | `Chung` | COM01, điều hướng tab, hết phiên |
+| `W Quản trị (web)` | AD01, AD03, AD04 (khung 1280 × 800, thanh bên, thanh trên). Tách khỏi `F01` vì khung web khác cỡ khung mobile |
 | `Lưu trữ` | Phương án cũ, không xóa để còn đối chiếu |
 
 ## Đặt tên
@@ -74,6 +75,7 @@ Gói Education tương đương Professional về tính năng. Theo tài liệu 
 | Trang `F02`: GS04 (10 trạng thái, có TBD), PH03 (5), PH04 (8), PH05 (7) | GS04 [27:2228](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=27-2228), PH03 [29:2132](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=29-2132), PH04 [28:2600](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=28-2600), PH05 [29:2652](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=29-2652) | Nháp |
 | Trang `F02`: PH06 (9), PH07 (4), PH08 (8), PH09 (10, có TBD), GS05 (13, có TBD) | PH06 [30:3029](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=30-3029), PH07 [31:2731](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=31-2731), PH08 [31:3916](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=31-3916), PH09 [34:4229](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=34-4229), GS05 [35:5145](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=35-5145) | Nháp |
 | Trang `F02`: CL01 (9, có màn gốc tab Lớp học), CL02 (8); trang `Chung`: COM01 (7) | CL01 [36:5492](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=36-5492), CL02 [37:5838](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=37-5838), COM01 [38:475](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=38-475) | Nháp |
+| Trang `W Quản trị (web)`: AD01 (8), AD03 (5, có TBD), AD04 (9, có TBD) | AD01 [39:212](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=39-212), AD03 [40:435](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=40-435), AD04 [41:675](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=41-675) | Nháp |
 | Trang `F01 Tài khoản`: PH02, GS02, GS03 (GS02, GS03 có khung TBD đỏ nét đứt) | PH02 [15:1418](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=15-1418), GS02 [16:1925](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=16-1925), GS03 [17:2447](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=17-2447) | Nháp |
 | Trang `F01 Tài khoản`: AUTH01–AUTH06, mỗi màn hình một section đủ trạng thái, frame chữ 200%, frame dữ liệu xấu nhất | AUTH01 [9:330](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=9-330), AUTH02 [11:316](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=11-316), AUTH03 [12:691](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=12-691), AUTH04 [11:484](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=11-484), AUTH05 [11:673](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=11-673), AUTH06 [12:1287](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=12-1287) | Nháp |
 

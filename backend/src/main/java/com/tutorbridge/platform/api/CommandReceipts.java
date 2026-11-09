@@ -36,9 +36,7 @@ public class CommandReceipts {
 
     public Receipt begin(UUID actorId, String commandType, String idempotencyKey, Object payload) {
         // Checked again here so a caller that skips the web layer, such as a job, keeps the rule.
-        if (!IdempotencyKey.isValid(idempotencyKey)) {
-            throw IdempotencyKey.invalid();
-        }
+        IdempotencyKey.check(idempotencyKey);
         String payloadSha256 = CanonicalJson.sha256(payload);
         UUID id = UUID.randomUUID();
         int inserted = jdbc.sql("""

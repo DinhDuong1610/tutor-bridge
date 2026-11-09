@@ -65,3 +65,4 @@ Nguyên văn trong Figma; câu chung lấy từ [04](../04-trang-thai-cau-chu.md
 
 - TBD: `listOwnSessions` có trả tên thiết bị và trình duyệt không; nếu không, hiện "Thiết bị Android" và thời điểm đăng nhập.
 - TBD: OP-22: nhãn thanh điều hướng ở chữ 200%.
+- TBD: frame "Đổi mật khẩu" còn ô "Nhập lại mật khẩu mới". Quyết định Q9 của TB-10 (#91) bỏ ô nhập lại ở AUTH05; có áp dụng cho đổi mật khẩu ở AUTH06 không: Đính.

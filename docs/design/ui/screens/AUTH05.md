@@ -1,7 +1,7 @@
 # AUTH05 Đặt lại mật khẩu
 
-- **Trạng thái thiết kế:** Đã duyệt v1 (Đính, 10/11/2026)
-- **Version Figma:** `Lát 1 v1 2026-11-10` (named version lưu tay trong Figma)
+- **Trạng thái thiết kế:** Đã duyệt v2 (10/11/2026): v1 bỏ ô nhập lại mật khẩu theo quyết định của Đính ở Q9 của TB-10 (#91)
+- **Version Figma:** `Lát 1 v1 2026-11-10` cộng sửa AUTH05 cùng ngày; Đính lưu named version `AUTH05 v2 2026-11-10` (lưu tay)
 - **Node:** section [11:673](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=11-673)
 - **Kênh:** Android
 - **Route (đề xuất, Issue giao diện được chỉnh nếu xung đột router):** `/reset-password` (mở từ liên kết)
@@ -11,7 +11,9 @@
 
 ## Ảnh
 
-![AUTH05 v1](img/AUTH05-v1.png)
+![AUTH05 v2](img/AUTH05-v2.png)
+
+Ảnh v1 (còn ô nhập lại, đã bỏ): `img/AUTH05-v1.png`.
 
 Ảnh gồm mọi frame trạng thái của section theo thứ tự trong bảng dưới. Xem từng frame ở độ phân giải đầy đủ qua link node.
 
@@ -35,16 +37,16 @@ Nguyên văn trong Figma; câu chung lấy từ [04](../04-trang-thai-cau-chu.md
 | Vị trí | Chuỗi |
 |---|---|
 | Dẫn | Đặt mật khẩu mới cho tài khoản của bạn. |
-| Ô | Mật khẩu mới (15–128 ký tự.) / Nhập lại mật khẩu mới |
+| Ô | Mật khẩu mới (15–128 ký tự.), có nút hiện/ẩn mật khẩu |
 | Ghi chú | Sau khi đổi, mọi thiết bị đang đăng nhập sẽ bị đăng xuất. |
 | Nút | Đặt mật khẩu mới |
-| Lỗi | Lỗi: Hai mật khẩu chưa khớp. |
+| Lỗi | Lỗi: Mật khẩu cần từ 15 đến 128 ký tự. |
 | Hết hạn | Liên kết không còn dùng được. Liên kết đặt lại mật khẩu chỉ dùng một lần và có hạn 15 phút. Hãy yêu cầu liên kết mới. |
 | Đã đổi | Đã đổi mật khẩu. Mọi phiên đăng nhập cũ đã bị đăng xuất. Hãy đăng nhập lại bằng mật khẩu mới. |
 
 ## Hành vi
 
-- Ô "Nhập lại" chỉ kiểm ở giao diện; máy chủ không nhận trường này.
+- Không có ô nhập lại mật khẩu; người dùng kiểm bằng nút hiện/ẩn (Đính chốt 10/11/2026, Q9 của TB-10, #91).
 
 ## Ánh xạ sang code
 

@@ -41,7 +41,7 @@ Cập nhật khi đổi trạng thái. **Chưa vẽ** → **Nháp** → **Đã d
 | AUTH02 | Xác minh email | Android | F01 | TB-10 | Đã duyệt v1 | [11:316](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=11-316) (section), [đặc tả](screens/AUTH02.md) |
 | AUTH03 | Đăng nhập | Android | F01 | TB-10 | Đã duyệt v1 | [12:691](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=12-691) (section), [đặc tả](screens/AUTH03.md) |
 | AUTH04 | Yêu cầu khôi phục mật khẩu | Android | F01 | TB-10 | Đã duyệt v1 | [11:484](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=11-484) (section), [đặc tả](screens/AUTH04.md) |
-| AUTH05 | Đặt lại mật khẩu | Android | F01 | TB-10 | Đã duyệt v1 | [11:673](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=11-673) (section), [đặc tả](screens/AUTH05.md) |
+| AUTH05 | Đặt lại mật khẩu | Android | F01 | TB-10 | Đã duyệt v2 (bỏ ô nhập lại, Q9 #91) | [11:673](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=11-673) (section), [đặc tả](screens/AUTH05.md) |
 | AUTH06 | Bảo mật và quản lý phiên | Android | F01 | TB-10 | Đã duyệt v1 | [12:1287](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=12-1287) (section), [đặc tả](screens/AUTH06.md) |
 | COM01 | Hộp thông báo | Android | Chung | #74 | Đã duyệt v1, TBD còn mở | [38:475](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=38-475) (section), [đặc tả](screens/COM01.md) |
 | PH01 | Trang chủ phụ huynh | Android | F02 | TB-14 | Đã duyệt v1 | [18:871](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=18-871) (section), [đặc tả](screens/PH01.md) |

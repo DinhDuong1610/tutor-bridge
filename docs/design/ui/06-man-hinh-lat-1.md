@@ -85,7 +85,7 @@ Khi vẽ xong và duyệt, nội dung của màn hình chuyển sang `screens/<m
 - **Phải thấy:** điều kiện trên màn hình khớp bản lưu ở máy chủ (AC-UC04-01), không hiện bản đang có ở máy.
 
 ### PH06 Kết quả và so sánh gia sư
-- **API:** `createMatchingRun`, `getMatchingRun`. **UC05; BR01, BR03.**
+- **API:** `createMatchingRun` (mode B, `fallbackExplicitlyChosen`: phụ huynh chọn bằng nút "Xem danh sách lọc theo điều kiện"), `getMatchingRun`. **UC05; BR01, BR03.** Trạng thái rỗng liệt kê các nhóm điều kiện của BR01; hợp đồng không trả nhóm nguyên nhân. `failureCode` là chuỗi tự do: câu chữ TBD.
 - **Hiển thị:** nhãn đầu danh sách "Danh sách lọc theo điều kiện của bạn, không dùng xếp hạng AI" (Lát 1 chỉ có `mode = B`); tối đa 5 `TutorCard` theo thứ tự máy chủ trả; mỗi thẻ có `PriceBlock`, lịch chung tóm tắt, kinh nghiệm, `VerificationLabel`, lý do khớp; nhắc "chưa giữ chỗ".
 - **Tác vụ:** mở PH07; "Tìm lại" khi kết quả hết hạn (`expiresAt`).
 - **Trạng thái riêng:** đang tìm (chỉ báo không xác định, không phần trăm); không có gia sư (liệt kê nhóm điều kiện đã kiểm); lỗi chạy (`FAILED`, giữ nhu cầu, "Thử lại"); kết quả đã cũ; nhu cầu là bản cũ.
@@ -109,6 +109,8 @@ Khi vẽ xong và duyệt, nội dung của màn hình chuyển sang `screens/<m
 - **Hiển thị:** đề nghị nhóm theo nhu cầu; `StatusLabel` và lý do kết thúc; `Deadline` khi đang chờ; chi tiết là ảnh chụp điều kiện đã gửi.
 - **Tác vụ:** "Hủy đề nghị" khi đang chờ (`ConfirmSheet`); "Xem lớp" chỉ khi `ACCEPTED` và có `classId`.
 - **Trạng thái riêng:** đề nghị kết thúc vì đề nghị khác của cùng nhu cầu đã chốt; hết hạn; gia sư từ chối.
+- **Lý do:** `ReasonInput.reasonCode` gồm NOT_AVAILABLE ("không còn rảnh các giờ này"), DECLINED ("không nhận lớp này"), PARENT_CANCELLED, OTHER (kèm ghi chú tối đa 500). Mã do hệ thống gắn (kết thúc vì đề nghị khác đã chốt) chưa có trong hợp đồng: câu chữ là đề xuất (TBD).
+- **Nút:** chi tiết đang chờ có nút chính "Gửi cho gia sư khác", "Hủy đề nghị" là nút phụ kèm bảng xác nhận.
 
 ## Gia sư (F01, F02)
 
@@ -144,7 +146,7 @@ Khi vẽ xong và duyệt, nội dung của màn hình chuyển sang `screens/<m
 ### GS05 Đề nghị nhận lớp
 - **API:** `listOffers`, `getOffer`, `acceptOffer`, `rejectOffer`. **UC06; BR05.**
 - **Hiển thị:** danh sách đề nghị, đang chờ lên đầu, `Deadline`; chi tiết: mục tiêu (ảnh chụp `goalSnapshot`), `PriceBlock`, đủ từng buổi (`SessionCard` `proposed`, `CycleStrip`). Hợp đồng `Offer` không có tên học sinh: không hiện tên (TBD OP-25).
-- **Tác vụ:** "Chấp nhận đề nghị" (`ConfirmSheet`: "Chấp nhận là đồng ý nguyên bản các điều kiện và toàn bộ buổi học"); "Từ chối".
+- **Tác vụ:** "Chấp nhận đề nghị" (`ConfirmSheet`: "Chấp nhận là đồng ý nguyên bản các điều kiện và toàn bộ buổi học"; gửi `acceptUnchangedTerms: true`); "Từ chối" (bảng chọn 1 trong 3 lý do NOT_AVAILABLE, DECLINED, OTHER, ghi chú tối đa 500, nhắc không ghi liên hệ riêng theo BR07).
 - **Trạng thái riêng:** xung đột lịch: không nhận được, không buổi nào được đặt; đã hết hạn; phụ huynh đã hủy; đã chốt với gia sư khác; chưa rõ kết quả.
 - **Phải thấy:** chỉ báo "Đã nhận lớp" sau khi máy chủ xác nhận toàn bộ lớp và buổi. Muốn đổi điều kiện thì phải từ chối, không có nút "đề xuất thay đổi".
 

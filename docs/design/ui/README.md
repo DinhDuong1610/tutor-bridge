@@ -2,7 +2,7 @@
 
 Bộ tài liệu giao diện của TutorBridge. Dùng khi thiết kế trên Figma và khi agent làm Issue giao diện. Quyết định nền ở [ADR-0011](../../decisions/adr/0011-figma-nguon-thiet-ke.md); người làm và duyệt là Đính ([CR-013](../../decisions/change-requests.md)).
 
-**Trạng thái (08/11/2026):** đã có [file Figma](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl) với Foundations, 17 component, AUTH01–06, PH01–PH05, GS01–GS04 ở dạng nháp ([07](07-figma.md#đã-có-trong-file-08112026)). Chưa màn hình nào được duyệt.
+**Trạng thái (08/11/2026):** đã có [file Figma](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl) với Foundations, 17 component, AUTH01–06, PH01–PH09, GS01–GS05 ở dạng nháp ([07](07-figma.md#đã-có-trong-file-08112026)). Chưa màn hình nào được duyệt.
 
 ## Đọc gì
 | Bạn đang làm | Đọc |
@@ -47,15 +47,15 @@ Cập nhật khi đổi trạng thái. **Chưa vẽ** → **Nháp** → **Đã d
 | PH03 | Danh sách và phiên bản nhu cầu | Android | F02 | #70 | Nháp | [29:2132](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=29-2132) (section) |
 | PH04 | Nhập nhu cầu học kèm | Android | F02 | #70 | Nháp | [28:2600](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=28-2600) (section) |
 | PH05 | Xem lại và xác nhận nhu cầu | Android | F02 | #70 | Nháp | [29:2652](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=29-2652) (section) |
-| PH06 | Kết quả và so sánh gia sư | Android | F02 | #71 | Chưa vẽ | |
-| PH07 | Chi tiết gia sư công khai | Android | F02 | #71 | Chưa vẽ | |
-| PH08 | Xem lại và gửi đề nghị | Android | F02 | #72 | Chưa vẽ | |
-| PH09 | Danh sách và chi tiết đề nghị | Android | F02 | #72 | Chưa vẽ | |
+| PH06 | Kết quả và so sánh gia sư | Android | F02 | #71 | Nháp | [30:3029](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=30-3029) (section) |
+| PH07 | Chi tiết gia sư công khai | Android | F02 | #71 | Nháp | [31:2731](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=31-2731) (section) |
+| PH08 | Xem lại và gửi đề nghị | Android | F02 | #72 | Nháp | [31:3916](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=31-3916) (section) |
+| PH09 | Danh sách và chi tiết đề nghị | Android | F02 | #72 | Nháp, có TBD | [34:4229](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=34-4229) (section) |
 | GS01 | Trang chủ gia sư | Android | F01, F02 | TB-14 | Nháp | [23:1043](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=23-1043) (section) |
 | GS02 | Hồ sơ chuyên môn và học phí | Android | F01 | TB-14 | Nháp, có TBD | [16:1925](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=16-1925) (section) |
 | GS03 | Minh chứng và kết quả xác minh | Android | F01 | TB-14 | Nháp, có TBD | [17:2447](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=17-2447) (section) |
 | GS04 | Lịch rảnh và ngoại lệ | Android | F02 | #69 | Nháp, có TBD | [27:2228](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=27-2228) (section) |
-| GS05 | Đề nghị nhận lớp | Android | F02 | #72 | Chưa vẽ | |
+| GS05 | Đề nghị nhận lớp | Android | F02 | #72 | Nháp, có TBD | [35:5145](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=35-5145) (section) |
 | CL01 | Lớp học và thỏa thuận (chỉ xem) | Android | F02 | #73 | Chưa vẽ | |
 | CL02 | Lịch lớp và chi tiết buổi (chỉ xem) | Android | F02 | #73 | Chưa vẽ | |
 | AD01 | Đăng nhập và xác thực quản trị | Web | F01 | Chưa có | Chưa vẽ | |

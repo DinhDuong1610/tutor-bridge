@@ -40,6 +40,7 @@ Mức theo Impeccable: P1 phải sửa trước khi phát hành, P2 sửa ở l�
 | P2 | Nhóm lựa chọn ngang (PH04: 60/90/120 phút, 1/2/3 buổi) ở chữ 200% | Ba ô cạnh nhau cắt chữ ("60 phú") | Khi chữ lớn, xếp các lựa chọn theo cột dọc |
 | P2 | `CycleStrip` ở chữ 200% | Nhãn "Tuần 1"–"Tuần 4" bị cắt trong 4 cột | Khi chữ lớn, xếp 4 tuần thành 2 × 2 hoặc thành danh sách dọc |
 | P2 | `TimeChip` Booked ở chữ 200% | Chữ "đã có buổi" bị cắt | Như `StatusLabel`: chữ trong chip được xuống dòng |
+| Đã sửa trong thiết kế | CL02, thanh chọn tuần | Nhãn tuần giữa hai nút bị ép thành cột chữ ở 200% | Nhãn ở trên, hai nút ở hàng dưới |
 | Đã sửa trong thiết kế | GS04, phần chú thích | Khung giờ và lời giải thích cùng hàng làm chữ bị ép thành 1 ký tự mỗi dòng ở 200% | Xếp lời giải thích dưới khung giờ ở mọi cỡ chữ |
 | Đã sửa trong thiết kế | AUTH06, dòng thiết bị | Nút "Đăng xuất" và nhãn "Thiết bị này" đặt cùng hàng làm cột tên bị ép, gãy từng âm tiết ở 200% | Đặt hành động dưới tên thiết bị ở mọi cỡ chữ |
 

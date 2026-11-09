@@ -2,7 +2,7 @@
 
 Bộ tài liệu giao diện của TutorBridge. Dùng khi thiết kế trên Figma và khi agent làm Issue giao diện. Quyết định nền ở [ADR-0011](../../decisions/adr/0011-figma-nguon-thiet-ke.md); người làm và duyệt là Đính ([CR-013](../../decisions/change-requests.md)).
 
-**Trạng thái (08/11/2026):** đã có [file Figma](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl) với Foundations, 17 component, AUTH01–06, PH01–PH09, GS01–GS05 ở dạng nháp ([07](07-figma.md#đã-có-trong-file-08112026)). Chưa màn hình nào được duyệt.
+**Trạng thái (08/11/2026):** đã có [file Figma](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl) với Foundations, 17 component, toàn bộ 23 màn hình mobile của Lát 1 ở dạng nháp; còn 3 màn hình web quản trị ([07](07-figma.md#đã-có-trong-file-08112026)). Chưa màn hình nào được duyệt.
 
 ## Đọc gì
 | Bạn đang làm | Đọc |
@@ -41,7 +41,7 @@ Cập nhật khi đổi trạng thái. **Chưa vẽ** → **Nháp** → **Đã d
 | AUTH04 | Yêu cầu khôi phục mật khẩu | Android | F01 | TB-10 | Nháp | [11:484](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=11-484) (section) |
 | AUTH05 | Đặt lại mật khẩu | Android | F01 | TB-10 | Nháp | [11:673](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=11-673) (section) |
 | AUTH06 | Bảo mật và quản lý phiên | Android | F01 | TB-10 | Nháp | [12:1287](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=12-1287) (section) |
-| COM01 | Hộp thông báo | Android | Chung | #74 | Chưa vẽ | |
+| COM01 | Hộp thông báo | Android | Chung | #74 | Nháp, có TBD | [38:475](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=38-475) (section) |
 | PH01 | Trang chủ phụ huynh | Android | F02 | TB-14 | Nháp | [18:871](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=18-871) (section) |
 | PH02 | Hồ sơ các con | Android | F01 | #67 | Nháp | [15:1418](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=15-1418) (section) |
 | PH03 | Danh sách và phiên bản nhu cầu | Android | F02 | #70 | Nháp | [29:2132](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=29-2132) (section) |
@@ -56,8 +56,8 @@ Cập nhật khi đổi trạng thái. **Chưa vẽ** → **Nháp** → **Đã d
 | GS03 | Minh chứng và kết quả xác minh | Android | F01 | TB-14 | Nháp, có TBD | [17:2447](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=17-2447) (section) |
 | GS04 | Lịch rảnh và ngoại lệ | Android | F02 | #69 | Nháp, có TBD | [27:2228](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=27-2228) (section) |
 | GS05 | Đề nghị nhận lớp | Android | F02 | #72 | Nháp, có TBD | [35:5145](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=35-5145) (section) |
-| CL01 | Lớp học và thỏa thuận (chỉ xem) | Android | F02 | #73 | Chưa vẽ | |
-| CL02 | Lịch lớp và chi tiết buổi (chỉ xem) | Android | F02 | #73 | Chưa vẽ | |
+| CL01 | Lớp học và thỏa thuận (chỉ xem) | Android | F02 | #73 | Nháp, có TBD | [36:5492](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=36-5492) (section) |
+| CL02 | Lịch lớp và chi tiết buổi (chỉ xem) | Android | F02 | #73 | Nháp | [37:5838](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=37-5838) (section) |
 | AD01 | Đăng nhập và xác thực quản trị | Web | F01 | Chưa có | Chưa vẽ | |
 | AD03 | Hàng chờ xác minh gia sư | Web | F01 | Chưa có | Chưa vẽ | |
 | AD04 | Thẩm định hồ sơ và minh chứng | Web | F01 | Chưa có | Chưa vẽ | |

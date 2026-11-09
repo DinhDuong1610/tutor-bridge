@@ -48,6 +48,7 @@ Khi vẽ xong và duyệt, nội dung của màn hình chuyển sang `screens/<m
 - **Tác vụ:** mở thông báo đi tới đối tượng (PH09, GS05, CL01) và đánh dấu đã đọc; "Xem thêm" theo `cursor`.
 - **Trạng thái riêng:** rỗng "Chưa có thông báo."; đối tượng không còn quyền: mở ra trạng thái mất quyền chung.
 - **Phải thấy:** Lát 1 chỉ có thông báo về đề nghị và chốt lớp (FR-41 trong phạm vi). Tiêu đề không chứa dữ liệu riêng: "Có phản hồi cho đề nghị của bạn", không ghi tên con hay giá.
+- **TBD:** `eventType` là chuỗi tự do; bảng eventType sang câu chữ là đề xuất. Hợp đồng không có "đánh dấu tất cả đã đọc".
 
 ## Phụ huynh (F01, F02)
 
@@ -156,6 +157,7 @@ Khi vẽ xong và duyệt, nội dung của màn hình chuyển sang `screens/<m
 - **API:** `getClass`. **UC04, UC07.**
 - **Hiển thị:** hai bên (tên hiển thị), con, mục tiêu đã chốt, giá đã chốt (`PriceBlock`), `StatusLabel` của lớp, liên kết tới CL02.
 - **Không được:** vẽ đổi mục tiêu, chia sẻ liên hệ, kết thúc lớp (ngoài Lát 1).
+- **TBD (OP-27):** Lát 1 không có thao tác liệt kê lớp; tab Lớp học và "buổi sắp tới" ở PH01, GS01 phải lấy `classId` từ đề nghị đã chốt, hoặc thêm `listClasses` bằng contract-change. Tên gia sư lấy qua `getTutorPublic`; phía gia sư không có tên học sinh (OP-25).
 
 ### CL02 Lịch lớp và chi tiết buổi
 - **API:** `listSessions`. **UC07.**

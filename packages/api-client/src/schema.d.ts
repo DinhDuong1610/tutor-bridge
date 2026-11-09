@@ -1347,7 +1347,7 @@ export interface paths {
         put?: never;
         /**
          * registerAccount
-         * @description Server role allowlist; normalized email uniqueness; UNVERIFIED; rate limit. No Idempotency-Key (CR-014).
+         * @description Server role allowlist; normalized email uniqueness; UNVERIFIED; rate limit. Errors 429 RATE_LIMITED with Retry-After. No Idempotency-Key (CR-014).
          */
         post: operations["registerAccount"];
         delete?: never;
@@ -1387,7 +1387,7 @@ export interface paths {
         put?: never;
         /**
          * loginAccount
-         * @description 5 failures/15min then 15min delay; reject locked/unverified; no token in log. Errors 403 ACCOUNT_UNVERIFIED (only after a correct password), 403 ACCOUNT_LOCKED, 429 LOGIN_DELAYED with Retry-After. No Idempotency-Key (CR-014).
+         * @description 5 failures/15min then 15min delay; reject locked/unverified; no token in log. Errors 401 AUTHENTICATION_FAILED for an unknown email or a wrong password (same body for both), 403 ACCOUNT_UNVERIFIED (only after a correct password), 403 ACCOUNT_LOCKED, 429 LOGIN_DELAYED with Retry-After. No Idempotency-Key (CR-014).
          */
         post: operations["loginAccount"];
         delete?: never;
@@ -1407,7 +1407,7 @@ export interface paths {
         put?: never;
         /**
          * requestRecovery
-         * @description Same acknowledgment for missing email; rate limit; delivery status internal. No Idempotency-Key (CR-014).
+         * @description Same acknowledgment for missing email; rate limit; delivery status internal. Errors 429 RATE_LIMITED with Retry-After. No Idempotency-Key (CR-014).
          */
         post: operations["requestRecovery"];
         delete?: never;
@@ -2107,7 +2107,7 @@ export interface paths {
         put?: never;
         /**
          * resendVerification
-         * @description Generic acknowledgment regardless of account existence; 30min one-time purpose-bound code sent only to stored contact; rate limit by account and source. No Idempotency-Key (CR-014).
+         * @description Generic acknowledgment regardless of account existence; 30min one-time purpose-bound code sent only to stored contact; rate limit by account and source. Errors 429 RATE_LIMITED with Retry-After. No Idempotency-Key (CR-014).
          */
         post: operations["resendVerification"];
         delete?: never;

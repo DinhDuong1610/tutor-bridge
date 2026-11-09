@@ -15,8 +15,8 @@ Một màn hình nên được duyệt **trước khi** Issue giao diện của 
 |---|---|---|---|
 | 1. Vẽ nháp | Đính, có thể nhờ agent vẽ nháp qua Figma MCP | Theo đặc tả ở [06](06-man-hinh-lat-1.md), bản mẫu G3 ([13-ban-mau-ux.md](../13-ban-mau-ux.md)) để tham khảo bố cục | Section `Nháp` đủ trạng thái |
 | 2. Rà | Đính, agent rà hộ | So với UC, BR, [06](06-man-hinh-lat-1.md); checklist ở [08](08-chong-ai-slop.md); `impeccable critique` trên ảnh chụp; frame dữ liệu xấu nhất theo [11](11-du-lieu-xau-nhat.md) | Danh sách điểm sửa |
-| 3. Duyệt | Đính | Đổi nhãn sang `Đã duyệt v<n>`, tạo named version | Version Figma |
-| 4. Bàn giao | Đính hoặc agent | Viết `screens/<mã>.md` theo [TEMPLATE](screens/TEMPLATE.md), xuất ảnh PNG từng trạng thái vào `screens/<mã>/`, cập nhật bảng ở [README](README.md) | PR `docs(design): ... [TB-<Issue>]` |
+| 3. Duyệt | Đính | Đổi nhãn section sang `Đã duyệt v<n>`; tạo named version bằng tay (File > Save to version history), vì MCP không hỗ trợ lưu version | Version Figma |
+| 4. Bàn giao | Đính hoặc agent | Viết `screens/<mã>.md` theo [TEMPLATE](screens/TEMPLATE.md), xuất ảnh section ra `screens/img/<mã>-v<n>.png` (MCP `get_screenshot`, tỉ lệ 1:1), cập nhật bảng ở [README](README.md) | PR `docs(design): ... [TB-<Issue>]` |
 
 Agent vẽ nháp chỉ dùng component và variable đã có trong file, không tự đặt màu hay font mới. Bản nháp của agent là đề xuất; chỉ Đính đổi sang "Đã duyệt".
 
@@ -25,7 +25,7 @@ Phát hiện mâu thuẫn khi vẽ (đặc tả thiếu, UC và hợp đồng kh
 ## Agent triển khai
 Thêm vào bước 4 của playbook [implement-slice](../../playbooks/implement-slice.md):
 1. Mở `docs/design/ui/screens/<mã>.md`. Không có file, hoặc trạng thái chưa "Đã duyệt", thì **dừng và hỏi**.
-2. Đọc ảnh chụp trong `screens/<mã>/` của từng trạng thái.
+2. Đọc ảnh `screens/img/<mã>-v<n>.png` (mọi trạng thái của màn hình) và bảng node trong `screens/<mã>.md`.
 3. Có Figma MCP và còn lượt thì gọi `get_design_context` và `get_screenshot` cho đúng node và version ghi trong file. Không có thì làm theo đặc tả và ảnh chụp; repo là đủ.
 4. **Kết quả MCP là tham khảo, không dán nguyên.** MCP sinh React và Tailwind:
    - Mobile chuyển sang `StyleSheet` với token từ `@/shared/ui/theme`, component trong `@/shared/ui`. Không thêm Tailwind hay thư viện style (ADR-0009).

@@ -1,6 +1,6 @@
 # <MÃ> <Tên màn hình>
 
-Sao chép file này thành `screens/<MÃ>.md` khi màn hình được duyệt. Ảnh từng trạng thái đặt trong `screens/<MÃ>/`, tên theo trạng thái: `mac-dinh.png`, `dang-tai.png`, `loi-truong.png`... PNG xuất từ Figma ở tỉ lệ 2x.
+Sao chép file này thành `screens/<MÃ>.md` khi màn hình được duyệt. Ảnh là một PNG cho cả section (mọi frame trạng thái), tỉ lệ 1:1, đặt ở `screens/img/<MÃ>-v<n>.png`; bảng Trạng thái liệt kê node từng frame để xem chi tiết. Ảnh của bản cũ giữ lại khi có v mới.
 
 - **Trạng thái thiết kế:** Đã duyệt v1 (Đính, ngày)
 - **Version Figma:** `<MÃ> v1 YYYY-MM-DD`

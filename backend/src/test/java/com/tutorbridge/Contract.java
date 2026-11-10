@@ -20,7 +20,6 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultMatcher;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
-import tools.jackson.dataformat.yaml.YAMLMapper;
 
 /**
  * Checks a response against {@code contracts/openapi.yaml}: the operation exists, the status is
@@ -70,8 +69,13 @@ public final class Contract {
 
     static Contract load(Path file) {
         try {
-            return new Contract(YAMLMapper.builder().build().readTree(file.toFile()));
-        } catch (RuntimeException e) {
+            // Jackson's YAML tree keeps an alias such as *id001 as its name; snakeyaml-engine resolves it.
+            Object yaml = new org.snakeyaml.engine.v2.api.Load(
+                    org.snakeyaml.engine.v2.api.LoadSettings.builder().setAllowRecursiveKeys(false)
+                            .setMaxAliasesForCollections(1000).build())
+                    .loadFromString(java.nio.file.Files.readString(file, StandardCharsets.UTF_8));
+            return new Contract(JSON.valueToTree(yaml));
+        } catch (RuntimeException | java.io.IOException e) {
             throw new IllegalStateException("Cannot read the contract " + file.toAbsolutePath(), e);
         }
     }

@@ -5,13 +5,11 @@ import com.tutorbridge.identity.internal.AuthRateLimiter.Check;
 import com.tutorbridge.identity.internal.AuthRateLimiter.Scope;
 import com.tutorbridge.platform.api.ApiException;
 import com.tutorbridge.platform.api.ApiException.FieldProblem;
-import com.tutorbridge.platform.api.Outbox;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -35,8 +33,6 @@ public class AccountRegistration {
 
     static final Duration VERIFY_LINK_LIFETIME = Duration.ofMinutes(30);
     private static final Set<String> SELF_SERVICE_ROLES = Set.of("PARENT", "TUTOR");
-    private static final int PASSWORD_MIN = 15;
-    private static final int PASSWORD_MAX = 128;
 
     public record Registration(String email, String password, String displayName, String role, String termsVersion) {}
 
@@ -44,20 +40,20 @@ public class AccountRegistration {
     private final AccountSecrets secrets;
     private final PasswordHasher hasher;
     private final AuthRateLimiter limiter;
-    private final Outbox outbox;
+    private final LinkIssuer links;
     private final TransactionOperations transactions;
     private final Clock clock;
     private final IdGenerator ids;
     private final IdentityProperties properties;
 
     AccountRegistration(AccountRepository accounts, AccountSecrets secrets, PasswordHasher hasher,
-            AuthRateLimiter limiter, Outbox outbox, TransactionOperations transactions, Clock clock,
+            AuthRateLimiter limiter, LinkIssuer links, TransactionOperations transactions, Clock clock,
             IdGenerator ids, IdentityProperties properties) {
         this.accounts = accounts;
         this.secrets = secrets;
         this.hasher = hasher;
         this.limiter = limiter;
-        this.outbox = outbox;
+        this.links = links;
         this.transactions = transactions;
         this.clock = clock;
         this.ids = ids;
@@ -96,11 +92,11 @@ public class AccountRegistration {
         transactions.executeWithoutResult(status -> {
             Instant now = clock.instant();
             UUID accountId = accounts.consumeChallenge(digest, AccountRepository.VERIFY_EMAIL, now)
-                    .orElseThrow(() -> rejection(digest, now));
+                    .orElseThrow(() -> LinkCodes.rejection(accounts, digest, AccountRepository.VERIFY_EMAIL));
             if (!accounts.activate(accountId, now)
                     && !"ACTIVE".equals(accounts.status(accountId).orElse(null))) {
                 // LOCKED or DELETED: never reactivate; the rollback leaves the code unconsumed.
-                throw linkInvalid();
+                throw LinkCodes.invalid();
             }
         });
     }
@@ -122,36 +118,13 @@ public class AccountRegistration {
     }
 
     private void queueVerification(UUID accountId, Instant now) {
-        UUID challengeId = ids.generateId();
-        String token = secrets.newLinkToken();
-        Instant expiresAt = now.plus(VERIFY_LINK_LIFETIME);
-        accounts.insertChallenge(challengeId, accountId, AccountRepository.VERIFY_EMAIL,
-                AccountSecrets.linkTokenDigest(token), now, expiresAt);
-        outbox.publish("account", accountId, VERIFICATION_REQUESTED, Map.of(
-                "challengeId", challengeId.toString(),
-                "tokenCiphertext", secrets.encryptLinkToken(challengeId, token),
-                "expiresAt", expiresAt.toString()), "verify-email:" + challengeId);
-    }
-
-    private ApiException rejection(String digest, Instant now) {
-        return accounts.findChallenge(digest)
-                .filter(c -> AccountRepository.VERIFY_EMAIL.equals(c.purpose()))
-                .map(c -> c.consumedAt() != null
-                        ? new ApiException(HttpStatus.CONFLICT, "LINK_USED", "Liên kết này đã được sử dụng.")
-                        : new ApiException(HttpStatus.BAD_REQUEST, "LINK_EXPIRED",
-                                "Liên kết đã hết hạn. Vui lòng yêu cầu liên kết mới."))
-                .orElseGet(AccountRegistration::linkInvalid);
-    }
-
-    private static ApiException linkInvalid() {
-        return new ApiException(HttpStatus.BAD_REQUEST, "LINK_INVALID", "Liên kết không hợp lệ.");
+        links.issue(accountId, AccountRepository.VERIFY_EMAIL, VERIFY_LINK_LIFETIME, VERIFICATION_REQUESTED, now);
     }
 
     /** Rules the contract states but bean validation cannot: code points, allowlists, blank names. */
     private void validate(Registration input) {
         List<FieldProblem> problems = new ArrayList<>();
-        int length = input.password().codePointCount(0, input.password().length());
-        if (length < PASSWORD_MIN || length > PASSWORD_MAX) {
+        if (!PasswordHasher.acceptableLength(input.password())) {
             problems.add(new FieldProblem("password", "Mật khẩu cần từ 15 đến 128 ký tự."));
         }
         if (!SELF_SERVICE_ROLES.contains(input.role())) {

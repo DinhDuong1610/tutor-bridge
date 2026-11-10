@@ -3,7 +3,7 @@
 - **Chủ task:** Huy
 - **Nhánh:** PR 1 `feature/TB-8-auth-contract` (Draft PR #92 vào `dev`); PR 2 và PR 3 trên `feature/TB-8-account-sessions` (Draft PR #39), rebase lên `dev` sau khi PR 1 merge
 - **Agent đang làm:** Claude (Claude Code). PR 1 xong trên máy, chưa có code nghiệp vụ
-- **Cập nhật lần cuối:** 10/11/2026, ghi câu trả lời của Huy cho Q13, Q14, Q17 và cập nhật mô tả `loginAccount` trong #92
+- **Cập nhật lần cuối:** 10/11/2026, sửa #92 theo review của Đính (CHANGES_REQUESTED, 09/11/2026) và câu trả lời ngày 10/11/2026 trên #39
 - **Mã liên quan:** FR-01, FR-02; UC01; AC-UC01-01, AC-UC01-02, AC-UC01-03, AC-UC01-04; INV-01, INV-03, INV-06, INV-18, INV-20, INV-21, INV-63, INV-80, INV-83; ADR-0004
 
 ## Mục tiêu
@@ -27,7 +27,7 @@ Phụ huynh và gia sư tự đăng ký, xác minh email, đăng nhập bằng p
 
 ## Kế hoạch
 Đề xuất chia Issue #8 thành 3 PR. Đính chốt việc chia, Đính cấp số migration.
-- [x] **PR 1, theo `contract-change`** (#92): CR-014; ADR-0008 hoàn chỉnh và `bcprov-jdk18on` 1.86; V9 (`auth_sessions.device_label`, `terms_acceptances`, `auth_rate_counters`); OpenAPI ghi mã lỗi và "No Idempotency-Key (CR-014)" trong mô tả, sinh lại client; `IdempotencyKey` trả 400 khi thiếu khóa; INV-20, `module-map`, `m0-ban-giao`. PR riêng, merge trước code.
+- [x] **PR 1, theo `contract-change`** (#92): CR-014; ADR-0008 hoàn chỉnh và `bcprov-jdk18on` 1.86; V9 (`auth_sessions.device_label`, `terms_acceptances`, `auth_login_failures` cửa sổ trượt cho `LOGIN`, `auth_rate_counters` cửa sổ cố định cho ba lệnh còn lại); OpenAPI ghi mã lỗi và "No Idempotency-Key (CR-014)" trong mô tả, sinh lại client; `IdempotencyKey` trả 400 khi thiếu khóa; INV-20, `module-map`, `m0-ban-giao`. PR riêng, merge trước code.
 - [ ] **PR 2, theo `implement-slice`:** `registerAccount`, `verifyEmail`, `resendVerification`. Gửi email qua outbox, không gửi trong giao dịch (INV-18).
 - [ ] **PR 3, theo `implement-slice`:** `SessionResolver` trong `identity` tra `auth_sessions` và `auth_epoch` mỗi yêu cầu (ADR-0004, ADR-0010; điều kiện theo hàm `valid_session` của V5), bean `PublicEndpoints` cho các thao tác công khai, `loginAccount`, `logoutAccount`, `listOwnSessions`, `revokeOwnSession`.
 
@@ -51,23 +51,24 @@ Phụ huynh và gia sư tự đăng ký, xác minh email, đăng nhập bằng p
 - Huy, 10/11/2026 (Q13, Q14): email không tồn tại và sai mật khẩu nhận phản hồi tương đương (401 `AUTHENTICATION_FAILED`, cùng cấu trúc và thông báo); vượt giới hạn nhận 429 `RATE_LIMITED` kèm `Retry-After`; ADMIN bị từ chối qua luồng mobile không được cấp phiên hay token. Ca "đăng nhập quản trị trên web vẫn hoạt động với MFA" thuộc TB-13.
 
 ## Trạng thái hiện tại
-Đính trả lời toàn bộ câu hỏi ngày 08/11/2026 trên #39. PR 1 mở Draft PR #92 ngày 10/11/2026, chờ Huy viết phần tác giả và cả hai người duyệt. Q13–Q16 đã gửi Đính trên #39. Chưa có code nghiệp vụ; PR 2 bắt đầu sau khi PR 1 merge (cả hai người duyệt).
+Đính review #92 ngày 09/11/2026 (CHANGES_REQUESTED) và trả lời Q10, Q13, Q14, Q16, Q17 ngày 10/11/2026 trên #39. Ba việc phải sửa đã làm ngày 10/11/2026: `LOGIN` đếm theo cửa sổ trượt, mô tả `changePassword`, thêm `changePassword` vào CR-014 và INV-20. Còn trước khi #92 merge: Huy viết phần tác giả, Đính duyệt lại, CR-013 có trên GitHub (Q15), xóa file handoff này. Chưa có code nghiệp vụ.
 
 ## Lệnh kiểm tra
 ```bash
 git switch feature/TB-8-auth-contract
 git log --oneline origin/dev..HEAD   # mong đợi: chỉ có commit của TB-8
-cd backend && ./gradlew test         # mong đợi: 113 test đạt
+cd backend && ./gradlew test         # mong đợi: 115 test đạt
 cd .. && sh scripts/ci/client-sync.sh && npm run lint && npm run typecheck && npm test
 ```
 Máy Windows của Huy: Gradle báo lỗi chứng chỉ TLS (PKIX) khi tải thư viện mới, `curl` thì tải được. Thêm `-Djavax.net.ssl.trustStoreType=Windows-ROOT` vào lệnh `./gradlew`. CI Linux không cần.
 
 ## Kết quả chạy gần nhất
-09/11/2026, PR 1, máy Windows của Huy, Docker 29.6.2:
-- `./gradlew test`: 113/113 đạt (106 cũ, thêm 5 test V9 trong `AccountSessionsMigrationTest`, 1 trong `CommandReceiptsTest`, 1 trong `WebFoundationTest`). Có test nâng cấp từ V8 có dữ liệu lên V9.
-- Thử làm hỏng: bỏ `DEFAULT ''` của `device_label` thì test nâng cấp đỏ; bỏ `CHECK` dạng digest thì `counters_reject_raw_subjects_and_unknown_actions` đỏ; trả 422 khi thiếu khóa thì 2 test CR-014 đỏ; khôi phục thì đạt.
-- `oasdiff breaking --fail-on ERR` so với `origin/dev`: "No breaking changes". Chạy bằng `docker run` với đường dẫn Windows, vì `scripts/ci/contract-check.sh` không mount được thư mục trên Git Bash (lỗi đã biết trong `m0-ban-giao.md`).
-- `client-sync`: `schema.d.ts` sinh lại, chỉ đổi chú thích mô tả. `npm run lint`, `npm run typecheck`: đạt. `npm test`: api-client 3, shared 22, mobile 41, web 27 đạt. `skills-sync`, `immutable-history`: ok.
+10/11/2026, sửa theo review của Đính, máy Windows của Huy, Docker 29.6.2, Node 26.13.0:
+- `./gradlew test`: 115/115 đạt (113 trước đó, thêm `UC01_login_failures_are_counted_over_the_last_15_minutes_across_any_window_edge` và `login_failures_reject_raw_subjects_and_unknown_scopes`). Lần chạy đầu đỏ toàn bộ test có DB vì Docker Desktop chưa bật (Testcontainers báo không có Docker); bật Docker rồi chạy lại thì đạt.
+- Thử làm hỏng: cho `LOGIN` vào lại `auth_rate_counters` thì `counters_reject_raw_subjects_and_unknown_actions` đỏ; khôi phục thì đạt.
+- `oasdiff breaking --fail-on ERR` so với `origin/dev`: "No breaking changes". `client-sync`: ok sau khi sinh lại. `npm run lint`, `npm run typecheck`: đạt. `npm test`: api-client 3, shared 22, mobile 41, web 27 đạt. `skills-sync`: ok.
+
+09/11/2026, PR 1 lần đầu: 113/113; thử làm hỏng `DEFAULT ''`, `CHECK` digest, 422 khi thiếu khóa đều làm test đỏ.
 
 ## Quyết định đã chọn
 - Huy, 04/11/2026, Q3: băm mật khẩu bằng Argon2id. Ghi trong ADR-0008. Tham số chưa đo.
@@ -108,11 +109,22 @@ Máy Windows của Huy: Gradle báo lỗi chứng chỉ TLS (PKIX) khi tải th�
   - `/auth/login` luôn từ chối ADMIN bằng 401 `AUTHENTICATION_FAILED`, cùng phản hồi như sai mật khẩu, không cấp phiên hay token. Khớp cả Q7 của Đính ("TB-8 chặn ADMIN") lẫn điều kiện của Huy ở Q14 (không chặn ADMIN trên toàn bộ đăng nhập, vì ADMIN có endpoint riêng). Đã ghi vào mô tả `loginAccount` trong #92.
   - Endpoint quản trị mới và việc bỏ `AdminMfaChallenge` khỏi `LoginResult` thuộc TB-13 (Đính), làm bằng PR `contract-change` riêng. #92 không thêm endpoint, không đổi schema.
   - Ca kiểm thử của PR 3: ADMIN với mật khẩu đúng nhận phản hồi tương đương sai mật khẩu, không có dòng mới trong `auth_sessions`.
+- Đính, 10/11/2026, trên #39 (đóng Q10, Q13, Q14, Q16, Q17):
+  - Q13: đồng ý 401 `AUTHENTICATION_FAILED` và 429 `RATE_LIMITED` kèm `Retry-After` cho `registerAccount`, `resendVerification`, `requestRecovery`; `loginAccount` giữ 429 `LOGIN_DELAYED`.
+  - Q14, Q17: đồng ý phương án (b). `/auth/login` từ chối ADMIN bằng đúng 401 `AUTHENTICATION_FAILED`, không cấp phiên. Đính thêm endpoint đăng nhập quản trị và bỏ `AdminMfaChallenge` khỏi `LoginResult` trong TB-13 bằng PR `contract-change` riêng.
+  - Q10: `currentPassword` là bước tái xác thực của `changePassword`, không dùng `reauthToken`; sai mật khẩu hiện tại trả 422 `CURRENT_PASSWORD_INVALID`. Ghi rõ trong `description` (đã làm).
+  - Q16: `changePassword` vào ngoại lệ của CR-014, không thêm `Idempotency-Key`; gửi lại sau khi đổi thành công thì mọi phiên đã bị thu hồi, máy chủ trả 401 (đã cập nhật CR-014, INV-20).
+  - Bộ đếm: `LOGIN` dùng cửa sổ trượt (năm lần sai trong 15 phút gần nhất, đúng UC01); `REGISTER`, `RESEND_VERIFICATION`, `RECOVERY` giữ cửa sổ cố định vì ngưỡng còn tạm (đã làm: bảng `auth_login_failures`).
+  - Q15: Đính đưa CR-013 lên GitHub trước khi #92 merge.
+- Đính, review #92 ngày 09/11/2026, góp ý không chặn:
+  - Khai báo `Retry-After` cho phản hồi 429. Agent kiểm: `components.responses.Problem` đã khai báo header `Retry-After` (số nguyên ≥ 1), và mọi thao tác trả 429 qua `$ref` này, nên hợp đồng đã có; không sửa thêm.
+  - `device_label` rỗng: màn hình phiên hiện "Thiết bị không rõ" (làm ở TB-10, PR sửa theo review).
+  - PR 2: ghi `terms_acceptances.accepted_at` từ `Clock`, không dựa vào `DEFAULT now()`.
 - Agent chọn trong PR 1, cần người rà xem:
   - Mã lỗi ghi trong `description` của từng thao tác vì `Problem.code` là chuỗi tự do; thêm `enum` sẽ là thay đổi phá vỡ. Cách ghi theo mẫu `Missing -> 428` sẵn có của `If-Match`.
   - Khóa sai độ dài vẫn trả 422 `IDEMPOTENCY_KEY_INVALID`; CR-014 chỉ đổi trường hợp thiếu khóa.
   - `device_label` là `NOT NULL DEFAULT ''` để code chạy trên V8 vẫn ghi phiên được; phiên cũ có nhãn rỗng.
-  - `auth_rate_counters` đếm theo cửa sổ cố định: một dòng cho mỗi (thao tác, phạm vi, digest), có `blocked_until`. `subject_digest` là HMAC hex của email hoặc địa chỉ nguồn, không lưu giá trị gốc.
+  - `auth_login_failures`: một dòng cho mỗi lần sai (phạm vi, digest, thời điểm), chỉ mục (phạm vi, digest, thời điểm) để đếm 15 phút gần nhất và chỉ mục thời điểm để dọn theo lô. `auth_rate_counters` (ba lệnh còn lại) đếm theo cửa sổ cố định, một dòng cho mỗi (thao tác, phạm vi, digest). `subject_digest` là HMAC hex của email hoặc địa chỉ nguồn, không lưu giá trị gốc.
   - `bcprov-jdk18on` 1.86 khai báo `runtimeOnly`.
 
 ## Tham khảo đo Argon2id (không phải tham số)
@@ -129,17 +141,13 @@ Máy Windows của Huy: Gradle báo lỗi chứng chỉ TLS (PKIX) khi tải th�
 Không ghi vào ADR-0008: ADR yêu cầu đo trên máy sẽ chạy, chưa chọn (Đính, trước M6). Số này đo trên JDK 21 và `bcprov` 1.80; dự án chạy JDK 25 và PR 1 chọn `bcprov` 1.86.
 
 ## Câu hỏi còn mở
-Q1–Q8, Q11 đã đóng ngày 08/11/2026 (xem Quyết định đã chọn). Câu mới, cần trước PR 2 hoặc PR 3:
+Q1–Q17 đã đóng, trừ:
 
 | # | Câu hỏi | Ai trả lời | Cần trước |
 |---|---|---|---|
-| Q13 | Mã 401 và 429. Huy trả lời 10/11/2026 (xem Quyết định đã chọn); chờ Đính đồng ý | Đính | PR 2 |
-| Q14 | Phản hồi khi chặn ADMIN. Huy trả lời 10/11/2026: 401 `AUTHENTICATION_FAILED`; cách phân biệt luồng chốt ở Q17. Chờ Đính đồng ý | Đính | PR 3 |
-| Q17 | Mobile và web dùng chung `/auth/login`. Huy chọn (b) ngày 10/11/2026: tách endpoint đăng nhập quản trị riêng cho web (TB-13), `/auth/login` từ chối ADMIN bằng 401 (xem Quyết định đã chọn). Hai phương án không chọn: (a) giữ một endpoint, MFA là ranh giới; (c) phân biệt theo cookie hay bearer, trái điều kiện của Huy vì client tự gửi. Chờ Đính đồng ý | Đính | PR 3 |
-| Q15 | CR-013 (UX-UI) chưa có trên GitHub: `dev` mới đến CR-012 và chưa có nhánh TB-87. Cần Đính push để không trùng số | Đính | Trước khi PR 1 merge |
-| Q16 | `changePassword` (TB-09) là lệnh ghi có actor nhưng hợp đồng không khai báo `Idempotency-Key`, khác INV-20. Thêm header bắt buộc là thay đổi phá vỡ | Đính, Huy | TB-09 |
+| Q15 | CR-013 (UX-UI) chưa có trên `dev`. Đính sẽ đưa lên trước khi #92 merge (10/11/2026) | Đính | Trước khi #92 merge |
 
 ## Bước kế tiếp
-1. #92 (PR 1): Huy viết phần tác giả; cả hai người duyệt rồi merge.
-2. Trả lời Q13 trước khi bắt đầu PR 2 (`registerAccount`, `verifyEmail`, `resendVerification`, theo `implement-slice`).
-3. Sau khi PR 1 merge: rebase `feature/TB-8-account-sessions` lên `dev` (`--force-with-lease`), làm PR 2, rồi PR 3.
+1. #92: Huy viết phần tác giả; nhờ Đính duyệt lại sau các sửa ngày 10/11/2026; chờ CR-013 trên `dev`; xóa file handoff này trước khi Ready (giữ nội dung cần cho PR 2, PR 3 ở #39); merge.
+2. Sau khi #92 merge: rebase `feature/TB-8-account-sessions` lên `dev` (`--force-with-lease`), làm PR 2 (`registerAccount`, `verifyEmail`, `resendVerification`, theo `implement-slice`), ghi `accepted_at` từ `Clock`.
+3. PR 3: `SessionResolver`, `PublicEndpoints`, `loginAccount` (ADMIN trả 401 `AUTHENTICATION_FAILED`), `logoutAccount`, `listOwnSessions`, `revokeOwnSession`. Đếm lần sai đăng nhập trên `auth_login_failures` theo 15 phút gần nhất.

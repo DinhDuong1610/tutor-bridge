@@ -1507,7 +1507,7 @@ export interface paths {
         put?: never;
         /**
          * changePassword
-         * @description Verify current password; change hash; revoke all old sessions; never put secrets in receipt. Wrong current password -> 422 CURRENT_PASSWORD_INVALID with fields[].path currentPassword, never 401.
+         * @description Verify current password; change hash; revoke all old sessions; never put secrets in receipt. currentPassword is the reauthentication step; no reauthToken is needed (TB-10 Q10). Wrong current password -> 422 CURRENT_PASSWORD_INVALID with fields[].path currentPassword, never 401. No Idempotency-Key (CR-014).
          */
         post: operations["changePassword"];
         delete?: never;

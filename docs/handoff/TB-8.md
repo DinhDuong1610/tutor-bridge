@@ -1,9 +1,9 @@
 # TB-8 Đăng ký, xác minh, đăng nhập, phiên; ADR băm mật khẩu
 
 - **Chủ task:** Huy
-- **Nhánh:** `feature/TB-8-account-sessions`
-- **Agent đang làm:** Claude (Claude Code), chưa viết code nghiệp vụ
-- **Cập nhật lần cuối:** 07/11/2026, ghi ý kiến của Huy cho Q1, Q4–Q8, Q11 và chính sách tham số ADR-0008
+- **Nhánh:** PR 1 `feature/TB-8-auth-contract` (#92, đã merge vào `dev` ngày 11/11/2026, commit `c16d51f`); PR 2 và PR 3 trên `feature/TB-8-account-sessions` (Draft PR #39), đã merge `dev` vào sau khi #92 merge
+- **Agent đang làm:** Claude (Claude Code). PR 1 đã merge, chưa có code nghiệp vụ
+- **Cập nhật lần cuối:** 11/11/2026, #92 merge theo ngoại lệ OP-16; `dev` đã merge vào #39
 - **Mã liên quan:** FR-01, FR-02; UC01; AC-UC01-01, AC-UC01-02, AC-UC01-03, AC-UC01-04; INV-01, INV-03, INV-06, INV-18, INV-20, INV-21, INV-63, INV-80, INV-83; ADR-0004
 
 ## Mục tiêu
@@ -16,6 +16,7 @@ Phụ huynh và gia sư tự đăng ký, xác minh email, đăng nhập bằng p
 - Ước tính vượt xa 400 dòng logic, nên đề xuất chia nhỏ (xem Kế hoạch).
 
 ## Chỗ hợp đồng, schema và tài liệu chưa khớp
+Đã giải quyết cả bốn mục bằng #92 (CR-014, V9, mô tả OpenAPI) và câu trả lời của Đính ngày 08/11/2026 (Q1, Q5, Q6). Giữ lại để biết lý do.
 1. **Idempotency cho lệnh công khai.** INV-20 và `docs/design/10-hop-dong-api.md` yêu cầu mọi lệnh ghi có `Idempotency-Key`. Nhưng trong `contracts/openapi.yaml`, `registerAccount`, `verifyEmail`, `resendVerification`, `loginAccount`, `logoutAccount`, `revokeOwnSession` đều có `parameters: []`. `command_receipts.actor_id` là `NOT NULL REFERENCES accounts` (V1), nên lệnh chưa có actor (đăng ký, xác minh, gửi lại, đăng nhập) không ghi receipt được.
 2. **Thiếu cột hoặc bảng cho:**
    - `SessionMetadata.deviceLabel` là trường bắt buộc, nhưng `auth_sessions` không có cột tương ứng.
@@ -27,17 +28,14 @@ Phụ huynh và gia sư tự đăng ký, xác minh email, đăng nhập bằng p
 
 ## Kế hoạch
 Đề xuất chia Issue #8 thành 3 PR. Đính chốt việc chia, Đính cấp số migration.
-- [ ] **PR 1, theo `contract-change`:** ADR-0008 băm mật khẩu; migration V9 (nếu được cấp) cho `deviceLabel`, chấp thuận điều khoản, bộ đếm giới hạn; sửa OpenAPI theo câu trả lời Q1. PR riêng, merge trước code.
+- [x] **PR 1, theo `contract-change`** (#92): CR-014; ADR-0008 hoàn chỉnh và `bcprov-jdk18on` 1.86; V9 (`auth_sessions.device_label`, `terms_acceptances`, `auth_login_failures` cửa sổ trượt cho `LOGIN`, `auth_rate_counters` cửa sổ cố định cho ba lệnh còn lại); OpenAPI ghi mã lỗi và "No Idempotency-Key (CR-014)" trong mô tả, sinh lại client; `IdempotencyKey` trả 400 khi thiếu khóa; INV-20, `module-map`, `m0-ban-giao`. PR riêng, merge trước code.
 - [ ] **PR 2, theo `implement-slice`:** `registerAccount`, `verifyEmail`, `resendVerification`. Gửi email qua outbox, không gửi trong giao dịch (INV-18).
 - [ ] **PR 3, theo `implement-slice`:** `SessionResolver` trong `identity` tra `auth_sessions` và `auth_epoch` mỗi yêu cầu (ADR-0004, ADR-0010; điều kiện theo hàm `valid_session` của V5), bean `PublicEndpoints` cho các thao tác công khai, `loginAccount`, `logoutAccount`, `listOwnSessions`, `revokeOwnSession`.
 
 ### File dự kiến đụng
-- `docs/decisions/adr/0008-bam-mat-khau.md` (mới)
-- `backend/src/main/resources/db/migration/V9__*.sql` (mới, chờ cấp số)
-- `contracts/openapi.yaml` và `packages/` sinh lại nếu Q1 đổi hợp đồng
+- Đã xong ở #92: ADR-0008, `V9__account_sessions.sql`, `contracts/openapi.yaml`, client sinh lại
 - `backend/src/main/java/com/tutorbridge/identity/{api,internal,web}/`
 - Không đụng `platform/web`: bộ lọc đã có ở nền (ADR-0010)
-- `backend/build.gradle*` nếu thêm thư viện băm mật khẩu
 - Test trong `backend/src/test/java/com/tutorbridge/identity/`
 
 ### Ca kiểm thử dự kiến
@@ -48,19 +46,24 @@ Phụ huynh và gia sư tự đăng ký, xác minh email, đăng nhập bằng p
 - Đăng nhập sai 5 lần trong 15 phút thì bị trì hoãn, đếm riêng theo tài khoản và theo nguồn; trạng thái giữ trong DB nên chạy qua hai bản ứng dụng vẫn đúng.
 - Quyền (INV-01, INV-02, INV-06): `revokeOwnSession` với `sessionId` của người khác không thu hồi được và không lộ phiên tồn tại; `listOwnSessions` không trả `token_digest`.
 - Phản hồi có `Cache-Control: private, no-store`.
+- Huy, 10/11/2026 (Q13, Q14): email không tồn tại và sai mật khẩu nhận phản hồi tương đương (401 `AUTHENTICATION_FAILED`, cùng cấu trúc và thông báo); vượt giới hạn nhận 429 `RATE_LIMITED` kèm `Retry-After`; ADMIN bị từ chối qua luồng mobile không được cấp phiên hay token. Ca "đăng nhập quản trị trên web vẫn hoạt động với MFA" thuộc TB-13.
 
 ## Trạng thái hiện tại
-Đã chạy `start-task`, viết bản nháp ADR-0008 (thuật toán đã chọn, tham số TBD). Ngày 06/11/2026 rebase lên `dev`, cập nhật theo nền backend. Chưa viết code: PR 1 chờ Q1, Q2; PR 2 chờ Q4–Q8; PR 3 chờ Q5, Q7, Q11.
+#92 (PR 1) đã merge vào `dev` ngày 11/11/2026 (`c16d51f`) theo ngoại lệ OP-16: Huy cho biết Đính đã duyệt bản sửa ngày 10/11 nhưng chưa bấm duyệt trên PR, nên Huy cho merge không chờ. CR-013 vẫn chưa có trên `dev` (Q15). `dev` đã được merge vào `feature/TB-8-account-sessions` (không force-push); tám commit cũ của nhánh chỉ có handoff và bản nháp ADR-0008, khi xung đột lấy bản của `dev`. So với `dev`, nhánh chỉ khác file handoff này. Chưa có code nghiệp vụ. Bảng đo Argon2id chuyển sang `docs/evidence/2026-11-07_argon2id_huy_laptop.md`.
 
 ## Lệnh kiểm tra
 ```bash
 git switch feature/TB-8-account-sessions
-git log --oneline dev..HEAD   # mong đợi: chỉ có commit của TB-8
-cd backend && ./gradlew test  # mong đợi: toàn bộ test đạt
+git diff --stat origin/dev...HEAD    # mong đợi: chỉ có thay đổi của TB-8 PR 2, PR 3
+cd backend && ./gradlew test
+cd .. && sh scripts/ci/client-sync.sh && npm run lint && npm run typecheck && npm test
 ```
+Máy Windows của Huy: Gradle báo lỗi chứng chỉ TLS (PKIX) khi tải thư viện mới, `curl` thì tải được. Thêm `-Djavax.net.ssl.trustStoreType=Windows-ROOT` vào lệnh `./gradlew`. CI Linux không cần.
 
 ## Kết quả chạy gần nhất
-Chưa chạy test trên nhánh này vì chưa có thay đổi code.
+11/11/2026, #92 trước khi merge: CI trên commit `13f43c1` đạt cả ba job. Commit đó chỉ đổi tài liệu so với `ad7ea13`.
+
+10/11/2026, #92 sau khi sửa theo review: `./gradlew test` 115/115 đạt; `oasdiff` không báo thay đổi phá vỡ; `client-sync`, lint, typecheck, `npm test` đạt.
 
 ## Quyết định đã chọn
 - Huy, 04/11/2026, Q3: băm mật khẩu bằng Argon2id. Ghi trong ADR-0008. Tham số chưa đo.
@@ -74,44 +77,59 @@ Chưa chạy test trên nhánh này vì chưa có thay đổi code.
 - Huy, 07/11/2026, Q3 phần tham số: chính sách `argon2id-v1` = mức tối thiểu OWASP (`m=19456` KiB, `t=2`, `p=1`), đo lại trên máy chạy trước thí điểm. Ghi trong ADR-0008.
 - Huy, 07/11/2026, yêu cầu cho TB-09 từ TB-10 (Q10 của TB-10): `changePassword` dùng `currentPassword` làm bước tái xác thực, không dùng `reauthToken`; sai mật khẩu hiện tại trả 422 kèm lỗi trường `currentPassword`, không trả 401 (401 làm app kết thúc phiên).
 
-## Ý kiến của Huy, chờ Đính cùng chốt (07/11/2026)
-Huy đồng ý các đề xuất dưới đây; câu hỏi chỉ đóng khi Đính đồng ý. Đã gửi lên #39.
-| # | Ý kiến của Huy |
-|---|---|
-| Q1 | Không dùng `Idempotency-Key` cho `registerAccount`, `verifyEmail`, `resendVerification`, `loginAccount`, `requestRecovery`, `resetPassword`: email duy nhất, mã một lần, phiên trùng tự hết hạn. `logoutAccount`, `revokeOwnSession` vốn idempotent. Vì INV-20 ghi "mọi lệnh ghi", cần CR (bản nháp trên #39). Thiếu khóa ở lệnh có yêu cầu khóa trả 400 mã `IDEMPOTENCY_KEY_REQUIRED` theo `draft-ietf-httpapi-idempotency-key-header`, không dùng 422 hay 428 |
-| Q4 | Email: cắt khoảng trắng, chữ thường, Unicode NFC. `email_digest` = HMAC-SHA256 có khóa. `email_ciphertext` = AES-GCM, khóa từ biến môi trường. Lát 1 gửi qua Mailpit trong `infra/compose.yaml` |
-| Q5 | `UNVERIFIED` không đăng nhập được: sau khi mật khẩu đúng trả 403 mã `ACCOUNT_UNVERIFIED`; app dẫn sang AUTH02 gửi lại liên kết. Khớp OpenAPI |
-| Q6 | Đề xuất, chưa có số đo: gửi lại xác minh và khôi phục 3 lần/giờ theo tài khoản, 10 lần/giờ theo nguồn; đăng ký 5 lần/giờ theo nguồn; bộ đếm trong DB (INV-80) |
-| Q8 | Backend giữ danh sách `termsVersion` hợp lệ trong cấu hình; app lấy từ `EXPO_PUBLIC_TERMS_VERSION`. Văn bản điều khoản do Đính lo; trước khi có, dùng bản ghi rõ "bản thử, chưa có hiệu lực" |
-| Q11 | Token phiên 256 bit ngẫu nhiên, base64url; digest SHA-256 (token đủ entropy, không cần HMAC). `last_seen_at` chỉ ghi khi giá trị cũ quá 5 phút |
-| Mã lỗi | `ACCOUNT_UNVERIFIED` (403), `ACCOUNT_LOCKED` (403), `LOGIN_DELAYED` (429, kèm `Retry-After`), `LINK_EXPIRED` (400), `LINK_USED` (409), `LINK_INVALID` (400), `CURRENT_PASSWORD_INVALID` (422) |
-| ADR-0008 | Không dùng pepper ở Lát 1; chuẩn hóa NFKC trước khi băm |
-
-## Tham khảo đo Argon2id (không phải tham số)
-07/11/2026, máy Windows của Huy (i7-12700H, RAM 15,6 GB), JDK 21, BouncyCastle `bcprov-jdk18on` 1.80 (`Argon2BytesGenerator`), 15 lần sau 3 lần làm nóng, mật khẩu giả:
-
-| m (MiB) | t | p | Trung vị (ms) | p90 (ms) |
-|---|---|---|---|---|
-| 19 | 2 | 1 | 26 | 33 |
-| 46 | 1 | 1 | 37 | 39 |
-| 64 | 2 | 1 | 204 | 219 |
-| 64 | 3 | 1 | 309 | 322 |
-| 128 | 2 | 1 | 443 | 461 |
-
-Không ghi vào ADR-0008: ADR yêu cầu đo trên máy sẽ chạy, chưa chọn (Đính, trước M6); dự án chạy JDK 25 và bản BouncyCastle sẽ dùng chưa chốt.
+- Đính, 08/11/2026, trên #39, đồng ý ý kiến của Huy (07/11/2026). Các câu Q1, Q3–Q6, Q8, Q11 đóng:
+  - Q1: lệnh xác thực công khai không dùng `Idempotency-Key`; `logoutAccount`, `revokeOwnSession` không thêm header; thiếu khóa ở lệnh có yêu cầu trả 400 `IDEMPOTENCY_KEY_REQUIRED`, 428 chỉ cho `If-Match`. Ghi là **CR-014** (CR-013 đã dùng cho UX-UI, nhánh TB-87).
+  - Q4: email cắt khoảng trắng, chữ thường, NFC. `email_digest` = HMAC-SHA256, `email_ciphertext` = AES-GCM. **Hai khóa riêng**, cùng lấy từ biến môi trường; bản mã có tiền tố phiên bản khóa (ví dụ `v1:`) để thay khóa không cần migration. `.env.example` chỉ có tên biến. Lát 1 gửi qua Mailpit trong `infra/compose.yaml`.
+  - Q5: `UNVERIFIED` không đăng nhập được; chỉ trả 403 `ACCOUNT_UNVERIFIED` khi mật khẩu đúng.
+  - Q6: số đề xuất là giá trị tạm, đặt trong cấu hình, ghi rõ "chưa có số đo": gửi lại xác minh và khôi phục 3 lần/giờ theo tài khoản, 10 lần/giờ theo nguồn; đăng ký 5 lần/giờ theo nguồn.
+  - Q8: `termsVersion` hợp lệ trong cấu hình backend; app lấy từ `EXPO_PUBLIC_TERMS_VERSION`. Đính lo văn bản điều khoản; trước khi có thì dùng bản ghi rõ "bản thử, chưa có hiệu lực".
+  - Q11: token phiên 256 bit base64url, digest SHA-256; `last_seen_at` chỉ ghi khi giá trị cũ quá 5 phút (chấp nhận hạn 24 giờ không hoạt động lệch tối đa 5 phút).
+  - Mã lỗi: `ACCOUNT_UNVERIFIED` (403), `ACCOUNT_LOCKED` (403), `LOGIN_DELAYED` (429, kèm `Retry-After`), `LINK_EXPIRED` (400), `LINK_USED` (409), `LINK_INVALID` (400), `CURRENT_PASSWORD_INVALID` (422). Thêm vào hợp đồng trong PR 1.
+  - ADR-0008: không dùng pepper ở Lát 1, chuẩn hóa NFKC trước khi băm.
+- Đính, 08/11/2026, quyết:
+  - Q2: cấp **V9** cho TB-8, một migration trong PR 1, merge trước code.
+  - Q7: TB-8 chặn ADMIN đăng nhập; TB-13 mở luồng `AdminMfaChallenge`.
+  - Huy chủ trì ADR-0008 và thêm `bcprov` là ngoại lệ cho riêng việc này; CR-012 giữ nguyên. Đính duyệt nội dung ADR và phiên bản `bcprov` khi rà PR 1.
+  - Đồng ý chia #8 thành 3 PR như Kế hoạch.
+- Huy, 10/11/2026, Q13 (cần Đính đồng ý vì là câu hai người cùng chốt):
+  - 401 `AUTHENTICATION_FAILED` khi email không tồn tại hoặc sai mật khẩu. Hai trường hợp cùng cấu trúc phản hồi và thông báo "Email hoặc mật khẩu không đúng.", không trả chi tiết giúp đoán tài khoản có tồn tại.
+  - 429 `RATE_LIMITED` khi vượt giới hạn, kèm `Retry-After`; thông báo "Bạn đã thử quá nhiều lần. Vui lòng thử lại sau."
+  - Backend thực thi giới hạn; client hiển thị thông báo và thời gian chờ theo phản hồi, không tự đặt thời gian khóa. Thêm hai mã vào danh mục lỗi và hợp đồng trước phần phụ thuộc: đã thêm vào #92 (mô tả của `loginAccount`, `registerAccount`, `resendVerification`, `requestRecovery`) và `m0-ban-giao.md`.
+  - Agent ghi chú: `loginAccount` vẫn dùng 429 `LOGIN_DELAYED` (đã chốt 08/11) cho trì hoãn sau 5 lần sai; `RATE_LIMITED` dùng cho ba lệnh còn lại.
+- Huy, 10/11/2026, Q14 (Q7 là quyết định của Đính, nên cần Đính đồng ý):
+  - ADMIN đăng nhập qua luồng mobile nhận 401 `AUTHENTICATION_FAILED`, cùng cấu trúc và thông báo như sai mật khẩu; không có thông báo riêng lộ vai trò quản trị; không cấp phiên hay token.
+  - Chỉ áp dụng cho mobile; đăng nhập quản trị trên web vẫn xác thực và MFA theo thiết kế.
+  - Điều kiện: nếu mobile và web dùng chung endpoint thì phải chốt cách backend phân biệt hai luồng trước khi áp dụng; không chặn ADMIN trên toàn bộ endpoint, không dựa vào việc client tự khai báo vai trò. Agent kiểm hợp đồng: hai bên **dùng chung** `/auth/login` (xem Q17).
+- Huy, 10/11/2026, Q17: chọn phương án (b), tách endpoint đăng nhập quản trị riêng cho web. Cần Đính đồng ý (câu hai người cùng chốt). Hệ quả agent ghi lại:
+  - `/auth/login` luôn từ chối ADMIN bằng 401 `AUTHENTICATION_FAILED`, cùng phản hồi như sai mật khẩu, không cấp phiên hay token. Khớp cả Q7 của Đính ("TB-8 chặn ADMIN") lẫn điều kiện của Huy ở Q14 (không chặn ADMIN trên toàn bộ đăng nhập, vì ADMIN có endpoint riêng). Đã ghi vào mô tả `loginAccount` trong #92.
+  - Endpoint quản trị mới và việc bỏ `AdminMfaChallenge` khỏi `LoginResult` thuộc TB-13 (Đính), làm bằng PR `contract-change` riêng. #92 không thêm endpoint, không đổi schema.
+  - Ca kiểm thử của PR 3: ADMIN với mật khẩu đúng nhận phản hồi tương đương sai mật khẩu, không có dòng mới trong `auth_sessions`.
+- Đính, 10/11/2026, trên #39 (đóng Q10, Q13, Q14, Q16, Q17):
+  - Q13: đồng ý 401 `AUTHENTICATION_FAILED` và 429 `RATE_LIMITED` kèm `Retry-After` cho `registerAccount`, `resendVerification`, `requestRecovery`; `loginAccount` giữ 429 `LOGIN_DELAYED`.
+  - Q14, Q17: đồng ý phương án (b). `/auth/login` từ chối ADMIN bằng đúng 401 `AUTHENTICATION_FAILED`, không cấp phiên. Đính thêm endpoint đăng nhập quản trị và bỏ `AdminMfaChallenge` khỏi `LoginResult` trong TB-13 bằng PR `contract-change` riêng.
+  - Q10: `currentPassword` là bước tái xác thực của `changePassword`, không dùng `reauthToken`; sai mật khẩu hiện tại trả 422 `CURRENT_PASSWORD_INVALID`. Ghi rõ trong `description` (đã làm).
+  - Q16: `changePassword` vào ngoại lệ của CR-014, không thêm `Idempotency-Key`; gửi lại sau khi đổi thành công thì mọi phiên đã bị thu hồi, máy chủ trả 401 (đã cập nhật CR-014, INV-20).
+  - Bộ đếm: `LOGIN` dùng cửa sổ trượt (năm lần sai trong 15 phút gần nhất, đúng UC01); `REGISTER`, `RESEND_VERIFICATION`, `RECOVERY` giữ cửa sổ cố định vì ngưỡng còn tạm (đã làm: bảng `auth_login_failures`).
+  - Q15: Đính đưa CR-013 lên GitHub trước khi #92 merge.
+- Đính, review #92 ngày 09/11/2026, góp ý không chặn:
+  - Khai báo `Retry-After` cho phản hồi 429. Agent kiểm: `components.responses.Problem` đã khai báo header `Retry-After` (số nguyên ≥ 1), và mọi thao tác trả 429 qua `$ref` này, nên hợp đồng đã có; không sửa thêm.
+  - `device_label` rỗng: màn hình phiên hiện "Thiết bị không rõ" (làm ở TB-10, PR sửa theo review).
+  - PR 2: ghi `terms_acceptances.accepted_at` từ `Clock`, không dựa vào `DEFAULT now()`.
+- Agent chọn trong PR 1, cần người rà xem:
+  - Mã lỗi ghi trong `description` của từng thao tác vì `Problem.code` là chuỗi tự do; thêm `enum` sẽ là thay đổi phá vỡ. Cách ghi theo mẫu `Missing -> 428` sẵn có của `If-Match`.
+  - Khóa sai độ dài vẫn trả 422 `IDEMPOTENCY_KEY_INVALID`; CR-014 chỉ đổi trường hợp thiếu khóa.
+  - `device_label` là `NOT NULL DEFAULT ''` để code chạy trên V8 vẫn ghi phiên được; phiên cũ có nhãn rỗng.
+  - `auth_login_failures`: một dòng cho mỗi lần sai (phạm vi, digest, thời điểm), chỉ mục (phạm vi, digest, thời điểm) để đếm 15 phút gần nhất và chỉ mục thời điểm để dọn theo lô. `auth_rate_counters` (ba lệnh còn lại) đếm theo cửa sổ cố định, một dòng cho mỗi (thao tác, phạm vi, digest). `subject_digest` là HMAC hex của email hoặc địa chỉ nguồn, không lưu giá trị gốc.
+  - `bcprov-jdk18on` 1.86 khai báo `runtimeOnly`.
 
 ## Câu hỏi còn mở
-| # | Câu hỏi | Ai trả lời |
-|---|---|---|
-| Q1 | Lệnh xác thực công khai có cần `Idempotency-Key` không? Nếu có thì receipt lưu thế nào khi chưa có actor: đổi `actor_id` cho phép null, hay tách bảng? `logoutAccount`, `revokeOwnSession` có actor: có thêm header vào OpenAPI không? Thiếu khóa trả 422 (code hiện tại) hay 428 (`10-hop-dong-api.md` ghi "thiếu điều kiện trả 428")? | Đính, Huy |
-| Q2 | Có cấp V9 cho TB-8 không? Nội dung đề xuất: `auth_sessions.device_label`, bảng chấp thuận điều khoản (tài khoản, phiên bản, thời điểm), bảng đếm lần thử theo tài khoản và theo nguồn | Đính |
-| Q3 | Đã chọn Argon2id và chính sách `argon2id-v1`. Còn lại: pepper, chuẩn hóa Unicode (ý kiến Huy ở bảng trên) | Đính, Huy |
-| Q4 | Email: chuẩn hóa thế nào (cắt khoảng trắng, chữ thường)? `email_digest` dùng HMAC với khóa bí mật hay hash thường? Khóa mã hóa `email_ciphertext` lấy từ đâu? Lát 1 gửi email qua đâu (đề xuất: hộp thư local như Mailpit trong `infra/compose.yaml`, không dùng nhà cung cấp thật)? | Đính, Huy |
-| Q5 | Tài khoản `UNVERIFIED` có đăng nhập được không? (OpenAPI nói không, F01 ngụ ý có) | Đính, Huy |
-| Q6 | Ngưỡng giới hạn cho `registerAccount` và `resendVerification` | Đính, Huy |
-| Q7 | Đăng nhập của ADMIN (trả `AdminMfaChallenge`) thuộc TB-8 hay TB-13? Đề xuất: TB-8 chặn ADMIN đăng nhập, TB-13 mở | Đính |
-| Q8 | Danh sách `termsVersion` hợp lệ lấy từ đâu (cấu hình)? Hiện chưa có văn bản điều khoản nào | Đính, Huy |
-| Q11 | `SessionResolver`: digest token tính thế nào (SHA-256 hay HMAC có khóa, mã hóa hex hay base64url)? Cập nhật `last_seen_at` cho hạn 24 giờ không hoạt động mỗi yêu cầu hay theo chu kỳ (mỗi yêu cầu thêm một lần ghi)? Liên quan Q4 | Đính, Huy |
+Q1–Q17 đã đóng, trừ:
+
+| # | Câu hỏi | Ai trả lời | Cần trước |
+|---|---|---|---|
+| Q15 | CR-013 (UX-UI) chưa có trên `dev`. #92 đã merge với số CR-014 theo OP-16; Đính đưa CR-013 lên sau | Đính | Không chặn TB-8 |
 
 ## Bước kế tiếp
-Khi có câu trả lời cho Q1, Q2: chạy playbook `contract-change` cho PR 1 (ADR-0008, V9, OpenAPI). Q4 đến Q8 cần trước PR 2 và PR 3.
+1. PR 2 theo `implement-slice`: `registerAccount`, `verifyEmail`, `resendVerification`. Gửi email qua outbox (INV-18), ghi `terms_acceptances.accepted_at` từ `Clock`, giới hạn gửi trên `auth_rate_counters` (429 `RATE_LIMITED` kèm `Retry-After`).
+2. PR 3: `SessionResolver`, `PublicEndpoints`, `loginAccount` (ADMIN trả 401 `AUTHENTICATION_FAILED`), `logoutAccount`, `listOwnSessions`, `revokeOwnSession`. Đếm lần sai đăng nhập trên `auth_login_failures` theo 15 phút gần nhất.
+3. Sau khi #39 merge: chạy chuỗi TB-10 (#78 → #99) với API thật.

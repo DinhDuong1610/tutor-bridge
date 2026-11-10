@@ -94,11 +94,24 @@ class CommandReceiptsTest extends IntegrationTest {
     void key_outside_16_to_128_characters_is_rejected() {
         UUID actor = newAccount();
 
-        for (String key : new String[] {null, "a".repeat(15), "a".repeat(129)}) {
+        for (String key : new String[] {"", "a".repeat(15), "a".repeat(129)}) {
             assertThatThrownBy(() -> tx.executeWithoutResult(s -> receipts.begin(actor, COMMAND, key, PAYLOAD)))
-                    .isInstanceOfSatisfying(ApiException.class,
-                            e -> assertThat(e.code()).isEqualTo("IDEMPOTENCY_KEY_INVALID"));
+                    .isInstanceOfSatisfying(ApiException.class, e -> {
+                        assertThat(e.code()).isEqualTo("IDEMPOTENCY_KEY_INVALID");
+                        assertThat(e.status().value()).isEqualTo(422);
+                    });
         }
+    }
+
+    @Test
+    void CR_014_missing_key_is_rejected_as_required() {
+        UUID actor = newAccount();
+
+        assertThatThrownBy(() -> tx.executeWithoutResult(s -> receipts.begin(actor, COMMAND, null, PAYLOAD)))
+                .isInstanceOfSatisfying(ApiException.class, e -> {
+                    assertThat(e.code()).isEqualTo("IDEMPOTENCY_KEY_REQUIRED");
+                    assertThat(e.status().value()).isEqualTo(400);
+                });
     }
 
     @Test

@@ -28,7 +28,7 @@ Những điều luôn phải đúng, ở mọi module, mọi lần sửa. Vi ph�
 ## Gửi lại và phiên bản
 | Mã | Bất biến | Nguồn |
 |---|---|---|
-| INV-20 | Mọi lệnh ghi có `Idempotency-Key`. Cùng khóa cùng nội dung trả kết quả cũ; cùng khóa khác nội dung trả 409 | BR06 |
+| INV-20 | Mọi lệnh ghi có `Idempotency-Key`, trừ lệnh xác thực công khai và `changePassword` theo CR-014. Thiếu khóa trả 400. Cùng khóa cùng nội dung trả kết quả cũ; cùng khóa khác nội dung trả 409 | BR06, CR-014 |
 | INV-21 | Receipt, nghiệp vụ, outbox cùng một commit. Chỉ trả thành công sau commit | G3-DP01 |
 | INV-22 | Replay kiểm quyền hiện hành trước khi trả, không lộ nội dung đã thu hồi | F03 |
 | INV-23 | Sửa theo phiên bản dùng `If-Match`. Bản cũ nhận 412, không tự gộp | BR06, G3-D07-06 |

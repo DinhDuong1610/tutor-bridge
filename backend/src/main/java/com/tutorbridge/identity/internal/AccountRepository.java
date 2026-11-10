@@ -101,6 +101,18 @@ class AccountRepository {
                 .param(emailDigest).query(UUID.class).optional();
     }
 
+    /**
+     * The email ciphertext of the account behind a VERIFY_EMAIL code that is still worth sending:
+     * unconsumed, unexpired, and the account still UNVERIFIED. Empty otherwise.
+     */
+    Optional<byte[]> emailToVerify(UUID challengeId, Instant now) {
+        return jdbc.sql("""
+                select a.email_ciphertext from auth_challenges c join accounts a on a.id = c.account_id
+                where c.id = ? and c.purpose = 'VERIFY_EMAIL' and c.consumed_at is null and c.expires_at > ?
+                  and a.status = 'UNVERIFIED' and a.email_ciphertext is not null
+                """).params(challengeId, at(now)).query(byte[].class).optional();
+    }
+
     private static OffsetDateTime at(Instant instant) {
         return OffsetDateTime.ofInstant(instant, ZoneOffset.UTC);
     }

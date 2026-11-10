@@ -26,6 +26,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
     implementation("org.springframework.boot:spring-boot-starter-flyway")
     implementation("org.flywaydb:flyway-database-postgresql")
+    // Verification email from the worker role (TB-8; Huy approved 11/11/2026, Đính reviews). Version from the BOM.
+    implementation("org.springframework.boot:spring-boot-starter-mail")
     runtimeOnly("org.postgresql:postgresql")
     // Argon2PasswordEncoder of Spring Security runs on BouncyCastle (ADR-0008).
     runtimeOnly("org.bouncycastle:bcprov-jdk18on:1.86")

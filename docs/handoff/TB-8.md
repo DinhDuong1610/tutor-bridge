@@ -1,9 +1,9 @@
 # TB-8 Đăng ký, xác minh, đăng nhập, phiên; ADR băm mật khẩu
 
 - **Chủ task:** Huy
-- **Nhánh:** PR 1 `feature/TB-8-auth-contract` (#92, đã merge vào `dev` ngày 11/11/2026, commit `c16d51f`); PR 2 và PR 3 trên `feature/TB-8-account-sessions` (Draft PR #39), đã merge `dev` vào sau khi #92 merge
-- **Agent đang làm:** Claude (Claude Code). PR 1 đã merge; PR 2 xong trên máy (`dda25c7`, `01f57bf`), chưa push
-- **Cập nhật lần cuối:** 11/11/2026, PR 2 (đăng ký, xác minh, gửi lại) xong và đạt test trên máy
+- **Nhánh:** PR 1 `feature/TB-8-auth-contract` (#92, đã merge vào `dev` ngày 11/11/2026, commit `c16d51f`); PR 2 và PR 3 trên `feature/TB-8-account-sessions` (Draft PR #39), đã merge `dev` vào sau khi #92 merge; PR 2b `feature/TB-8-verification-mail`, tách từ #39 tại `a697fff`, nhánh đích `feature/TB-8-account-sessions`
+- **Agent đang làm:** Claude (Claude Code). PR 1 đã merge; PR 2 đã push lên #39; PR 2b xong (`913e510`, `80b90a1`)
+- **Cập nhật lần cuối:** 11/11/2026, PR 2b (worker gửi email xác minh qua Mailpit) xong, chạy trọn luồng trên máy
 - **Mã liên quan:** FR-01, FR-02; UC01; AC-UC01-01, AC-UC01-02, AC-UC01-03, AC-UC01-04; INV-01, INV-03, INV-06, INV-18, INV-20, INV-21, INV-63, INV-80, INV-83; ADR-0004
 
 ## Mục tiêu
@@ -30,7 +30,7 @@ Phụ huynh và gia sư tự đăng ký, xác minh email, đăng nhập bằng p
 Đề xuất chia Issue #8 thành 3 PR. Đính chốt việc chia, Đính cấp số migration.
 - [x] **PR 1, theo `contract-change`** (#92): CR-014; ADR-0008 hoàn chỉnh và `bcprov-jdk18on` 1.86; V9 (`auth_sessions.device_label`, `terms_acceptances`, `auth_login_failures` cửa sổ trượt cho `LOGIN`, `auth_rate_counters` cửa sổ cố định cho ba lệnh còn lại); OpenAPI ghi mã lỗi và "No Idempotency-Key (CR-014)" trong mô tả, sinh lại client; `IdempotencyKey` trả 400 khi thiếu khóa; INV-20, `module-map`, `m0-ban-giao`. PR riêng, merge trước code.
 - [x] **PR 2, theo `implement-slice`:** `registerAccount`, `verifyEmail`, `resendVerification`. Sự kiện email vào outbox, không gửi trong giao dịch (INV-18). Commit `dda25c7` (`TooManyRequests` trong `platform`), `01f57bf` (`identity`).
-- [ ] **PR 2b:** gửi email thật: Mailpit trong `infra/compose.yaml`, worker đọc `identity.EmailVerificationRequested` qua `OutboxQueue`, giải mã mã bằng `AccountSecrets.decryptLinkToken`, giải mã email từ `accounts.email_ciphertext`, gửi SMTP (Huy, 11/11/2026: TB-8 làm, PR riêng).
+- [x] **PR 2b:** gửi email thật: Mailpit trong `infra/compose.yaml`, worker đọc `identity.EmailVerificationRequested` qua `OutboxQueue`, giải mã mã bằng `AccountSecrets.decryptLinkToken`, giải mã email từ `accounts.email_ciphertext`, gửi SMTP (Huy, 11/11/2026: TB-8 làm, PR riêng).
 - [ ] **PR 3, theo `implement-slice`:** `SessionResolver` trong `identity` tra `auth_sessions` và `auth_epoch` mỗi yêu cầu (ADR-0004, ADR-0010; điều kiện theo hàm `valid_session` của V5), bean `PublicEndpoints` cho các thao tác công khai, `loginAccount`, `logoutAccount`, `listOwnSessions`, `revokeOwnSession`.
 
 ### File dự kiến đụng
@@ -59,6 +59,12 @@ PR 2 xong trên máy, chưa push:
 - **Thay đổi cho máy local:** backend không khởi động khi thiếu ba khóa. Ai chạy `bootRun` phải thêm ba dòng vào `.env` (`openssl rand -base64 32` cho mỗi khóa).
 - Test: `IntegrationTest` cấp khóa ngẫu nhiên mỗi lần chạy; `AcceptOfferConcurrencyTest` truyền cùng khóa cho bản ứng dụng thứ hai.
 
+PR 2b (`feature/TB-8-verification-mail`):
+- `platform/api/OutboxHandler` (một handler cho một `event_type`, chạy ngoài giao dịch), `platform/internal/OutboxDispatcher` (lấy lô bằng `OutboxQueue.claim`, thành công thì `markDelivered`, lỗi thì thử lại sau 30 s, 60 s, … tối đa 1 giờ; không có handler thì hoãn 10 phút), `platform/internal/WorkerRole` (bật bằng `tutorbridge.worker.enabled`, quét mỗi `poll-interval`, mặc định 2 s). Huy chọn đặt chung ở `platform` (11/11/2026); nhờ Đính rà vì là nền backend.
+- `identity/internal/VerificationMailSender`: chỉ có trên vai trò worker; giải mã mã theo `challengeId`, giải mã email từ `accounts.email_ciphertext`, gửi `tutorbridge://verify-email?token=…`. Không gửi khi mã đã dùng, đã hết hạn hoặc tài khoản không còn `UNVERIFIED`. Worker thiếu SMTP, `tutorbridge.identity.mail.from` hoặc `link-base` thì không khởi động.
+- `spring-boot-starter-mail` (bản theo BOM Spring Boot 4.1.2) và `axllent/mailpit:v1.32.0` (phát hành 22/10/2026) trong `infra/compose.yaml`: Huy duyệt cho riêng TB-8 ngày 11/11/2026, Đính rà khi review (CR-012).
+- Profile local: một tiến trình chạy cả hai vai trò, SMTP `127.0.0.1:1025`, xem thư ở http://localhost:8025. Bản triển khai: `TB_WORKER_ENABLED`, `TB_MAIL_FROM`, `TB_LINK_BASE`, `SPRING_MAIL_*` (ghi trong `.env.example`).
+
 ## Lệnh kiểm tra
 ```bash
 git switch feature/TB-8-account-sessions
@@ -69,6 +75,12 @@ cd .. && sh scripts/ci/client-sync.sh && npm run lint && npm run typecheck && np
 Máy Windows của Huy: Gradle báo lỗi chứng chỉ TLS (PKIX) khi tải thư viện mới, `curl` thì tải được. Thêm `-Djavax.net.ssl.trustStoreType=Windows-ROOT` vào lệnh `./gradlew`. CI Linux không cần.
 
 ## Kết quả chạy gần nhất
+11/11/2026, PR 2b, máy Windows của Huy, Docker 29.6.2:
+- `./gradlew test`: 146/146 đạt (thêm 4 `OutboxDispatcherTest`, 4 `VerificationMailTest` chạy Mailpit thật qua Testcontainers).
+- Thử làm hỏng: gửi cả mã đã hết hạn thì 1 ca đỏ; sai đường dẫn liên kết thì 2 ca đỏ; handler lỗi mà vẫn đánh dấu đã gửi thì 1 ca đỏ; khôi phục thì đạt.
+- Chạy thật: `docker compose ... up -d --wait` (db, mail healthy), `bootRun` profile local với ba khóa sinh ngẫu nhiên chỉ cho tiến trình đó. `POST /api/v1/auth/register` trả 202; Mailpit nhận "Xác minh email TutorBridge" có liên kết `tutorbridge://verify-email?token=…` (43 ký tự); `POST /api/v1/auth/verify` trả 204, lần hai 409 `LINK_USED`. Log backend không có mã, không có email.
+- Chưa mở liên kết trên điện thoại thật.
+
 11/11/2026, PR 2, máy Windows của Huy, Docker 29.6.2:
 - `./gradlew test`: 138/138 đạt (115 cũ + 18 `AccountRegistrationHttpTest` + 5 `AccountSecretsTest`). Lần đầu đỏ vì Docker Desktop chưa bật; lần hai đỏ 1 ca vì email có khoảng trắng bị `@Email` trả 422 (đúng hợp đồng `format: email`), sửa ca test thành khác hoa thường, phần cắt khoảng trắng và NFC kiểm ở `AccountSecretsTest`; lần ba `AcceptOfferConcurrencyTest` không khởi động được bản thứ hai vì thiếu khóa, đã truyền khóa.
 - Thử làm hỏng: cho tiêu thụ mã hai lần thì 3 ca đỏ; bỏ header `Retry-After` thì 2 ca đỏ (`Contract.matches()` không bắt vì header không bắt buộc, ca riêng bắt); gửi lại cho mọi trạng thái tài khoản thì 1 ca đỏ; khôi phục thì đạt.
@@ -155,7 +167,7 @@ Q1–Q17 đã đóng, trừ:
 | Q15 | CR-013 (UX-UI) chưa có trên `dev`. #92 đã merge với số CR-014 theo OP-16; Đính đưa CR-013 lên sau | Đính | Không chặn TB-8 |
 
 ## Bước kế tiếp
-1. Huy cho phép thì push nhánh; #39 vẫn Draft. Huy viết phần tác giả cho PR 2 trong mô tả #39.
-2. PR 2b: Mailpit, worker đọc outbox, gửi SMTP; chạy trọn luồng đăng ký → email → xác minh trên máy.
-3. PR 3: `SessionResolver`, `PublicEndpoints`, `loginAccount` (ADMIN trả 401 `AUTHENTICATION_FAILED`), `logoutAccount`, `listOwnSessions`, `revokeOwnSession`. Đếm lần sai đăng nhập trên `auth_login_failures` theo 15 phút gần nhất; `LOGIN_DELAYED` dùng `TooManyRequests`.
-4. Sau khi #39 merge: chạy chuỗi TB-10 (#78 → #99) với API thật.
+1. PR 2b: Draft PR với nhánh đích `feature/TB-8-account-sessions`; Huy viết phần tác giả; Đính rà `platform` (worker, `OutboxHandler`), thư viện mail và Mailpit.
+2. PR 3: `SessionResolver`, `PublicEndpoints`, `loginAccount` (ADMIN trả 401 `AUTHENTICATION_FAILED`), `logoutAccount`, `listOwnSessions`, `revokeOwnSession`. Đếm lần sai đăng nhập trên `auth_login_failures` theo 15 phút gần nhất; `LOGIN_DELAYED` dùng `TooManyRequests`.
+3. Huy viết phần tác giả cho PR 2 trong mô tả #39.
+4. Sau khi #39 merge: chạy chuỗi TB-10 (#78 → #99) với API thật, mở liên kết từ Mailpit trên điện thoại.

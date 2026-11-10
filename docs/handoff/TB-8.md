@@ -1,7 +1,7 @@
 # TB-8 Đăng ký, xác minh, đăng nhập, phiên; ADR băm mật khẩu
 
 - **Chủ task:** Huy
-- **Nhánh:** PR 1 #92 (merge `c16d51f`); PR 2 và PR 2b #39, gồm #108 (merge `41bdfd7`, 11/11/2026, OP-17); PR 3 `feature/TB-8-login-sessions`, Draft PR vào `dev`
+- **Nhánh:** PR 1 #92 (merge `c16d51f`); PR 2 và PR 2b #39, gồm #108 (merge `41bdfd7`, 11/11/2026, OP-17); PR 3 `feature/TB-8-login-sessions`, Draft PR #109 vào `dev`
 - **Agent đang làm:** Claude (Claude Code). PR 3 xong trên máy (`5e503ac`, `782f73b`)
 - **Cập nhật lần cuối:** 11/11/2026, PR 3 (đăng nhập, phiên, đăng xuất) xong, đạt test và chạy thật trên máy
 - **Mã liên quan:** FR-01, FR-02; UC01; AC-UC01-01, AC-UC01-02, AC-UC01-03, AC-UC01-04; INV-01, INV-03, INV-06, INV-18, INV-20, INV-21, INV-63, INV-80, INV-83; ADR-0004
@@ -180,6 +180,6 @@ Q1–Q17 đã đóng, trừ:
 | Q15 | CR-013 (UX-UI) chưa có trên `dev`. #92 đã merge với số CR-014 theo OP-16; Đính đưa CR-013 lên sau | Đính | Không chặn TB-8 |
 
 ## Bước kế tiếp
-1. PR 3: Huy viết phần tác giả trên Draft PR; xóa file handoff này trước khi Ready (TB-8 xong cùng PR 3); merge theo OP-17.
+1. PR 3 (#109): Huy viết phần tác giả; xóa file handoff này trước khi Ready (TB-8 xong cùng PR 3); merge theo OP-17.
 2. Sau khi PR 3 merge: chuyển chuỗi TB-10 (#78 → #99) sang chạy với API thật, mở liên kết từ Mailpit trên điện thoại; #78 đổi sang Ready theo handoff TB-10.
 3. TB-9 (#9): khôi phục, đổi mật khẩu (`CURRENT_PASSWORD_INVALID` 422), tái xác thực, dùng lại `AuthRateLimiter` (`RECOVERY`) và `VerificationMailSender` làm mẫu cho email khôi phục.

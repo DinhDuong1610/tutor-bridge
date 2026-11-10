@@ -46,6 +46,17 @@ describe("AUTH06 SessionsScreen", () => {
     expect(server.unexpected).toEqual([]);
   });
 
+  it("names a session issued before V9, which has an empty device label, as an unknown device", async () => {
+    const unnamed = { ...OTHER, deviceLabel: "" };
+    server = mockApi({ "GET /me/sessions": () => page([CURRENT, unnamed]) });
+    await show();
+
+    const card = await screen.findByLabelText("Thiết bị không rõ");
+    expect(within(card).getByText("Thiết bị không rõ")).toBeOnTheScreen();
+    await act(async () => fireEvent.press(within(card).getByRole("button", { name: "Thu hồi phiên" })));
+    expect(screen.getByText('Thu hồi phiên trên "Thiết bị không rõ"? Máy đó sẽ phải đăng nhập lại.')).toBeOnTheScreen();
+  });
+
   it("loads the next page with the server's cursor", async () => {
     server = mockApi({
       "GET /me/sessions": (request) =>

@@ -28,12 +28,15 @@ public record IdentityProperties(List<String> termsVersions, Keys keys, Limits l
      */
     public record Keys(String emailDigest, String emailEncryption, String linkToken) {}
 
-    public record Limits(Limit registerPerSource, Limit resendPerAccount, Limit resendPerSource) {
+    public record Limits(Limit registerPerSource, Limit resendPerAccount, Limit resendPerSource,
+            Limit recoveryPerAccount, Limit recoveryPerSource) {
 
         public Limits {
             Objects.requireNonNull(registerPerSource, "register-per-source");
             Objects.requireNonNull(resendPerAccount, "resend-per-account");
             Objects.requireNonNull(resendPerSource, "resend-per-source");
+            Objects.requireNonNull(recoveryPerAccount, "recovery-per-account");
+            Objects.requireNonNull(recoveryPerSource, "recovery-per-source");
         }
     }
 

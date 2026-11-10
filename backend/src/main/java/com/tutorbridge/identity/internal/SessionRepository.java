@@ -50,6 +50,18 @@ class SessionRepository {
                 .optional();
     }
 
+    record Own(String status, long authEpoch, String emailDigest, String passwordHash) {}
+
+    /** The signed-in account's password and the email digest its failures are counted under. */
+    Optional<Own> findOwn(UUID accountId) {
+        return jdbc.sql("""
+                select a.status, a.auth_epoch, a.email_digest, c.password_hash
+                from accounts a left join account_credentials c on c.account_id = a.id where a.id = ?
+                """).param(accountId)
+                .query((rs, n) -> new Own(rs.getString(1), rs.getLong(2), rs.getString(3), rs.getString(4)))
+                .optional();
+    }
+
     /** Failed attempts in the window, newest first, at most {@code limit}. */
     List<Instant> recentFailures(String scope, String subjectDigest, Instant since, int limit) {
         return jdbc.sql("""

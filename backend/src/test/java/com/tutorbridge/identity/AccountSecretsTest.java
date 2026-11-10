@@ -83,6 +83,6 @@ class AccountSecretsTest {
     private static IdentityProperties properties(String digest, String email, String link) {
         IdentityProperties.Limit limit = new IdentityProperties.Limit(1, Duration.ofHours(1));
         return new IdentityProperties(List.of(), new IdentityProperties.Keys(digest, email, link),
-                new IdentityProperties.Limits(limit, limit, limit));
+                new IdentityProperties.Limits(limit, limit, limit, limit, limit));
     }
 }

@@ -19,6 +19,12 @@ public class PasswordHasher {
     /** Compared against when the email has no account, so the reply takes as long (ADR-0008). */
     private final String dummyHash = encoder.encode("tutorbridge-dummy-password-for-timing");
 
+    /** UC01: 15–128 characters, counted in code points as JSON Schema does. */
+    public static boolean acceptableLength(String password) {
+        int length = password.codePointCount(0, password.length());
+        return length >= 15 && length <= 128;
+    }
+
     public String hash(String password) {
         return encoder.encode(normalize(password));
     }

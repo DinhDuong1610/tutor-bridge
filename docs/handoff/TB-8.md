@@ -1,9 +1,9 @@
 # TB-8 Đăng ký, xác minh, đăng nhập, phiên; ADR băm mật khẩu
 
 - **Chủ task:** Huy
-- **Nhánh:** PR 1 `feature/TB-8-auth-contract` (#92, đã merge vào `dev` ngày 11/11/2026, commit `c16d51f`); PR 2 và PR 3 trên `feature/TB-8-account-sessions` (Draft PR #39), đã merge `dev` vào sau khi #92 merge; PR 2b `feature/TB-8-verification-mail` (Draft PR #108), tách từ #39 tại `a697fff`, nhánh đích `feature/TB-8-account-sessions`
-- **Agent đang làm:** Claude (Claude Code). PR 1 đã merge; PR 2 đã push lên #39; PR 2b xong (`913e510`, `80b90a1`)
-- **Cập nhật lần cuối:** 11/11/2026, PR 2b (worker gửi email xác minh qua Mailpit) xong, chạy trọn luồng trên máy
+- **Nhánh:** PR 1 #92 (merge `c16d51f`); PR 2 và PR 2b #39, gồm #108 (merge `41bdfd7`, 11/11/2026, OP-17); PR 3 `feature/TB-8-login-sessions`, Draft PR vào `dev`
+- **Agent đang làm:** Claude (Claude Code). PR 3 xong trên máy (`5e503ac`, `782f73b`)
+- **Cập nhật lần cuối:** 11/11/2026, PR 3 (đăng nhập, phiên, đăng xuất) xong, đạt test và chạy thật trên máy
 - **Mã liên quan:** FR-01, FR-02; UC01; AC-UC01-01, AC-UC01-02, AC-UC01-03, AC-UC01-04; INV-01, INV-03, INV-06, INV-18, INV-20, INV-21, INV-63, INV-80, INV-83; ADR-0004
 
 ## Mục tiêu
@@ -31,7 +31,7 @@ Phụ huynh và gia sư tự đăng ký, xác minh email, đăng nhập bằng p
 - [x] **PR 1, theo `contract-change`** (#92): CR-014; ADR-0008 hoàn chỉnh và `bcprov-jdk18on` 1.86; V9 (`auth_sessions.device_label`, `terms_acceptances`, `auth_login_failures` cửa sổ trượt cho `LOGIN`, `auth_rate_counters` cửa sổ cố định cho ba lệnh còn lại); OpenAPI ghi mã lỗi và "No Idempotency-Key (CR-014)" trong mô tả, sinh lại client; `IdempotencyKey` trả 400 khi thiếu khóa; INV-20, `module-map`, `m0-ban-giao`. PR riêng, merge trước code.
 - [x] **PR 2, theo `implement-slice`:** `registerAccount`, `verifyEmail`, `resendVerification`. Sự kiện email vào outbox, không gửi trong giao dịch (INV-18). Commit `dda25c7` (`TooManyRequests` trong `platform`), `01f57bf` (`identity`).
 - [x] **PR 2b:** gửi email thật: Mailpit trong `infra/compose.yaml`, worker đọc `identity.EmailVerificationRequested` qua `OutboxQueue`, giải mã mã bằng `AccountSecrets.decryptLinkToken`, giải mã email từ `accounts.email_ciphertext`, gửi SMTP (Huy, 11/11/2026: TB-8 làm, PR riêng).
-- [ ] **PR 3, theo `implement-slice`:** `SessionResolver` trong `identity` tra `auth_sessions` và `auth_epoch` mỗi yêu cầu (ADR-0004, ADR-0010; điều kiện theo hàm `valid_session` của V5), bean `PublicEndpoints` cho các thao tác công khai, `loginAccount`, `logoutAccount`, `listOwnSessions`, `revokeOwnSession`.
+- [x] **PR 3, theo `implement-slice`:** `SessionResolver` trong `identity` tra `auth_sessions` và `auth_epoch` mỗi yêu cầu (ADR-0004, ADR-0010; điều kiện theo hàm `valid_session` của V5), bean `PublicEndpoints` cho các thao tác công khai, `loginAccount`, `logoutAccount`, `listOwnSessions`, `revokeOwnSession`.
 
 ### File dự kiến đụng
 - Đã xong ở #92: ADR-0008, `V9__account_sessions.sql`, `contracts/openapi.yaml`, client sinh lại
@@ -50,20 +50,16 @@ Phụ huynh và gia sư tự đăng ký, xác minh email, đăng nhập bằng p
 - Huy, 10/11/2026 (Q13, Q14): email không tồn tại và sai mật khẩu nhận phản hồi tương đương (401 `AUTHENTICATION_FAILED`, cùng cấu trúc và thông báo); vượt giới hạn nhận 429 `RATE_LIMITED` kèm `Retry-After`; ADMIN bị từ chối qua luồng mobile không được cấp phiên hay token. Ca "đăng nhập quản trị trên web vẫn hoạt động với MFA" thuộc TB-13.
 
 ## Trạng thái hiện tại
-#92 (PR 1) đã merge vào `dev` ngày 11/11/2026 (`c16d51f`) theo ngoại lệ OP-16. CR-013 vẫn chưa có trên `dev` (Q15). `dev` đã được merge vào nhánh này, không force-push (lệnh `reset --hard` kèm force-push bị chặn trên máy Huy).
+#92, #39 (gồm #108) đã merge vào `dev`. Merge #39 theo OP-17 (Huy, 11/11/2026: "ngoại lệ bỏ qua phần của Đính, tiếp tục thực hiện các phần tiếp theo theo đúng plan"); Đính chưa rà phần nền `platform`, thư viện mail, Mailpit. CR-013 vẫn chưa có trên `dev` (Q15).
 
-PR 2 xong trên máy, chưa push:
-- `identity/internal`: `AccountRegistration` (service), `AccountRepository`, `AccountSecrets` (chuẩn hóa email, HMAC, AES-GCM `v1:`, mã liên kết 256 bit), `PasswordHasher` (`argon2id-v1`, NFKC), `AuthRateLimiter` (cửa sổ cố định trên `auth_rate_counters`, giao dịch riêng), `IdentityProperties`, `IdentityConfig`. `identity/web/RegistrationController` kèm bean `PublicEndpoints`.
-- `platform/api/TooManyRequests` và `ProblemHandler` ghi `Retry-After` (giây, làm tròn lên, ≥ 1). Phần này thuộc nền của Đính; nhờ Đính xem.
-- Cấu hình `tutorbridge.identity.*` trong `application.yaml`: ba khóa từ `TB_EMAIL_DIGEST_KEY`, `TB_EMAIL_ENCRYPTION_KEY`, `TB_LINK_TOKEN_KEY` (base64 32 byte); `terms-versions` từ `TB_TERMS_VERSIONS`, profile local mặc định `ban-thu-chua-hieu-luc`; ngưỡng Q6 (đăng ký 5/giờ theo nguồn; gửi lại 3/giờ theo email, 10/giờ theo nguồn). `.env.example` thêm tên biến.
-- **Thay đổi cho máy local:** backend không khởi động khi thiếu ba khóa. Ai chạy `bootRun` phải thêm ba dòng vào `.env` (`openssl rand -base64 32` cho mỗi khóa).
-- Test: `IntegrationTest` cấp khóa ngẫu nhiên mỗi lần chạy; `AcceptOfferConcurrencyTest` truyền cùng khóa cho bản ứng dụng thứ hai.
+PR 3 tách khỏi #39 thành PR riêng vào `dev`: phần tác giả Huy viết cho #39 chỉ nói tới PR 2, nên PR 3 cần phần tác giả riêng.
 
-PR 2b (`feature/TB-8-verification-mail`):
-- `platform/api/OutboxHandler` (một handler cho một `event_type`, chạy ngoài giao dịch), `platform/internal/OutboxDispatcher` (lấy lô bằng `OutboxQueue.claim`, thành công thì `markDelivered`, lỗi thì thử lại sau 30 s, 60 s, … tối đa 1 giờ; không có handler thì hoãn 10 phút), `platform/internal/WorkerRole` (bật bằng `tutorbridge.worker.enabled`, quét mỗi `poll-interval`, mặc định 2 s). Huy chọn đặt chung ở `platform` (11/11/2026); nhờ Đính rà vì là nền backend.
-- `identity/internal/VerificationMailSender`: chỉ có trên vai trò worker; giải mã mã theo `challengeId`, giải mã email từ `accounts.email_ciphertext`, gửi `tutorbridge://verify-email?token=…`. Không gửi khi mã đã dùng, đã hết hạn hoặc tài khoản không còn `UNVERIFIED`. Worker thiếu SMTP, `tutorbridge.identity.mail.from` hoặc `link-base` thì không khởi động.
-- `spring-boot-starter-mail` (bản theo BOM Spring Boot 4.1.2) và `axllent/mailpit:v1.32.0` (phát hành 22/10/2026) trong `infra/compose.yaml`: Huy duyệt cho riêng TB-8 ngày 11/11/2026, Đính rà khi review (CR-012).
-- Profile local: một tiến trình chạy cả hai vai trò, SMTP `127.0.0.1:1025`, xem thư ở http://localhost:8025. Bản triển khai: `TB_WORKER_ENABLED`, `TB_MAIL_FROM`, `TB_LINK_BASE`, `SPRING_MAIL_*` (ghi trong `.env.example`).
+PR 3 (`feature/TB-8-login-sessions`):
+- `identity/internal/AccountSessions` (service), `SessionRepository`, `DatabaseSessionResolver` (bean `SessionResolver` thật; `HttpTest` vẫn thay bằng `TestSessions`), `PasswordHasher.matches` có so khớp giả khi email không có tài khoản (ADR-0008). `identity/web/SessionController` kèm `PublicEndpoints` cho `/api/v1/auth/login`.
+- Đăng nhập: kiểm trì hoãn trước (5 lần sai trong 15 phút gần nhất theo email hoặc theo nguồn trên `auth_login_failures`, 429 `LOGIN_DELAYED`, `Retry-After` tới khi lần sai cũ nhất trong năm lần đó đủ 15 phút); so mật khẩu ngoài giao dịch; sai mật khẩu, email không có, ADMIN, DELETED đều 401 `AUTHENTICATION_FAILED` và ghi một lần sai; `ACCOUNT_UNVERIFIED`, `ACCOUNT_LOCKED` chỉ sau mật khẩu đúng. Thành công: token 256 bit, lưu SHA-256, phiên 7 ngày tuyệt đối, 24 giờ không hoạt động; băm lại nếu `hash_policy` cũ; xóa các lần sai theo email.
+- Mỗi yêu cầu: kiểm như hàm `valid_session` của V5 nhưng lấy giờ từ `Clock`; `last_seen_at` ghi tối đa mỗi 5 phút (Q11).
+- `logoutAccount` idempotent; `listOwnSessions` phân trang theo (`created_at`, `id`), có cờ `revoked`, không có `token_digest`; `revokeOwnSession` trả 404 `SESSION_NOT_FOUND` như nhau cho phiên người khác và id không có; thu hồi lại phiên của mình đã thu hồi trả 204.
+- `Contract.java` (test, nền của Đính): đọc YAML bằng snakeyaml-engine để giải alias `*id001`; trước đó mọi schema dùng alias (như `SessionCredential`) không biên dịch được.
 
 ## Lệnh kiểm tra
 ```bash
@@ -75,6 +71,12 @@ cd .. && sh scripts/ci/client-sync.sh && npm run lint && npm run typecheck && np
 Máy Windows của Huy: Gradle báo lỗi chứng chỉ TLS (PKIX) khi tải thư viện mới, `curl` thì tải được. Thêm `-Djavax.net.ssl.trustStoreType=Windows-ROOT` vào lệnh `./gradlew`. CI Linux không cần.
 
 ## Kết quả chạy gần nhất
+11/11/2026, PR 3, máy Windows của Huy, Docker 29.6.2:
+- `./gradlew test`: 164/164 đạt (thêm 18 `AccountSessionsHttpTest`). Lần đầu 13 ca đỏ vì `Contract` không giải alias YAML, lần hai vì snakeyaml chặn quá 50 alias; sửa `Contract.load`.
+- Thử làm hỏng: bỏ kiểm `revoked_at` ở bộ giải phiên thì 3 ca đỏ; cho ADMIN đăng nhập thì 2 ca đỏ; thu hồi được phiên người khác thì 2 ca đỏ; bỏ trì hoãn thì 4 ca đỏ; khôi phục thì đạt. Ca log AC-UC01-04 đỏ theo mỗi lần vì MockMvc in request (có token, mật khẩu) khi một ca khác đỏ và `OutputCaptureExtension` gom cả lớp; khi mọi ca đạt thì ca này đạt.
+- Chạy thật (`bootRun` profile local, ba khóa sinh cho tiến trình): đăng ký 202; đăng nhập trước khi xác minh 403 `ACCOUNT_UNVERIFIED`; mở liên kết từ Mailpit 204; đăng nhập với User-Agent `okhttp/4.12.0` trả vai trò TUTOR, token 43 ký tự; `/me/sessions` có một phiên Android, `current`; đăng xuất 204; gọi lại 401. Log không có token, mật khẩu, email.
+- `skills-sync`, `immutable-history`, `client-sync`: ok.
+
 11/11/2026, PR 2b, máy Windows của Huy, Docker 29.6.2:
 - `./gradlew test`: 146/146 đạt (thêm 4 `OutboxDispatcherTest`, 4 `VerificationMailTest` chạy Mailpit thật qua Testcontainers).
 - Thử làm hỏng: gửi cả mã đã hết hạn thì 1 ca đỏ; sai đường dẫn liên kết thì 2 ca đỏ; handler lỗi mà vẫn đánh dấu đã gửi thì 1 ca đỏ; khôi phục thì đạt.
@@ -159,6 +161,17 @@ Máy Windows của Huy: Gradle báo lỗi chứng chỉ TLS (PKIX) khi tải th�
   - Email có khoảng trắng ở đầu, cuối: 422 theo `format: email`; máy chủ vẫn cắt khoảng trắng khi chuẩn hóa.
   - Câu báo: đăng ký "Nếu email hợp lệ, chúng tôi đã gửi liên kết xác minh. Vui lòng kiểm tra hộp thư."; gửi lại "Nếu email cần xác minh, chúng tôi đã gửi liên kết mới. Vui lòng kiểm tra hộp thư."; `LINK_INVALID` "Liên kết không hợp lệ."; `LINK_EXPIRED` "Liên kết đã hết hạn. Vui lòng yêu cầu liên kết mới."; `LINK_USED` "Liên kết này đã được sử dụng.". Đối chiếu Figma khi Đính duyệt F01 (#94).
 
+- Huy, 11/11/2026 (OP-17): bỏ qua phần rà và duyệt của Đính cho các PR còn lại của TB-8.
+- Agent chọn trong PR 3, cần người rà xem:
+  - Tách PR 3 khỏi #39 để Huy viết phần tác giả riêng.
+  - `SESSION_NOT_FOUND` (404) là mã mới, theo mẫu `OFFER_NOT_FOUND`; đã thêm vào danh mục trong `m0-ban-giao.md`.
+  - Lần thử bị trì hoãn không tính là một lần sai (không có mật khẩu nào được so). Đăng nhập thành công xóa các lần sai theo email, không xóa theo nguồn.
+  - ADMIN với mật khẩu đúng bị ghi một lần sai như mật khẩu sai, để mọi đường trả 401 giống hệt nhau.
+  - `deviceLabel` lấy thô từ User-Agent: Android (kể cả `okhttp`, React Native trên Android), iPhone, iPad, Windows, macOS, Linux; còn lại để trống, app hiện "Thiết bị không rõ". Không lưu User-Agent gốc.
+  - Danh sách phiên gồm phiên chưa quá hạn theo thời gian, kể cả đã thu hồi (cờ `revoked`); `expiresAt` là hạn sớm hơn giữa 24 giờ không hoạt động và 7 ngày tuyệt đối.
+  - Câu báo: 401 "Email hoặc mật khẩu không đúng."; `ACCOUNT_UNVERIFIED` "Email chưa được xác minh. Vui lòng mở liên kết trong email hoặc gửi lại liên kết."; `ACCOUNT_LOCKED` "Tài khoản đang bị khóa. Vui lòng liên hệ hỗ trợ."; `LOGIN_DELAYED` "Bạn đã nhập sai nhiều lần. Vui lòng thử lại sau."; `SESSION_NOT_FOUND` "Không tìm thấy phiên đăng nhập.".
+  - Dọn `auth_login_failures` cũ theo lô thuộc job M7 (#24).
+
 ## Câu hỏi còn mở
 Q1–Q17 đã đóng, trừ:
 
@@ -167,7 +180,6 @@ Q1–Q17 đã đóng, trừ:
 | Q15 | CR-013 (UX-UI) chưa có trên `dev`. #92 đã merge với số CR-014 theo OP-16; Đính đưa CR-013 lên sau | Đính | Không chặn TB-8 |
 
 ## Bước kế tiếp
-1. PR 2b (Draft #108, nhánh đích `feature/TB-8-account-sessions`): Huy viết phần tác giả; Đính rà `platform` (worker, `OutboxHandler`), thư viện mail và Mailpit.
-2. PR 3: `SessionResolver`, `PublicEndpoints`, `loginAccount` (ADMIN trả 401 `AUTHENTICATION_FAILED`), `logoutAccount`, `listOwnSessions`, `revokeOwnSession`. Đếm lần sai đăng nhập trên `auth_login_failures` theo 15 phút gần nhất; `LOGIN_DELAYED` dùng `TooManyRequests`.
-3. Huy viết phần tác giả cho PR 2 trong mô tả #39.
-4. Sau khi #39 merge: chạy chuỗi TB-10 (#78 → #99) với API thật, mở liên kết từ Mailpit trên điện thoại.
+1. PR 3: Huy viết phần tác giả trên Draft PR; xóa file handoff này trước khi Ready (TB-8 xong cùng PR 3); merge theo OP-17.
+2. Sau khi PR 3 merge: chuyển chuỗi TB-10 (#78 → #99) sang chạy với API thật, mở liên kết từ Mailpit trên điện thoại; #78 đổi sang Ready theo handoff TB-10.
+3. TB-9 (#9): khôi phục, đổi mật khẩu (`CURRENT_PASSWORD_INVALID` 422), tái xác thực, dùng lại `AuthRateLimiter` (`RECOVERY`) và `VerificationMailSender` làm mẫu cho email khôi phục.

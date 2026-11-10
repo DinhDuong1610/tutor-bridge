@@ -4,9 +4,7 @@ import com.tutorbridge.platform.api.Actor;
 import com.tutorbridge.platform.api.ApiException;
 import com.tutorbridge.platform.api.Cursor;
 import com.tutorbridge.platform.api.Page;
-import com.tutorbridge.platform.api.TooManyRequests;
 import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
@@ -27,9 +25,6 @@ import org.springframework.util.IdGenerator;
 @Service
 public class AccountSessions {
 
-    static final int FAILURES_BEFORE_DELAY = 5;
-    static final Duration FAILURE_WINDOW = Duration.ofMinutes(15);
-
     public record Credential(UUID sessionId, String accessToken, String role, Instant idleExpiresAt,
             Instant absoluteExpiresAt) {}
 
@@ -39,15 +34,17 @@ public class AccountSessions {
     private final SessionRepository sessions;
     private final AccountSecrets secrets;
     private final PasswordHasher hasher;
+    private final LoginThrottle throttle;
     private final TransactionOperations transactions;
     private final Clock clock;
     private final IdGenerator ids;
 
     AccountSessions(SessionRepository sessions, AccountSecrets secrets, PasswordHasher hasher,
-            TransactionOperations transactions, Clock clock, IdGenerator ids) {
+            LoginThrottle throttle, TransactionOperations transactions, Clock clock, IdGenerator ids) {
         this.sessions = sessions;
         this.secrets = secrets;
         this.hasher = hasher;
+        this.throttle = throttle;
         this.transactions = transactions;
         this.clock = clock;
         this.ids = ids;
@@ -56,15 +53,13 @@ public class AccountSessions {
     public Credential login(String rawEmail, String password, String source, String userAgent) {
         String emailDigest = secrets.emailDigest(AccountSecrets.normalizeEmail(rawEmail));
         String sourceDigest = secrets.sourceDigest(source);
-        refuseWhileDelayed(emailDigest, sourceDigest, clock.instant());
+        throttle.refuseWhileDelayed(emailDigest, sourceDigest);
 
         Optional<SessionRepository.Login> found = sessions.findLogin(emailDigest);
         boolean passwordMatches = hasher.matches(password, found.map(SessionRepository.Login::passwordHash).orElse(null));
         SessionRepository.Login login = found.orElse(null);
         if (!passwordMatches || "ADMIN".equals(login.role()) || "DELETED".equals(login.status())) {
-            Instant now = clock.instant();
-            sessions.recordFailure("ACCOUNT", emailDigest, now);
-            sessions.recordFailure("SOURCE", sourceDigest, now);
+            throttle.recordFailure(emailDigest, sourceDigest);
             throw authenticationFailed();
         }
         // Only after a correct password, so these never reveal that an email has an account (Q5).
@@ -120,28 +115,6 @@ public class AccountSessions {
     public void revokeOwn(Actor actor, UUID sessionId) {
         if (!sessions.revoke(sessionId, actor.accountId(), clock.instant())) {
             throw new ApiException(HttpStatus.NOT_FOUND, "SESSION_NOT_FOUND", "Không tìm thấy phiên đăng nhập.");
-        }
-    }
-
-    /**
-     * Five failures in the last 15 minutes, by email or by source, delay the next try until the oldest
-     * of those five is 15 minutes old (UC01, sliding window per Đính, 10/11/2026). A refused try is not
-     * a failure: no password was checked.
-     */
-    private void refuseWhileDelayed(String emailDigest, String sourceDigest, Instant now) {
-        Duration wait = Duration.ZERO;
-        for (var subject : List.of(List.of("ACCOUNT", emailDigest), List.of("SOURCE", sourceDigest))) {
-            List<Instant> recent = sessions.recentFailures(subject.get(0), subject.get(1),
-                    now.minus(FAILURE_WINDOW), FAILURES_BEFORE_DELAY);
-            if (recent.size() >= FAILURES_BEFORE_DELAY) {
-                Duration w = Duration.between(now, recent.getLast().plus(FAILURE_WINDOW));
-                if (w.compareTo(wait) > 0) {
-                    wait = w;
-                }
-            }
-        }
-        if (!wait.isZero() && !wait.isNegative()) {
-            throw new TooManyRequests("LOGIN_DELAYED", "Bạn đã nhập sai nhiều lần. Vui lòng thử lại sau.", wait);
         }
     }
 

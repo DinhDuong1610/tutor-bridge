@@ -1,6 +1,8 @@
 spring:
   application:
     name: tutorbridge
+  mail:
+    default-encoding: UTF-8
   autoconfigure:
     # Sessions come from SessionResolver (ADR-0010). No in-memory user with a generated password.
     exclude: org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
@@ -44,6 +46,13 @@ tutorbridge:
       resend-per-source:
         attempts: 10
         window: 1h
+    # Read by the worker role only. SMTP itself is spring.mail.* (SPRING_MAIL_HOST, SPRING_MAIL_PORT, ...).
+    mail:
+      from: ${TB_MAIL_FROM:}
+      link-base: ${TB_LINK_BASE:}
+  # Worker role (docs/design/kien-truc.md): claims outbox events and sends email. Off on API instances.
+  worker:
+    enabled: ${TB_WORKER_ENABLED:false}
 management:
   endpoints:
     web:

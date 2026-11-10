@@ -46,6 +46,12 @@ tutorbridge:
       resend-per-source:
         attempts: 10
         window: 1h
+      recovery-per-account:
+        attempts: 3
+        window: 1h
+      recovery-per-source:
+        attempts: 10
+        window: 1h
     # Read by the worker role only. SMTP itself is spring.mail.* (SPRING_MAIL_HOST, SPRING_MAIL_PORT, ...).
     mail:
       from: ${TB_MAIL_FROM:}

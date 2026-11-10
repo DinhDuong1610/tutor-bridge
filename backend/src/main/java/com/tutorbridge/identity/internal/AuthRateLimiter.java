@@ -23,7 +23,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Component
 class AuthRateLimiter {
 
-    enum Action { REGISTER, RESEND_VERIFICATION }
+    enum Action { REGISTER, RESEND_VERIFICATION, RECOVERY }
 
     enum Scope { ACCOUNT, SOURCE }
 

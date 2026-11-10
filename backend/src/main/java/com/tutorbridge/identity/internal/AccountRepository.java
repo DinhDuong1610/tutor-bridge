@@ -3,6 +3,7 @@ package com.tutorbridge.identity.internal;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 class AccountRepository {
 
     static final String VERIFY_EMAIL = "VERIFY_EMAIL";
+    static final String RESET_PASSWORD = "RESET_PASSWORD";
 
     record Challenge(String purpose, Instant expiresAt, Instant consumedAt) {}
 
@@ -102,15 +104,60 @@ class AccountRepository {
     }
 
     /**
-     * The email ciphertext of the account behind a VERIFY_EMAIL code that is still worth sending:
-     * unconsumed, unexpired, and the account still UNVERIFIED. Empty otherwise.
+     * The email ciphertext of the account behind a code that is still worth mailing: of this purpose,
+     * unconsumed, unexpired, and the account in one of {@code statuses}. Empty otherwise.
      */
-    Optional<byte[]> emailToVerify(UUID challengeId, Instant now) {
+    Optional<byte[]> emailForLink(UUID challengeId, String purpose, List<String> statuses, Instant now) {
         return jdbc.sql("""
                 select a.email_ciphertext from auth_challenges c join accounts a on a.id = c.account_id
-                where c.id = ? and c.purpose = 'VERIFY_EMAIL' and c.consumed_at is null and c.expires_at > ?
-                  and a.status = 'UNVERIFIED' and a.email_ciphertext is not null
-                """).params(challengeId, at(now)).query(byte[].class).optional();
+                where c.id = :id and c.purpose = :purpose and c.consumed_at is null and c.expires_at > :now
+                  and a.status in (:statuses) and a.email_ciphertext is not null
+                """).param("id", challengeId).param("purpose", purpose).param("now", at(now))
+                .param("statuses", statuses).query(byte[].class).optional();
+    }
+
+    /** The account with this email if it may recover its password (ACTIVE or UNVERIFIED, Q2 of TB-9), locked. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    Optional<UUID> lockRecoverableByEmail(String emailDigest) {
+        return jdbc.sql("""
+                select id from accounts where email_digest = ? and status in ('ACTIVE', 'UNVERIFIED') for update
+                """).param(emailDigest).query(UUID.class).optional();
+    }
+
+    /** Status and email digest, locked until the transaction ends. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    Optional<Locked> lockAccount(UUID accountId) {
+        return jdbc.sql("select status, email_digest from accounts where id = ? for update").param(accountId)
+                .query((rs, n) -> new Locked(rs.getString(1), rs.getString(2))).optional();
+    }
+
+    record Locked(String status, String emailDigest) {}
+
+    /**
+     * New password: store the hash, raise auth_epoch and revoke every session, so no session issued
+     * before survives (UC01, AC-UC01-03, ADR-0004). Status does not change.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    void replacePassword(UUID accountId, String passwordHash, String policy, Instant now) {
+        jdbc.sql("""
+                insert into account_credentials (account_id, password_hash, hash_policy, changed_at) values (?, ?, ?, ?)
+                on conflict (account_id) do update
+                set password_hash = excluded.password_hash, hash_policy = excluded.hash_policy,
+                    changed_at = excluded.changed_at
+                """).params(accountId, passwordHash, policy, at(now)).update();
+        jdbc.sql("update accounts set auth_epoch = auth_epoch + 1, revision = revision + 1 where id = ?")
+                .param(accountId).update();
+        jdbc.sql("update auth_sessions set revoked_at = coalesce(revoked_at, ?) where account_id = ?")
+                .params(at(now), accountId).update();
+    }
+
+    /** Spends every other live code of this purpose, so an older reset link cannot be used afterwards. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    void consumeOpenChallenges(UUID accountId, String purpose, Instant now) {
+        jdbc.sql("""
+                update auth_challenges set consumed_at = :now
+                where account_id = :account and purpose = :purpose and consumed_at is null and expires_at > :now
+                """).param("now", at(now)).param("account", accountId).param("purpose", purpose).update();
     }
 
     private static OffsetDateTime at(Instant instant) {

@@ -54,6 +54,7 @@ class VerificationMailTest extends HttpTest {
     private static final JsonMapper JSON = JsonMapper.builder().build();
     private static final HttpClient HTTP = HttpClient.newHttpClient();
     private static final Pattern LINK = Pattern.compile("tutorbridge://verify-email\\?token=([A-Za-z0-9_-]+)");
+    private static final Pattern RESET_LINK = Pattern.compile("tutorbridge://reset-password\\?token=([A-Za-z0-9_-]+)");
 
     @DynamicPropertySource
     static void worker(DynamicPropertyRegistry registry) {
@@ -130,6 +131,31 @@ class VerificationMailTest extends HttpTest {
 
         assertThat(dispatcher.dispatchOnce()).isEqualTo(1);
         assertThat(mailsTo(email)).isEmpty();
+    }
+
+    @Test
+    void the_worker_mails_a_reset_link_that_sets_the_new_password() throws Exception {
+        String email = uniqueEmail();
+        register(email).andExpect(status().isAccepted());
+        dispatcher.dispatchOnce();
+        mvc.perform(post("/api/v1/auth/recovery").contentType(MediaType.APPLICATION_JSON)
+                        .content(JSON.writeValueAsString(Map.of("email", email))))
+                .andExpect(status().isAccepted());
+
+        assertThat(dispatcher.dispatchOnce()).isEqualTo(1);
+
+        JsonNode mail = mailsTo(email).stream()
+                .filter(m -> m.get("Subject").asString().equals("Đặt lại mật khẩu TutorBridge"))
+                .findFirst().orElseThrow();
+        String text = text(mail);
+        assertThat(text).contains("15 phút");
+        Matcher link = RESET_LINK.matcher(text);
+        assertThat(link.find()).as("link in: %s", text).isTrue();
+        mvc.perform(post("/api/v1/auth/reset").contentType(MediaType.APPLICATION_JSON)
+                        .content(JSON.writeValueAsString(Map.of("token", link.group(1),
+                                "newPassword", "mat-khau-moi-du-dai-15"))))
+                .andExpect(status().isNoContent())
+                .andExpect(Contract.matches());
     }
 
     @Test

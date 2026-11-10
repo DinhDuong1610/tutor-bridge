@@ -24,6 +24,26 @@ logging:
       console: ecs
     json:
       customizer: com.tutorbridge.platform.web.LogRedaction
+tutorbridge:
+  identity:
+    # Valid RegistrationInput.termsVersion values (Q8 of TB-8). Empty: nobody can register.
+    terms-versions: ${TB_TERMS_VERSIONS:}
+    keys:
+      # Base64 of 32 random bytes each. Required; the app refuses to start without them.
+      email-digest: ${TB_EMAIL_DIGEST_KEY:}
+      email-encryption: ${TB_EMAIL_ENCRYPTION_KEY:}
+      link-token: ${TB_LINK_TOKEN_KEY:}
+    # Provisional values, not measured (Đính, Q6 of TB-8, 08/11/2026). Fixed windows.
+    limits:
+      register-per-source:
+        attempts: 5
+        window: 1h
+      resend-per-account:
+        attempts: 3
+        window: 1h
+      resend-per-source:
+        attempts: 10
+        window: 1h
 management:
   endpoints:
     web:

@@ -18,7 +18,7 @@ UC01 cho mật khẩu 15–128 ký tự và yêu cầu không ghi mật khẩu v
 Huy chọn ngày 07/11/2026:
 - Chính sách `argon2id-v1`: `m=19456` KiB (19 MiB), `t=2`, `p=1`, salt 16 byte, độ dài băm 32 byte. Đây là cấu hình tối thiểu của OWASP Password Storage Cheat Sheet, dùng làm sàn, không phải số đo năng lực.
 - Trước thí điểm, đo lại trên máy sẽ chạy (môi trường thử chung, Đính chọn trước M6). Máy chịu được thì nâng `m` hoặc `t` thành chính sách mới; tài khoản được băm lại khi đăng nhập, không cần migration.
-- Số đo tham khảo duy nhất hiện có là trên máy cá nhân của Huy (khoảng 26 ms trung vị cho `argon2id-v1`, ghi trong `docs/handoff/TB-8.md`). Không dùng số này để nói về tải (INV-73).
+- Số đo tham khảo duy nhất hiện có là trên máy cá nhân của Huy (khoảng 26 ms trung vị cho `argon2id-v1`, ghi trong [evidence](../../evidence/2026-11-07_argon2id_huy_laptop.md)). Không dùng số này để nói về tải (INV-73).
 
 ## Vì sao không chọn phương án khác
 | Phương án | Lý do bỏ |

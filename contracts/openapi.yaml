@@ -5753,7 +5753,7 @@ paths:
       x-authorization: public
       x-transaction: UC01
       description: Server role allowlist; normalized email uniqueness; UNVERIFIED;
-        rate limit
+        rate limit. Errors 429 RATE_LIMITED with Retry-After. No Idempotency-Key (CR-014).
       parameters: []
       responses:
         '400':
@@ -5802,7 +5802,8 @@ paths:
       - UC01
       x-authorization: public
       x-transaction: UC01
-      description: 30min; purpose VERIFY; consume atomically; activate matching account
+      description: 30min; purpose VERIFY; consume atomically; activate matching account.
+        Errors 400 LINK_INVALID, 400 LINK_EXPIRED, 409 LINK_USED. No Idempotency-Key (CR-014).
       parameters: []
       responses:
         '400':
@@ -5848,7 +5849,11 @@ paths:
       x-authorization: public
       x-transaction: UC01
       description: 5 failures/15min then 15min delay; reject locked/unverified; no
-        token in log
+        token in log. Errors 401 AUTHENTICATION_FAILED for an unknown email or a wrong
+        password (same body for both), 403 ACCOUNT_UNVERIFIED (only after a correct
+        password), 403 ACCOUNT_LOCKED, 429 LOGIN_DELAYED with Retry-After. An ADMIN account
+        gets the same 401 AUTHENTICATION_FAILED and no session; admins sign in through a
+        separate web endpoint (TB-13). No Idempotency-Key (CR-014).
       parameters: []
       responses:
         '400':
@@ -5902,7 +5907,7 @@ paths:
       x-authorization: public
       x-transaction: UC01
       description: Same acknowledgment for missing email; rate limit; delivery status
-        internal
+        internal. Errors 429 RATE_LIMITED with Retry-After. No Idempotency-Key (CR-014).
       parameters: []
       responses:
         '400':
@@ -5952,7 +5957,7 @@ paths:
       x-authorization: public
       x-transaction: UC01
       description: 15min; consume once; change hash; increment epoch; revoke all sessions
-        atomically
+        atomically. Errors 400 LINK_INVALID, 400 LINK_EXPIRED, 409 LINK_USED. No Idempotency-Key (CR-014).
       parameters: []
       responses:
         '400':
@@ -6137,7 +6142,9 @@ paths:
       x-authorization: authenticated reauthenticated
       x-transaction: UC01
       description: Verify current password; change hash; revoke all old sessions;
-        never put secrets in receipt
+        never put secrets in receipt. currentPassword is the reauthentication step; no
+        reauthToken is needed (TB-10 Q10). Wrong current password -> 422 CURRENT_PASSWORD_INVALID
+        with fields[].path currentPassword, never 401. No Idempotency-Key (CR-014).
       parameters: []
       responses:
         '400':
@@ -8123,7 +8130,7 @@ paths:
       x-transaction: UC01
       description: Generic acknowledgment regardless of account existence; 30min one-time
         purpose-bound code sent only to stored contact; rate limit by account and
-        source.
+        source. Errors 429 RATE_LIMITED with Retry-After. No Idempotency-Key (CR-014).
       parameters: []
       responses:
         '400':
@@ -8640,6 +8647,8 @@ components:
       required: true
       description: Random key, 16–128 characters; scoped to actor and command; keep
         receipts at least 7 days. Same key + different canonical payload -> 409.
+        Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID
+        (CR-014).
       schema:
         type: string
         minLength: 16

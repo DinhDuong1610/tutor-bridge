@@ -1347,7 +1347,7 @@ export interface paths {
         put?: never;
         /**
          * registerAccount
-         * @description Server role allowlist; normalized email uniqueness; UNVERIFIED; rate limit
+         * @description Server role allowlist; normalized email uniqueness; UNVERIFIED; rate limit. Errors 429 RATE_LIMITED with Retry-After. No Idempotency-Key (CR-014).
          */
         post: operations["registerAccount"];
         delete?: never;
@@ -1367,7 +1367,7 @@ export interface paths {
         put?: never;
         /**
          * verifyEmail
-         * @description 30min; purpose VERIFY; consume atomically; activate matching account
+         * @description 30min; purpose VERIFY; consume atomically; activate matching account. Errors 400 LINK_INVALID, 400 LINK_EXPIRED, 409 LINK_USED. No Idempotency-Key (CR-014).
          */
         post: operations["verifyEmail"];
         delete?: never;
@@ -1387,7 +1387,7 @@ export interface paths {
         put?: never;
         /**
          * loginAccount
-         * @description 5 failures/15min then 15min delay; reject locked/unverified; no token in log
+         * @description 5 failures/15min then 15min delay; reject locked/unverified; no token in log. Errors 401 AUTHENTICATION_FAILED for an unknown email or a wrong password (same body for both), 403 ACCOUNT_UNVERIFIED (only after a correct password), 403 ACCOUNT_LOCKED, 429 LOGIN_DELAYED with Retry-After. An ADMIN account gets the same 401 AUTHENTICATION_FAILED and no session; admins sign in through a separate web endpoint (TB-13). No Idempotency-Key (CR-014).
          */
         post: operations["loginAccount"];
         delete?: never;
@@ -1407,7 +1407,7 @@ export interface paths {
         put?: never;
         /**
          * requestRecovery
-         * @description Same acknowledgment for missing email; rate limit; delivery status internal
+         * @description Same acknowledgment for missing email; rate limit; delivery status internal. Errors 429 RATE_LIMITED with Retry-After. No Idempotency-Key (CR-014).
          */
         post: operations["requestRecovery"];
         delete?: never;
@@ -1427,7 +1427,7 @@ export interface paths {
         put?: never;
         /**
          * resetPassword
-         * @description 15min; consume once; change hash; increment epoch; revoke all sessions atomically
+         * @description 15min; consume once; change hash; increment epoch; revoke all sessions atomically. Errors 400 LINK_INVALID, 400 LINK_EXPIRED, 409 LINK_USED. No Idempotency-Key (CR-014).
          */
         post: operations["resetPassword"];
         delete?: never;
@@ -1507,7 +1507,7 @@ export interface paths {
         put?: never;
         /**
          * changePassword
-         * @description Verify current password; change hash; revoke all old sessions; never put secrets in receipt
+         * @description Verify current password; change hash; revoke all old sessions; never put secrets in receipt. currentPassword is the reauthentication step; no reauthToken is needed (TB-10 Q10). Wrong current password -> 422 CURRENT_PASSWORD_INVALID with fields[].path currentPassword, never 401. No Idempotency-Key (CR-014).
          */
         post: operations["changePassword"];
         delete?: never;
@@ -2107,7 +2107,7 @@ export interface paths {
         put?: never;
         /**
          * resendVerification
-         * @description Generic acknowledgment regardless of account existence; 30min one-time purpose-bound code sent only to stored contact; rate limit by account and source.
+         * @description Generic acknowledgment regardless of account existence; 30min one-time purpose-bound code sent only to stored contact; rate limit by account and source. Errors 429 RATE_LIMITED with Retry-After. No Idempotency-Key (CR-014).
          */
         post: operations["resendVerification"];
         delete?: never;
@@ -3510,7 +3510,7 @@ export interface components {
         };
     };
     parameters: {
-        /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+        /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
         IdempotencyKey: string;
         /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
         IfMatch: string;
@@ -3565,7 +3565,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
             };
             path?: never;
@@ -3643,7 +3643,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -3722,7 +3722,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -3768,7 +3768,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -3814,7 +3814,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -3930,7 +3930,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -4047,7 +4047,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -4093,7 +4093,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -4139,7 +4139,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -4296,7 +4296,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -4340,7 +4340,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -4494,7 +4494,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -4540,7 +4540,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -4586,7 +4586,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -4667,7 +4667,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -4711,7 +4711,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -4790,7 +4790,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -4834,7 +4834,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -4914,7 +4914,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -4960,7 +4960,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -5042,7 +5042,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -5314,7 +5314,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -5551,7 +5551,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -5674,7 +5674,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -5797,7 +5797,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -5920,7 +5920,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -6043,7 +6043,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -6166,7 +6166,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -6517,7 +6517,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -6640,7 +6640,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -6763,7 +6763,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -6886,7 +6886,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -7122,7 +7122,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -7245,7 +7245,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -7599,7 +7599,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -7837,7 +7837,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -8074,7 +8074,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -8197,7 +8197,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -8320,7 +8320,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -8791,7 +8791,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -9357,7 +9357,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -9401,7 +9401,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -9445,7 +9445,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
             };
             path?: never;
@@ -9485,7 +9485,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -9558,7 +9558,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 "If-Match"?: string;
                 "If-None-Match"?: "*";
@@ -9600,7 +9600,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -9678,7 +9678,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -9722,7 +9722,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -9802,7 +9802,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
             };
             path?: never;
@@ -9915,7 +9915,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -9959,7 +9959,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -10003,7 +10003,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -10047,7 +10047,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -10091,7 +10091,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -10135,7 +10135,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -10215,7 +10215,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
             };
             path?: never;
@@ -10288,7 +10288,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -10477,7 +10477,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
             };
             path?: never;
@@ -10584,7 +10584,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -10729,7 +10729,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 "If-Match"?: string;
                 "If-None-Match"?: "*";
@@ -10806,7 +10806,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 "If-Match"?: string;
                 "If-None-Match"?: "*";
@@ -10850,7 +10850,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];
@@ -10894,7 +10894,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. */
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
                 /** @description Strong ETag returned by the target resource. Missing -> 428; stale -> 412. Reauthorize then check known receipt before precondition on replay. */
                 "If-Match": components["parameters"]["IfMatch"];

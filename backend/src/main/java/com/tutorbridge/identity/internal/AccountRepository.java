@@ -127,11 +127,11 @@ class AccountRepository {
     /** Status and email digest, locked until the transaction ends. */
     @Transactional(propagation = Propagation.MANDATORY)
     Optional<Locked> lockAccount(UUID accountId) {
-        return jdbc.sql("select status, email_digest from accounts where id = ? for update").param(accountId)
-                .query((rs, n) -> new Locked(rs.getString(1), rs.getString(2))).optional();
+        return jdbc.sql("select status, email_digest, auth_epoch from accounts where id = ? for update").param(accountId)
+                .query((rs, n) -> new Locked(rs.getString(1), rs.getString(2), rs.getLong(3))).optional();
     }
 
-    record Locked(String status, String emailDigest) {}
+    record Locked(String status, String emailDigest, long authEpoch) {}
 
     /**
      * New password: store the hash, raise auth_epoch and revoke every session, so no session issued

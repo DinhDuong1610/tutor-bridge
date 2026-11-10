@@ -1,7 +1,7 @@
 # TB-8 Đăng ký, xác minh, đăng nhập, phiên; ADR băm mật khẩu
 
 - **Chủ task:** Huy
-- **Nhánh:** PR 1 `feature/TB-8-auth-contract` (#92, đã merge vào `dev` ngày 11/11/2026, commit `c16d51f`); PR 2 và PR 3 trên `feature/TB-8-account-sessions` (Draft PR #39), đã merge `dev` vào sau khi #92 merge; PR 2b `feature/TB-8-verification-mail`, tách từ #39 tại `a697fff`, nhánh đích `feature/TB-8-account-sessions`
+- **Nhánh:** PR 1 `feature/TB-8-auth-contract` (#92, đã merge vào `dev` ngày 11/11/2026, commit `c16d51f`); PR 2 và PR 3 trên `feature/TB-8-account-sessions` (Draft PR #39), đã merge `dev` vào sau khi #92 merge; PR 2b `feature/TB-8-verification-mail` (Draft PR #108), tách từ #39 tại `a697fff`, nhánh đích `feature/TB-8-account-sessions`
 - **Agent đang làm:** Claude (Claude Code). PR 1 đã merge; PR 2 đã push lên #39; PR 2b xong (`913e510`, `80b90a1`)
 - **Cập nhật lần cuối:** 11/11/2026, PR 2b (worker gửi email xác minh qua Mailpit) xong, chạy trọn luồng trên máy
 - **Mã liên quan:** FR-01, FR-02; UC01; AC-UC01-01, AC-UC01-02, AC-UC01-03, AC-UC01-04; INV-01, INV-03, INV-06, INV-18, INV-20, INV-21, INV-63, INV-80, INV-83; ADR-0004
@@ -167,7 +167,7 @@ Q1–Q17 đã đóng, trừ:
 | Q15 | CR-013 (UX-UI) chưa có trên `dev`. #92 đã merge với số CR-014 theo OP-16; Đính đưa CR-013 lên sau | Đính | Không chặn TB-8 |
 
 ## Bước kế tiếp
-1. PR 2b: Draft PR với nhánh đích `feature/TB-8-account-sessions`; Huy viết phần tác giả; Đính rà `platform` (worker, `OutboxHandler`), thư viện mail và Mailpit.
+1. PR 2b (Draft #108, nhánh đích `feature/TB-8-account-sessions`): Huy viết phần tác giả; Đính rà `platform` (worker, `OutboxHandler`), thư viện mail và Mailpit.
 2. PR 3: `SessionResolver`, `PublicEndpoints`, `loginAccount` (ADMIN trả 401 `AUTHENTICATION_FAILED`), `logoutAccount`, `listOwnSessions`, `revokeOwnSession`. Đếm lần sai đăng nhập trên `auth_login_failures` theo 15 phút gần nhất; `LOGIN_DELAYED` dùng `TooManyRequests`.
 3. Huy viết phần tác giả cho PR 2 trong mô tả #39.
 4. Sau khi #39 merge: chạy chuỗi TB-10 (#78 → #99) với API thật, mở liên kết từ Mailpit trên điện thoại.

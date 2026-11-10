@@ -57,10 +57,13 @@ class AcceptOfferConcurrencyTest extends IntegrationTest {
     static void startSecondInstance() {
         secondInstance = new SpringApplicationBuilder(TutorBridgeApplication.class)
                 .web(WebApplicationType.NONE)
-                .run(
-                        "--spring.datasource.url=" + PostgresTestSupport.jdbcUrl(),
-                        "--spring.datasource.password=" + PostgresTestSupport.APP_PASSWORD,
-                        "--spring.flyway.enabled=false");
+                .run(java.util.stream.Stream.concat(
+                        java.util.stream.Stream.of(
+                                "--spring.datasource.url=" + PostgresTestSupport.jdbcUrl(),
+                                "--spring.datasource.password=" + PostgresTestSupport.APP_PASSWORD,
+                                "--spring.flyway.enabled=false"),
+                        identityProperties().entrySet().stream().map(e -> "--" + e.getKey() + "=" + e.getValue()))
+                        .toArray(String[]::new));
     }
 
     @AfterAll

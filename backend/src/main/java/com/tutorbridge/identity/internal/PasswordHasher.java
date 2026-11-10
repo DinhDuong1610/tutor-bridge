@@ -16,8 +16,20 @@ public class PasswordHasher {
 
     private final Argon2PasswordEncoder encoder = new Argon2PasswordEncoder(16, 32, 1, 19456, 2);
 
+    /** Compared against when the email has no account, so the reply takes as long (ADR-0008). */
+    private final String dummyHash = encoder.encode("tutorbridge-dummy-password-for-timing");
+
     public String hash(String password) {
         return encoder.encode(normalize(password));
+    }
+
+    /** False for a null hash too, after the same work as a real comparison. */
+    public boolean matches(String password, String passwordHash) {
+        if (passwordHash == null) {
+            encoder.matches(normalize(password), dummyHash);
+            return false;
+        }
+        return encoder.matches(normalize(password), passwordHash);
     }
 
     private static String normalize(String password) {

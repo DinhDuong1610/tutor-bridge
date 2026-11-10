@@ -12,10 +12,23 @@ CREATE TABLE terms_acceptances (
  accepted_at timestamptz NOT NULL DEFAULT now(),
  PRIMARY KEY(account_id,terms_version));
 
--- Attempt counters per account and per source (INV-80: not in memory). subject_digest is a keyed
+-- Attempt limits per account and per source (INV-80: not in memory). subject_digest is a keyed
 -- digest of the email or of the source address, never the raw value. Limits live in configuration.
+
+-- LOGIN: one row per failed attempt, counted over a sliding window (UC01: five failures in the last
+-- 15 minutes). A fixed window would let failures on both sides of a window edge go uncounted.
+CREATE TABLE auth_login_failures (
+ id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+ scope text NOT NULL CHECK(scope IN ('ACCOUNT','SOURCE')),
+ subject_digest char(64) NOT NULL CHECK(subject_digest~'^[0-9a-f]{64}$'),
+ failed_at timestamptz NOT NULL);
+CREATE INDEX auth_login_failures_subject ON auth_login_failures(scope,subject_digest,failed_at);
+-- Lets a cleanup job remove failures older than the window in batches.
+CREATE INDEX auth_login_failures_age ON auth_login_failures(failed_at);
+
+-- Other commands keep a fixed window while their limits are provisional (Đính, 10/11/2026).
 CREATE TABLE auth_rate_counters (
- action text NOT NULL CHECK(action IN ('LOGIN','REGISTER','RESEND_VERIFICATION','RECOVERY')),
+ action text NOT NULL CHECK(action IN ('REGISTER','RESEND_VERIFICATION','RECOVERY')),
  scope text NOT NULL CHECK(scope IN ('ACCOUNT','SOURCE')),
  subject_digest char(64) NOT NULL CHECK(subject_digest~'^[0-9a-f]{64}$'),
  window_started_at timestamptz NOT NULL,

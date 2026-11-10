@@ -2,21 +2,21 @@
 
 Theo [ADR-0001](../decisions/adr/0001-nguyen-khoi-chia-mo-dun.md). Chỉ mô-đun sở hữu mới được ghi và truy vấn trực tiếp các bảng của mình. Mô-đun khác đi qua API công khai của mô-đun đó.
 
-Thiết kế gốc liệt kê mô-đun ở mức nhóm. Việc gán từng bảng dưới đây là suy ra từ F01–F06, gồm cả 3 bảng của V6 và 2 bảng của V9.
+Thiết kế gốc liệt kê mô-đun ở mức nhóm. Việc gán từng bảng dưới đây là suy ra từ F01–F06, gồm cả 3 bảng của V6 và 3 bảng của V9.
 
 | Mô-đun | Package | Luồng | Tài liệu | Bảng |
 |---|---|---|---|---|
-| Identity & Profiles | `identity` | F01 | UC01–UC03 | 15 |
+| Identity & Profiles | `identity` | F01 | UC01–UC03 | 16 |
 | Matching & Classes | `classes` | F02, F03 | UC04–UC08 | 18 |
 | Materials & Planning | `materials` | F04 | UC10, UC11 | 23 |
 | Learning | `learning` | F05 | UC09, UC12, UC13 | 12 |
 | Support & Privacy | `privacy` | F06 | UC14, UC16 | 10 |
 | Platform | `platform` | Dùng chung | UC15, FR-37 | 4 |
 
-Tổng 82 bảng.
+Tổng 83 bảng.
 
 ## Bảng theo mô-đun
-**identity:** `accounts`, `auth_sessions`, `account_credentials`, `auth_challenges`, `admin_assignments`, `admin_mfa_enrollments`, `students`, `student_links`, `student_invitations`, `student_link_events`, `tutor_profiles`, `tutor_verifications`, `tutor_evidence_uploads`, `terms_acceptances`, `auth_rate_counters`
+**identity:** `accounts`, `auth_sessions`, `account_credentials`, `auth_challenges`, `admin_assignments`, `admin_mfa_enrollments`, `students`, `student_links`, `student_invitations`, `student_link_events`, `tutor_profiles`, `tutor_verifications`, `tutor_evidence_uploads`, `terms_acceptances`, `auth_login_failures`, `auth_rate_counters`
 
 **classes:** `calendars`, `availability_windows`, `learning_needs`, `need_versions`, `matching_runs`, `matching_candidates`, `class_offers`, `offer_sessions`, `classes`, `class_goal_versions`, `lesson_sessions`, `resource_bookings`, `schedule_change_requests`, `session_schedule_history`, `class_end_records`, `embedding_configs`, `tutor_profile_embeddings`, `need_version_embeddings`
 

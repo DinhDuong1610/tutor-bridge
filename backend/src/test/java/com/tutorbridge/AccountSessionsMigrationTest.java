@@ -12,7 +12,7 @@ import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
 
-/** V9 (TB-08): session device label, terms acceptance and attempt counters. */
+/** V9 (TB-08): session device label, terms acceptance, login failures and attempt counters. */
 class AccountSessionsMigrationTest extends IntegrationTest {
 
     private static final String DIGEST = "a".repeat(64);
@@ -64,17 +64,56 @@ class AccountSessionsMigrationTest extends IntegrationTest {
                 .param(account).update();
         jdbc.sql("""
                 insert into auth_rate_counters(action, scope, subject_digest, window_started_at, attempt_count, blocked_until)
-                values ('LOGIN', 'ACCOUNT', ?, now(), 5, now() + interval '15 minutes')
+                values ('RECOVERY', 'ACCOUNT', ?, now(), 3, now() + interval '1 hour')
                 """).param(DIGEST).update();
+        jdbc.sql("insert into auth_login_failures(scope, subject_digest, failed_at) values ('SOURCE', ?, now())")
+                .param(DIGEST).update();
 
         int updated = jdbc.sql("""
                 update auth_rate_counters set attempt_count = attempt_count + 1
-                where action = 'LOGIN' and scope = 'ACCOUNT' and subject_digest = ?
+                where action = 'RECOVERY' and scope = 'ACCOUNT' and subject_digest = ?
                 """).param(DIGEST).update();
         int deleted = jdbc.sql("delete from auth_rate_counters where subject_digest = ?").param(DIGEST).update();
+        int failuresDeleted = jdbc.sql("delete from auth_login_failures where subject_digest = ?").param(DIGEST).update();
 
         assertThat(updated).isEqualTo(1);
         assertThat(deleted).isEqualTo(1);
+        assertThat(failuresDeleted).isEqualTo(1);
+    }
+
+    @Test
+    void UC01_login_failures_are_counted_over_the_last_15_minutes_across_any_window_edge() {
+        String subject = randomDigest();
+        OffsetDateTime now = OffsetDateTime.now();
+        // Four failures just before and four just after a 15 minute edge: a fixed window would see 4 and 4.
+        for (int second = 0; second < 8; second++) {
+            recordLoginFailure(subject, now.minusSeconds(60 - second * 8L));
+        }
+        // Older than 15 minutes: outside the sliding window.
+        recordLoginFailure(subject, now.minusMinutes(16));
+
+        Integer recent = jdbc.sql("""
+                select count(*) from auth_login_failures
+                where scope = 'ACCOUNT' and subject_digest = ? and failed_at > ? - interval '15 minutes'
+                """).param(subject).param(now).query(Integer.class).single();
+
+        assertThat(recent).isEqualTo(8);
+    }
+
+    @Test
+    void login_failures_reject_raw_subjects_and_unknown_scopes() {
+        OffsetDateTime now = OffsetDateTime.now();
+        for (String[] row : new String[][] {
+            {"ACCOUNT", "parent@example.invalid"},
+            {"ACCOUNT", "A".repeat(64)},
+            {"DEVICE", DIGEST},
+        }) {
+            assertThatThrownBy(() -> jdbc.sql(
+                            "insert into auth_login_failures(scope, subject_digest, failed_at) values (?, ?, ?)")
+                            .param(row[0]).param(row[1]).param(now).update())
+                    .as(String.join(",", row))
+                    .isInstanceOf(DataIntegrityViolationException.class);
+        }
     }
 
     @Test
@@ -95,10 +134,12 @@ class AccountSessionsMigrationTest extends IntegrationTest {
     void counters_reject_raw_subjects_and_unknown_actions() {
         OffsetDateTime now = OffsetDateTime.now();
         for (String[] row : new String[][] {
-            {"LOGIN", "ACCOUNT", "parent@example.invalid"},
-            {"LOGIN", "ACCOUNT", "A".repeat(64)},
+            {"RECOVERY", "ACCOUNT", "parent@example.invalid"},
+            {"RECOVERY", "ACCOUNT", "A".repeat(64)},
             {"PAYMENT", "ACCOUNT", DIGEST},
-            {"LOGIN", "DEVICE", DIGEST},
+            {"RECOVERY", "DEVICE", DIGEST},
+            // LOGIN is counted per failure in auth_login_failures, never in a fixed window.
+            {"LOGIN", "ACCOUNT", DIGEST},
         }) {
             assertThatThrownBy(() -> jdbc.sql("""
                             insert into auth_rate_counters(action, scope, subject_digest, window_started_at, attempt_count)
@@ -122,6 +163,15 @@ class AccountSessionsMigrationTest extends IntegrationTest {
                         values ('RECOVERY', 'SOURCE', ?, ?, 1, ?)
                         """).param(DIGEST).param(now).param(now.minusMinutes(1)).update())
                 .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    private void recordLoginFailure(String subject, OffsetDateTime at) {
+        jdbc.sql("insert into auth_login_failures(scope, subject_digest, failed_at) values ('ACCOUNT', ?, ?)")
+                .param(subject).param(at).update();
+    }
+
+    private static String randomDigest() {
+        return (UUID.randomUUID().toString() + UUID.randomUUID()).replace("-", "");
     }
 
     private static void migrate(String url, String target) {

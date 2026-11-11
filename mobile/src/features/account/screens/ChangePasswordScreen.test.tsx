@@ -12,9 +12,9 @@ async function show() {
   await renderScreen(<ChangePasswordScreen onCancel={jest.fn()} />, { session: fakeSession("TUTOR") });
 }
 
-function fill(current = CURRENT, next = NEXT) {
-  fireEvent.changeText(screen.getByLabelText("Mật khẩu hiện tại"), current);
-  fireEvent.changeText(screen.getByLabelText("Mật khẩu mới"), next);
+async function fill(current = CURRENT, next = NEXT) {
+  await fireEvent.changeText(screen.getByLabelText("Mật khẩu hiện tại"), current);
+  await fireEvent.changeText(screen.getByLabelText("Mật khẩu mới"), next);
 }
 
 async function pressChange() {
@@ -28,7 +28,7 @@ describe("AUTH06 ChangePasswordScreen", () => {
   it("sends the current and new password, then asks to sign in again because every session ended", async () => {
     server = mockApi({ "POST /me/password": () => new Response(null, { status: 204 }) });
     await show();
-    fill();
+    await fill();
 
     await pressChange();
 
@@ -43,7 +43,7 @@ describe("AUTH06 ChangePasswordScreen", () => {
   it("does not send without the current password or with a short new password", async () => {
     server = mockApi({});
     await show();
-    fill("", "ngan");
+    await fill("", "ngan");
 
     await pressChange();
 
@@ -60,7 +60,7 @@ describe("AUTH06 ChangePasswordScreen", () => {
         ]),
     });
     await show();
-    fill();
+    await fill();
 
     await pressChange();
 
@@ -76,7 +76,7 @@ describe("AUTH06 ChangePasswordScreen", () => {
       },
     });
     await show();
-    fill();
+    await fill();
 
     await pressChange();
 
@@ -90,7 +90,7 @@ describe("AUTH06 ChangePasswordScreen", () => {
     server = mockApi({ "POST /me/password": () => new Response(null, { status: 204 }) });
     try {
       await show();
-      fill();
+      await fill();
       await pressChange();
       await screen.findByRole("header", { name: "Đã đổi mật khẩu" });
 

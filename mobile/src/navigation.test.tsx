@@ -16,21 +16,21 @@ beforeEach(() => {
 // Uses the real route tree in src/app, so a missing or clashing route fails here.
 describe("navigation without a session", () => {
   it.each(["/", "/parent", "/tutor"])("sends %s to sign-in", async (url) => {
-    renderRouter("./src/app", { initialUrl: url });
+    await renderRouter("./src/app", { initialUrl: url });
 
     expect(await screen.findByRole("header", { name: "Đăng nhập" })).toBeOnTheScreen();
     expect(screen).toHavePathname("/sign-in");
   });
 
   it("shows a Vietnamese not-found screen for an unknown link", async () => {
-    renderRouter("./src/app", { initialUrl: "/admin" });
+    await renderRouter("./src/app", { initialUrl: "/admin" });
 
     expect(await screen.findByRole("header", { name: "Không tìm thấy màn hình" })).toBeOnTheScreen();
   });
 
   it("ignores a damaged saved session and removes it", async () => {
     storeSession("{not json");
-    renderRouter("./src/app", { initialUrl: "/" });
+    await renderRouter("./src/app", { initialUrl: "/" });
 
     expect(await screen.findByRole("header", { name: "Đăng nhập" })).toBeOnTheScreen();
     await waitFor(() => expect(storedSession()).toBeUndefined());
@@ -38,7 +38,7 @@ describe("navigation without a session", () => {
 
   it("ignores a session past its absolute expiry and removes it", async () => {
     storeSession(fakeSession("PARENT", { absoluteExpiresAt: "2020-01-01T00:00:00Z" }));
-    renderRouter("./src/app", { initialUrl: "/parent" });
+    await renderRouter("./src/app", { initialUrl: "/parent" });
 
     expect(await screen.findByRole("header", { name: "Đăng nhập" })).toBeOnTheScreen();
     await waitFor(() => expect(storedSession()).toBeUndefined());
@@ -51,7 +51,7 @@ describe("navigation with a session", () => {
     ["TUTOR", "/tutor", "Trang chủ gia sư"],
   ] as const)("sends a %s to %s", async (role, home, title) => {
     storeSession(fakeSession(role));
-    renderRouter("./src/app", { initialUrl: "/" });
+    await renderRouter("./src/app", { initialUrl: "/" });
 
     expect(await screen.findByRole("header", { name: title })).toBeOnTheScreen();
     expect(screen).toHavePathname(home);
@@ -59,7 +59,7 @@ describe("navigation with a session", () => {
 
   it("keeps a parent out of the tutor area", async () => {
     storeSession(fakeSession("PARENT"));
-    renderRouter("./src/app", { initialUrl: "/tutor" });
+    await renderRouter("./src/app", { initialUrl: "/tutor" });
 
     expect(await screen.findByRole("header", { name: "Trang chủ phụ huynh" })).toBeOnTheScreen();
     expect(screen).toHavePathname("/parent");
@@ -67,7 +67,7 @@ describe("navigation with a session", () => {
 
   it("keeps a signed-in user out of sign-in", async () => {
     storeSession(fakeSession("TUTOR"));
-    renderRouter("./src/app", { initialUrl: "/sign-in" });
+    await renderRouter("./src/app", { initialUrl: "/sign-in" });
 
     expect(await screen.findByRole("header", { name: "Trang chủ gia sư" })).toBeOnTheScreen();
     expect(screen).toHavePathname("/tutor");
@@ -75,7 +75,7 @@ describe("navigation with a session", () => {
 
   it("tells an admin the app is not for them and lets them sign out", async () => {
     storeSession(fakeSession("ADMIN"));
-    renderRouter("./src/app", { initialUrl: "/" });
+    await renderRouter("./src/app", { initialUrl: "/" });
 
     expect(await screen.findByRole("header", { name: "Tài khoản này chưa dùng được trên ứng dụng" })).toBeOnTheScreen();
     await act(async () => fireEvent.press(screen.getByRole("button", { name: "Đăng xuất" })));
@@ -105,7 +105,7 @@ describe("session end", () => {
 
   it("ends the session on a 401 and forgets the token", async () => {
     storeSession(fakeSession("PARENT"));
-    renderRouter(
+    await renderRouter(
       {
         _layout: RootLayout,
         index: Index,

@@ -176,7 +176,7 @@ describe("useCommand", () => {
     const send = jest.fn(() => new Promise<{ id: string }>((resolve) => (answer = resolve)));
     const { result } = await setup(send);
 
-    act(() => {
+    await act(() => {
       void result.current.submit({ name: "Minh" });
     });
     await waitFor(() => expect(result.current.state).toBe("sending"));

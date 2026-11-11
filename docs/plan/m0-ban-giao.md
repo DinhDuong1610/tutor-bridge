@@ -33,8 +33,8 @@ Phần nền sau M0 cũng merge theo ngoại lệ OP-15 (06/11/2026). Theo OP-14
 | Việc | Hiện tại | Người chốt | Hạn |
 |---|---|---|---|
 | ADR-0007 khóa tài nguyên bằng khóa tư vấn | Đề xuất | Đính | Trước TB-15 |
-| Danh mục mã lỗi | Mã tự đặt trong `platform` và `classes`, xem dưới | Đính, Huy | Trước TB-10 |
-| Thiếu `Idempotency-Key` | Trả 422; hợp đồng chỉ nói 428 cho `If-Match` | Đính, Huy | Trước TB-08 |
+| Danh mục mã lỗi | Mã tự đặt trong `platform` và `classes`, xem dưới. Mã của tài khoản đã chốt 08/11/2026 trên #39 (Huy đề xuất, Đính đồng ý) | Đính, Huy | Xong cho TB-08; mã của chức năng sau chốt theo từng Issue |
+| Thiếu `Idempotency-Key` | Đã chốt theo CR-014: trả 400 `IDEMPOTENCY_KEY_REQUIRED`; khóa sai độ dài vẫn 422 `IDEMPOTENCY_KEY_INVALID`; lệnh xác thực công khai không dùng khóa | Đính, Huy | Xong |
 | Quyền trên bảng chỉ thêm như `audit_events` | `tutorbridge_app` ghi đồng đều | Đính | Trước TB-23 |
 | Outbox thử tối đa bao nhiêu lần, xử lý sự kiện lỗi mãi | Thử lại không giới hạn | Đính | TB-21 |
 | Mục tiêu đầu của lớp | `EFFECTIVE`, vì gửi đề nghị là phụ huynh đã đồng ý (BR05) | Đính | Trước TB-19 |
@@ -44,7 +44,7 @@ Phần nền sau M0 cũng merge theo ngoại lệ OP-15 (06/11/2026). Theo OP-14
 | Tên gói Android, thư viện điều hướng | Đã chốt 06/11/2026: `vn.tutorbridge.app` (Đính), Expo Router (ADR-0009) | Đính | Xong |
 | `lock_timeout` cho giao dịch | Chưa đặt | Đính | Khi có số đo tải |
 
-Mã lỗi đang dùng: `IDEMPOTENCY_KEY_INVALID`, `IDEMPOTENCY_KEY_REUSED`, `CURSOR_INVALID`, `LIMIT_INVALID`, `VALIDATION_FAILED`, `REQUEST_REJECTED`, `INTERNAL_ERROR`, `OFFER_NOT_FOUND`, `ACCESS_UNAVAILABLE`, `SCOPE_CHANGED`, `OFFER_EXPIRED`, `VERSION_CONFLICT`, `SCHEDULE_CONFLICT`, `SERVICE_BUSY`, và `PRECONDITION_REQUIRED` (428, thiếu `If-Match`, thêm ở #45), `AUTHENTICATION_REQUIRED` (401), `CSRF_REJECTED` (403), `ACCESS_DENIED` (403) thêm ở #46.
+Mã lỗi đang dùng: `IDEMPOTENCY_KEY_REQUIRED` (400, CR-014), `IDEMPOTENCY_KEY_INVALID`, `IDEMPOTENCY_KEY_REUSED`, `CURSOR_INVALID`, `LIMIT_INVALID`, `VALIDATION_FAILED`, `REQUEST_REJECTED`, `INTERNAL_ERROR`, `OFFER_NOT_FOUND`, `ACCESS_UNAVAILABLE`, `SCOPE_CHANGED`, `OFFER_EXPIRED`, `VERSION_CONFLICT`, `SCHEDULE_CONFLICT`, `SERVICE_BUSY`, và `PRECONDITION_REQUIRED` (428, thiếu `If-Match`, thêm ở #45), `AUTHENTICATION_REQUIRED` (401), `CSRF_REJECTED` (403), `ACCESS_DENIED` (403) thêm ở #46. Mã của tài khoản ghi trong hợp đồng, dùng từ TB-08: `ACCOUNT_UNVERIFIED` (403), `ACCOUNT_LOCKED` (403), `LOGIN_DELAYED` (429, kèm `Retry-After`), `LINK_EXPIRED` (400), `LINK_USED` (409), `LINK_INVALID` (400), `CURRENT_PASSWORD_INVALID` (422). Chốt ngày 10/11/2026 (Q13 của TB-8, Huy đề xuất, Đính đồng ý): `AUTHENTICATION_FAILED` (401, sai email hoặc mật khẩu, cùng một phản hồi), `RATE_LIMITED` (429, kèm `Retry-After`). Thêm ở TB-8 PR 3 (agent chọn, theo mẫu `OFFER_NOT_FOUND`): `SESSION_NOT_FOUND` (404, phiên không có hoặc của người khác, cùng một phản hồi).
 
 ## Ràng buộc cho task sau
 - **TB-15, TB-18:** khóa theo cùng thứ tự với TX05: nhu cầu trước đề nghị, rồi khóa tài nguyên `STUDENT:<id>`, `TUTOR:<id>` theo ADR-0007.
@@ -57,7 +57,7 @@ Mã lỗi đang dùng: `IDEMPOTENCY_KEY_INVALID`, `IDEMPOTENCY_KEY_REUSED`, `CUR
 - **Mobile:** cài phụ thuộc bằng `npx expo install`. Từ #50: Testing Library 13 thay cho 14 (bản 14 kéo React 19.3 vào gốc, sinh hai bản React), và `overrides` ở gốc giữ một bản React 19.2.3 cho cả workspace. Mobile dùng TypeScript 6, web và client dùng 5.9 vì công cụ sinh client chưa hỗ trợ 6.
 
 ## PR của Dependabot
-Dependabot mở PR cập nhật hằng tuần vào `dev`, không cần phần tác giả. Người duyệt kiểm CI và ghi chú phát hành, rồi squash merge. Ngày 04/11/2026 Huy đã merge #30, #33, #38 và đóng #34–#37 vì lệch Expo SDK 57 hoặc TypeScript đã khóa. `.github/dependabot.yml` bỏ qua các gói Expo quản lý và bản chính của TypeScript; nâng chúng trong task nâng SDK riêng. Ngày 06/11/2026 Đính merge #59, #61, #62 (bản vá Next, eslint-config-next, vitest) và đóng #60 (ESLint 10, đã ra lệnh bỏ qua bản chính) và #58 (jest 30, PR gộp hai gói nên chỉ đóng tay; sẽ mở lại hằng tuần cho tới khi `dependabot.yml` bỏ qua bản chính của `jest`, `@types/jest`).
+Dependabot mở PR cập nhật hằng tuần vào `dev`, không cần phần tác giả. Người duyệt kiểm CI và ghi chú phát hành, rồi squash merge. Ngày 04/11/2026 Huy đã merge #30, #33, #38 và đóng #34–#37 vì lệch Expo SDK 57 hoặc TypeScript đã khóa. `.github/dependabot.yml` bỏ qua các gói Expo quản lý và bản chính của TypeScript; nâng chúng trong task nâng SDK riêng. Ngày 06/11/2026 Đính merge #59, #61, #62 (bản vá Next, eslint-config-next, vitest) và đóng #60 (ESLint 10, đã ra lệnh bỏ qua bản chính) và #58 (jest 30, PR gộp hai gói nên chỉ đóng tay). `dependabot.yml` nay bỏ qua cả bản chính của `jest`, `@types/jest`, vì `jest-expo` của SDK 57 chạy trên Jest 29.
 
 ## Giới hạn của bằng chứng hiện có
 - TX05 mới kiểm ở tầng service, qua hai Spring context trong một JVM. Kiểm qua HTTP và hai tiến trình thuộc TB-19, TB-23.
@@ -71,9 +71,8 @@ Dependabot mở PR cập nhật hằng tuần vào `dev`, không cần phần t�
 ## Việc tiếp theo
 | Việc | Người |
 |---|---|
-| Đọc lại phần nền đã merge theo OP-15 (#63–#66): `conventions.md`, `mobile/AGENTS.md`, `web/AGENTS.md`, test mẫu ba phần; báo chỗ cần sửa bằng Issue | Huy |
-| Trả lời Q1, Q2, Q4–Q8 trong handoff TB-8; chốt 422 hay 428 khi thiếu `Idempotency-Key`; cấp số migration V9 | Đính |
+| ~~Đọc lại phần nền đã merge theo OP-15 (#63–#66)~~: xong 07/11/2026, Issue #81–#86, #89 | Huy |
+| ~~Trả lời Q1, Q2, Q4–Q8 trong handoff TB-8; chốt 422 hay 428 khi thiếu `Idempotency-Key`; cấp số migration V9~~: xong 08/11/2026 trên #39 (CR-014, V9) | Đính |
 | TB-08 (#8, PR nháp #39): viết `SessionResolver` trong `identity`, khai báo `PublicEndpoints`, không dựng bộ lọc riêng (ADR-0010) | Huy |
 | TB-06 diễn tập đổi agent: Claude làm dở, Codex làm tiếp, người kia review | Cả hai |
 | TB-11 (#11) API hồ sơ con sau khi TB-08 merge; giao diện ở #67 | Đính, Huy |
-| Thêm quy tắc bỏ qua bản chính của `jest`, `@types/jest` vào `.github/dependabot.yml` | Ai rảnh trước, người kia review |

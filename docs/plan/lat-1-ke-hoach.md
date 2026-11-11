@@ -33,6 +33,8 @@ M1 đặt trước tài khoản có chủ đích: nếu TX05 có vấn đề, bi
 
 Mốc vẫn kết thúc bằng thứ chạy được trên app. Issue giao diện của một mốc phải xong trong mốc đó, không dồn về cuối.
 
+Thứ tự việc của Đính sau TB-9, quy tắc tránh xung đột và Demo 1 (M2 cùng phần hồ sơ con của M3): xem [lat-1-demo-1.md](lat-1-demo-1.md).
+
 ## Cách chia Issue
 Theo [CR-012](../decisions/change-requests.md):
 

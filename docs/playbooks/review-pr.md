@@ -19,6 +19,7 @@ Phần nền đã có sẵn ([conventions](../context/conventions.md)). PR tự 
 | Backend | Controller khai báo `IdempotencyKey`, `WritePrecondition`, lấy `@AuthenticationPrincipal Actor`; thao tác công khai khai báo bằng `PublicEndpoints`; test HTTP kế thừa `HttpTest` và có `Contract.matches()`; thời gian và ID từ `Clock`, `IdGenerator` |
 | Mobile | Đọc bằng `call` trong `useQuery`, ghi bằng `useCommand`; màn hình dùng `QueryScreen`, `CommandStatus`; không xử lý 401 tại chỗ; màu từ `theme.ts`; test bằng `mockApi`, `renderScreen` |
 | Web | Trang quản trị gọi `verifyAdminSession()` rồi `load(...)`; ghi qua Server Action trả `runCommand(...)` và `useServerCommand`; không gọi API từ trình duyệt; màu từ biến CSS |
+| Giao diện | PR ghi mã màn hình và version Figma; ảnh app cạnh ảnh đã duyệt cho từng trạng thái, chỗ khác có lý do; câu chữ đúng nguyên văn `screens/<mã>.md`; qua checklist ở `docs/design/ui/08-chong-ai-slop.md` |
 | Chung | Không thêm thư viện ngoài ADR-0009 khi chưa có Đính; `npm ls react @types/react` một phiên bản; không sinh `Idempotency-Key` tại màn hình |
 
 ## Mức rà theo rủi ro

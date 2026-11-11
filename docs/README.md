@@ -15,13 +15,15 @@
 | 5 | Playbook và skills | `playbooks/`, `handoff/`, `.claude/skills/`, `.agents/skills/` | Đã xác nhận |
 | 6 | Quy trình nhóm: Git, PR, review, CI, GitHub | `process/`, `../.github/`, `../.githooks/` | Đã xác nhận |
 | 7 | Kế hoạch Lát 1: mốc, Issue tách backend và giao diện, ước lượng | `plan/` | Đã xác nhận; chia lại theo CR-012 ngày 06/11/2026 |
+| 8 | UX-UI mobile và web: định hướng, token, component, đặc tả màn hình, quy ước Figma | `design/ui/` | Đang làm (#87), chưa có file Figma; Đính làm và duyệt (CR-013) |
 
 ## Thứ tự ưu tiên khi tài liệu mâu thuẫn
 
 1. Yêu cầu đã xác nhận và CR có hiệu lực
 2. Quyết định thiết kế đã xác nhận
 3. Phụ lục hợp đồng cùng phiên bản
-4. Tài liệu lịch sử
+4. Thiết kế giao diện đã duyệt, chỉ cho phần nhìn (ADR-0011)
+5. Tài liệu lịch sử
 
 Tài liệu mới hơn không tự động thắng. Khi các nguồn đã xác nhận mâu thuẫn, dừng phần bị ảnh hưởng và lập CR.
 
@@ -36,7 +38,7 @@ Tài liệu mới hơn không tự động thắng. Khi các nguồn đã xác n
 | [playbooks/](playbooks/README.md) | 6 quy trình dùng chung, gọi được từ Claude và Codex |
 | [process/](process/git-workflow.md) | Quy trình Git, review, CI, thiết lập GitHub |
 | [plan/](plan/lat-1-ke-hoach.md) | Kế hoạch Lát 1: mốc, Issue, ước lượng; [bàn giao sau M0](plan/m0-ban-giao.md) |
-| [design/](design/README.md) | Kiến trúc, đường mở rộng, F01–F06, API, dữ liệu |
+| [design/](design/README.md) | Kiến trúc, đường mở rộng, F01–F06, API, dữ liệu, UX-UI ([design/ui/](design/ui/README.md)) |
 | [decisions/adr/](decisions/adr/) | Quyết định kiến trúc ADR-0001 đến ADR-0010 (ADR-0007, một phần ADR-0009 và ADR-0010 đang đề xuất; ADR-0008 ở PR #39) |
 | [appendix/g3_ky_thuat_v0_1/](appendix/g3_ky_thuat_v0_1/) | OpenAPI, từ điển dữ liệu, ERD, SQL, truy vết FR. Giữ nguyên bản, không sửa tay |
 | [evidence/](evidence/) | Kết quả kiểm chứng thực tế |

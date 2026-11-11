@@ -8,7 +8,7 @@ Theo CR-012, chức năng có cả API và màn hình được tách thành Issu
 1. **Xác nhận hợp đồng.** API đã có trong `contracts/openapi.yaml`. Cần đổi thì dừng và làm `contract-change` trước.
 2. **Viết test trước cho AC và ca âm.** Tên test chứa mã AC. Quyền luôn có ca âm: khác gia đình, đổi ID, sai vai trò.
 3. **Làm backend theo module-map.** Kiểm quyền trong service. Không đọc bảng của mô-đun khác.
-4. **Làm giao diện** bằng API client sinh ra và thành phần dùng chung của nền mobile hoặc web. Đủ trạng thái: tải, rỗng, lỗi, hết phiên, mất quyền, chưa rõ kết quả. Test giao diện cho từng trạng thái.
+4. **Làm giao diện** theo thiết kế đã duyệt `docs/design/ui/screens/<mã>.md`; chưa có hoặc chưa duyệt thì dừng và hỏi Đính. Cách đọc Figma và chuyển sang code ở [docs/design/ui/09-quy-trinh.md](../design/ui/09-quy-trinh.md#agent-triển-khai). Dùng API client sinh ra và thành phần dùng chung của nền mobile hoặc web. Đủ trạng thái: tải, rỗng, lỗi, hết phiên, mất quyền, chưa rõ kết quả. Test giao diện cho từng trạng thái. Chụp app từng trạng thái để đặt cạnh ảnh đã duyệt trong PR.
 5. **Chạy test thật** sau mỗi bước đạt, rồi commit nhỏ.
 6. **Cập nhật handoff** sau mỗi commit: đã xong gì, kế tiếp là gì.
 7. **Tự rà** theo `review-pr` trước khi yêu cầu người review.

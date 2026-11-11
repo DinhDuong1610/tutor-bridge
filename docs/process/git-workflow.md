@@ -11,7 +11,7 @@ Theo Gitflow (CR-011). Áp dụng cho Đính, Huy và mọi agent. Mục tiêu: 
 
 Chủ trì kiến trúc theo CR-012: Đính cho backend, Next.js, React Native; Huy cho AI Python. Người chủ trì quyết định kiến trúc phần đó khi hai người không thống nhất (XC01), nhưng code của người chủ trì vẫn phải do người kia duyệt.
 
-Người làm và người duyệt luôn khác nhau.
+Người làm và người duyệt luôn khác nhau. Ngoại lệ theo CR-013: PR chỉ đổi tài liệu UX-UI (`docs/design/ui/`) do Đính tự duyệt và merge; code giao diện vẫn cần người kia review.
 
 ## Nhánh
 | Nhánh | Tách từ | Merge vào | Kiểu merge | Sống |

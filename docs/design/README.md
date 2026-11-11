@@ -7,8 +7,9 @@
 |---|---|
 | [kien-truc.md](kien-truc.md) | Kiến trúc tổng thể, mô-đun, cấu trúc repo |
 | [mo-rong.md](mo-rong.md) | Đường mở rộng theo tải |
-| [../decisions/adr/](../decisions/adr/) | ADR-0001 đến ADR-0006 |
+| [../decisions/adr/](../decisions/adr/) | ADR-0001 đến ADR-0011 |
 | [migrations-proposed/](migrations-proposed/) | Migration V6, thành Flyway khi dựng repo |
+| [ui/](ui/README.md) | UX-UI mobile và web: định hướng, token, component, trạng thái, đặc tả 26 màn hình Lát 1, quy ước Figma, quy trình (ADR-0011) |
 
 ## Bản hợp nhất TB G3 TH 01, giữ nguyên văn
 | File | Nội dung |

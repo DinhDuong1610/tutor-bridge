@@ -27,7 +27,7 @@ Mỗi tuần khoảng 16 giờ (20 giờ trừ 20% dự phòng). Mỗi dòng là
 | 5 | TB-11 sang Ready, Huy duyệt, merge. Mục tiêu 17/11 | `feature/TB-11-student-profiles` | 2–4 | #67, TB-12 bắt đầu được trong `identity` |
 | 6 | Hợp đồng #96 (OP-23): gia sư đọc kết quả xác minh kèm lý do. Theo `contract-change`, cấp V11 nếu cần cột lý do | `feature/TB-96-...` | 3–4 | Phần `VerificationRecord` của TB-12, GS03 |
 | 7 | Hợp đồng đăng nhập quản trị riêng, bỏ `AdminMfaChallenge` khỏi `LoginResult` (TB-8 Q17). Cần tạo Issue | `feature/TB-<số>-...` | 3–5 | TB-13, #82, #86 |
-| 8 | Rà sau merge các PR ngoại lệ OP-16, OP-17, OP-18: #109 phiên, #110 mật khẩu, phần nền chung của #39. Chỗ sai mở Issue `bugfix/` | Comment trên PR, Issue mới | 4–6 | Demo 1 dùng đúng các luồng này |
+| 8 | Rà sau merge các PR ngoại lệ OP-29, OP-30, OP-31: #109 phiên, #110 mật khẩu, phần nền chung của #39. Chỗ sai mở Issue `bugfix/` | Comment trên PR, Issue mới | 4–6 | Demo 1 dùng đúng các luồng này |
 | 9 | Chuẩn bị và diễn tập Demo 1 với Huy, xem mục dưới | Không có PR, trừ khi phải sửa tài liệu chạy | 2–3 | Demo 1 |
 
 ### Tuần 3: 23–29/11

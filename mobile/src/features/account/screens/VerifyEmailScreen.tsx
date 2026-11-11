@@ -61,6 +61,9 @@ export function VerifyEmailScreen({ token, onGoToSignIn }: Props) {
           ) : null}
           <Button title="Xác minh email" busy={verify.state === "sending"} onPress={() => void verify.submit(undefined)} />
         </>
+      ) : token === undefined ? (
+        // Opened from sign-in or registration to ask for a new link, not from an email link.
+        <Text style={styles.body}>Nhập email đã đăng ký để nhận liên kết xác minh mới.</Text>
       ) : (
         <Notice tone="danger" message="Liên kết xác minh không hợp lệ. Hãy mở đúng liên kết trong email, hoặc gửi lại liên kết mới." />
       )}

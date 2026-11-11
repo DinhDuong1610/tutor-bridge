@@ -72,7 +72,18 @@ describe("AUTH02 VerifyEmailScreen", () => {
     expect(screen.getByText("Gửi lại liên kết xác minh")).toBeOnTheScreen();
   });
 
-  it.each([[undefined], ["too-short"], [["two", "values"]]])("does not send a missing or malformed token: %p", async (token) => {
+  it("opened without a token only asks for the email, without an error", async () => {
+    server = mockApi({});
+    await show(undefined);
+
+    expect(screen.getByText("Nhập email đã đăng ký để nhận liên kết xác minh mới.")).toBeOnTheScreen();
+    expect(screen.queryByText(/Liên kết xác minh không hợp lệ/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Xác minh email" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Gửi lại liên kết" })).toBeOnTheScreen();
+    expect(server.requests).toHaveLength(0);
+  });
+
+  it.each([[""], ["too-short"], [["two", "values"]]])("does not send a malformed token: %p", async (token) => {
     server = mockApi({});
     await show(token);
 

@@ -44,10 +44,15 @@ export function SessionsScreen({ onChangePassword }: { onChangePassword: () => v
   );
 }
 
+/** Sessions issued before V9 have an empty label (TB-8); never show a blank name. */
+function deviceName(session: SessionMetadata) {
+  return session.deviceLabel.trim() === "" ? "Thiết bị không rõ" : session.deviceLabel;
+}
+
 function Details({ session }: { session: SessionMetadata }) {
   return (
     <>
-      <Text style={styles.device}>{session.deviceLabel}</Text>
+      <Text style={styles.device}>{deviceName(session)}</Text>
       <Text style={styles.muted}>Hoạt động gần nhất: {formatDateTime(session.lastSeenAt)}</Text>
       <Text style={styles.muted}>Hết hạn: {formatDateTime(session.expiresAt)}</Text>
     </>
@@ -66,7 +71,7 @@ function CurrentSession({ session }: { session: SessionMetadata }) {
   }, [logout.state, signOut]);
 
   return (
-    <View style={styles.card} accessibilityLabel={`${session.deviceLabel}, phiên hiện tại`}>
+    <View style={styles.card} accessibilityLabel={`${deviceName(session)}, phiên hiện tại`}>
       <Text style={styles.badge}>Máy này (phiên hiện tại)</Text>
       <Details session={session} />
       <CommandStatus command={logout} confirmedMessage="Đã đăng xuất." />
@@ -103,14 +108,14 @@ function OtherSession({ session }: { session: SessionMetadata }) {
   }
 
   return (
-    <View style={styles.card} accessibilityLabel={session.deviceLabel}>
+    <View style={styles.card} accessibilityLabel={deviceName(session)}>
       {session.revoked ? <Text style={styles.badge}>Đã thu hồi</Text> : null}
       <Details session={session} />
       <CommandStatus command={{ ...revoke, retry: retryRevoke }} confirmedMessage="Đã thu hồi phiên." />
       {session.revoked || revoke.state === "confirmed" ? null : confirming ? (
         <Notice
           tone="warning"
-          message={`Thu hồi phiên trên "${session.deviceLabel}"? Máy đó sẽ phải đăng nhập lại.`}
+          message={`Thu hồi phiên trên "${deviceName(session)}"? Máy đó sẽ phải đăng nhập lại.`}
           action={
             <View style={styles.actions}>
               <Button title="Xác nhận thu hồi" onPress={() => void confirmRevoke()} />

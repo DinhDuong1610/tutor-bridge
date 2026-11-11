@@ -50,6 +50,9 @@ describe("account routes", () => {
       expect(await screen.findByRole("header", { name: "Xác minh email" })).toBeOnTheScreen();
       expect(screen).toHavePathname("/verify-email");
       expect(screen.getByRole("button", { name: "Gửi lại liên kết" })).toBeOnTheScreen();
+      // No token here: a neutral lead, not the error for a broken link.
+      expect(screen.getByText("Nhập email đã đăng ký để nhận liên kết xác minh mới.")).toBeOnTheScreen();
+      expect(screen.queryByText(/Liên kết xác minh không hợp lệ/)).toBeNull();
     } finally {
       server.restore();
     }
@@ -146,6 +149,50 @@ describe("account routes", () => {
 
     expect(await screen.findByRole("header", { name: "Đăng nhập" })).toBeOnTheScreen();
     expect(screen).toHavePathname("/sign-in");
+  });
+
+  it("tells a user whose session ended elsewhere why they are back at sign-in", async () => {
+    storeSession(fakeSession("PARENT"));
+    const server = mockApi({
+      "GET /me/sessions": () => problem(401, "AUTHENTICATION_REQUIRED", "Phiên đăng nhập không còn hiệu lực."),
+    });
+    try {
+      renderRouter("./src/app", { initialUrl: "/parent/security" });
+
+      expect(await screen.findByRole("header", { name: "Đăng nhập" })).toBeOnTheScreen();
+      expect(screen).toHavePathname("/sign-in");
+      expect(screen.getByText("Phiên đăng nhập đã kết thúc. Vui lòng đăng nhập lại.")).toBeOnTheScreen();
+    } finally {
+      server.restore();
+    }
+  });
+
+  it("tells a user who signed out that they did", async () => {
+    storeSession(fakeSession("PARENT"));
+    const current = {
+      id: "00000000-0000-4000-8000-000000000001",
+      deviceLabel: "Điện thoại Android",
+      lastSeenAt: "2026-11-07T02:00:00Z",
+      expiresAt: "2026-11-14T02:00:00Z",
+      current: true,
+      revoked: false,
+    };
+    const server = mockApi({
+      "GET /me/sessions": () => json(200, { items: [current], nextCursor: null }),
+      "POST /auth/logout": () => new Response(null, { status: 204 }),
+    });
+    try {
+      renderRouter("./src/app", { initialUrl: "/parent/security" });
+      const signOut = await screen.findByRole("button", { name: "Đăng xuất" });
+
+      await act(async () => fireEvent.press(signOut));
+
+      expect(await screen.findByRole("header", { name: "Đăng nhập" })).toBeOnTheScreen();
+      expect(screen.getByText("Bạn đã đăng xuất.")).toBeOnTheScreen();
+      expect(screen.queryByText(/Phiên đăng nhập đã kết thúc/)).toBeNull();
+    } finally {
+      server.restore();
+    }
   });
 
   it("sends a signed-in user away from registration", async () => {

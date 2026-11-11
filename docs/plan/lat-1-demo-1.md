@@ -25,7 +25,7 @@ Mỗi tuần khoảng 16 giờ (20 giờ trừ 20% dự phòng). Mỗi dòng là
 | # | Việc | Nhánh hoặc PR | Giờ | Mở khóa cho |
 |---|---|---|---|---|
 | 5 | TB-11 sang Ready, Huy duyệt, merge. Mục tiêu 17/11 | `feature/TB-11-student-profiles` | 2–4 | #67, TB-12 bắt đầu được trong `identity` |
-| 6 | Hợp đồng #96 (OP-23): gia sư đọc kết quả xác minh kèm lý do. Theo `contract-change`, cấp V10 nếu cần cột lý do | `feature/TB-96-...` | 3–4 | Phần `VerificationRecord` của TB-12, GS03 |
+| 6 | Hợp đồng #96 (OP-23): gia sư đọc kết quả xác minh kèm lý do. Theo `contract-change`, cấp V11 nếu cần cột lý do | `feature/TB-96-...` | 3–4 | Phần `VerificationRecord` của TB-12, GS03 |
 | 7 | Hợp đồng đăng nhập quản trị riêng, bỏ `AdminMfaChallenge` khỏi `LoginResult` (TB-8 Q17). Cần tạo Issue | `feature/TB-<số>-...` | 3–5 | TB-13, #82, #86 |
 | 8 | Rà sau merge các PR ngoại lệ OP-16, OP-17, OP-18: #109 phiên, #110 mật khẩu, phần nền chung của #39. Chỗ sai mở Issue `bugfix/` | Comment trên PR, Issue mới | 4–6 | Demo 1 dùng đúng các luồng này |
 | 9 | Chuẩn bị và diễn tập Demo 1 với Huy, xem mục dưới | Không có PR, trừ khi phải sửa tài liệu chạy | 2–3 | Demo 1 |
@@ -60,7 +60,7 @@ TB-16 và #68 đến sau, theo bảng trong [kế hoạch Lát 1](lat-1-ke-hoach
 1. **Một mô-đun backend, một người, một tuần.** Đây là quy tắc đã có trong [quy trình Git](../process/git-workflow.md). Thứ tự `identity` là TB-11 (Đính) → TB-12 (Huy) → TB-13 (Đính). TB-15 của Đính nằm trong `classes`, nên chạy song song được với TB-12.
 2. **TB-11 chỉ thêm file mới** trong `identity`, ví dụ dịch vụ, repository và `web/StudentController.java`. Tránh sửa file dùng chung như `IdentityConfig.java`, `PartiesRepository.java`, `api/Parties.java`. Phải sửa thì ghi rõ trong PR để Huy rebase TB-12 trước khi bắt đầu.
 3. **Hợp đồng đi từng PR một.** Không mở hai PR cùng sửa `contracts/openapi.yaml`. Thứ tự: #96 → Q17 → #98. Mỗi PR merge xong thì người đang làm nhánh khác rebase và chạy `npm run generate:api`. Không gộp tay code sinh ra.
-4. **Số migration do Đính cấp, ghi trong Issue.** Số kế tiếp là V10. Dự kiến #96 nếu cần cột lý do, #98 nếu cần. TB-11 không cần migration vì bảng `students`, `student_links` đã có, kiểm lại khi bắt đầu.
+4. **Số migration do Đính cấp, ghi trong Issue.** V10 đã cấp cho TB-11 (`students.created_at`, `student_goal_versions`, Đính chốt 11/11/2026). Số kế tiếp là V11, dự kiến cho #96 nếu cần cột lý do, rồi #98 nếu cần.
 5. **Sổ quyết định và CR là chỗ dễ xung đột nhất.** #94 phải merge trước mọi PR khác có thêm dòng vào `decision-register.md` hoặc `change-requests.md`. Trước khi chuyển PR sang Ready: `git fetch && git rebase origin/dev` rồi kiểm lại số OP, CR không trùng. `TBD` (Huy, vì Huy giữ quy trình PR): có nên giữ trước số OP, CR trong Issue như số migration không?
 6. **`mobile/src/shared/` và phần dùng chung của web: một người tại một thời điểm.** #95, #81, #89 làm cùng một người, xong trước khi #67 và TB-14 dựng màn hình.
 7. **Route mobile của phụ huynh đổi theo thứ tự** TB-10 (`parent/security`, `parent/change-password`) → #67 (hồ sơ con) → TB-14 (`parent/index`, trang chủ PH01).

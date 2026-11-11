@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Controller, type Control, type FieldValues, type Path } from "react-hook-form";
 import { Pressable, StyleSheet, Text, View, type TextInputProps } from "react-native";
 import { TextField } from "@/shared/ui/TextField";
@@ -7,31 +8,47 @@ type InputProps = Pick<TextInputProps, "secureTextEntry" | "autoComplete" | "aut
 
 /**
  * FormTextField with the input options an account form needs: email keyboard, hidden password,
- * autofill hints. The value is never logged.
+ * autofill hints. The value is never logged. A hidden password gets a "Hiện ..." button instead of
+ * a second "type it again" field (handoff TB-10, Q9).
  */
 export function AccountTextField<T extends FieldValues>({
   control,
   name,
   label,
   hint,
+  secureTextEntry,
   ...input
 }: { control: Control<T>; name: Path<T>; label: string; hint?: string } & InputProps) {
+  const [revealed, setRevealed] = useState(false);
   return (
-    <Controller
-      control={control}
-      name={name}
-      render={({ field, fieldState }) => (
-        <TextField
-          label={label}
-          hint={hint}
-          value={typeof field.value === "string" ? field.value : ""}
-          onChangeText={field.onChange}
-          onBlur={field.onBlur}
-          error={fieldState.error?.message}
-          {...input}
-        />
-      )}
-    />
+    <View style={styles.group}>
+      <Controller
+        control={control}
+        name={name}
+        render={({ field, fieldState }) => (
+          <TextField
+            label={label}
+            hint={hint}
+            value={typeof field.value === "string" ? field.value : ""}
+            onChangeText={field.onChange}
+            onBlur={field.onBlur}
+            error={fieldState.error?.message}
+            secureTextEntry={secureTextEntry === true && !revealed}
+            {...input}
+          />
+        )}
+      />
+      {secureTextEntry ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${revealed ? "Ẩn" : "Hiện"} ${label.toLowerCase()}`}
+          onPress={() => setRevealed((value) => !value)}
+          style={styles.reveal}
+        >
+          <Text style={styles.revealText}>{revealed ? "Ẩn" : "Hiện"} {label.toLowerCase()}</Text>
+        </Pressable>
+      ) : null}
+    </View>
   );
 }
 
@@ -118,6 +135,8 @@ function FieldError({ message }: { message?: string }) {
 
 const styles = StyleSheet.create({
   group: { gap: spacing.xs },
+  reveal: { minHeight: minTouchSize, justifyContent: "center", alignSelf: "flex-start" },
+  revealText: { ...typography.label, color: colors.primary },
   label: { ...typography.label, color: colors.text },
   choice: { minHeight: minTouchSize, flexDirection: "row", alignItems: "center", gap: spacing.sm },
   mark: { ...typography.body, color: colors.primary },

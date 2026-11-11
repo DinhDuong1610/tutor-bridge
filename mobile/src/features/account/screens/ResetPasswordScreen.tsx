@@ -1,9 +1,10 @@
 // AUTH05 Đặt lại mật khẩu (UC01, FR-39)
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useServerErrors } from "@/shared/form/serverErrors";
+import { useSession } from "@/shared/session/SessionProvider";
 import { Button } from "@/shared/ui/Button";
 import { CommandStatus } from "@/shared/ui/CommandStatus";
 import { Notice } from "@/shared/ui/Notice";
@@ -25,6 +26,15 @@ export function ResetPasswordScreen({ token, onGoToSignIn, onRequestNewLink }: P
   const reset = useResetPassword(validToken ?? "");
   const otherErrors = useServerErrors(reset.error, form.setError, ["newPassword"]);
   const [retriedAfterUnknown, setRetriedAfterUnknown] = useState(false);
+  const session = useSession();
+  const signedIn = session.status === "signedIn";
+  const { signOut } = session;
+
+  // The reset revoked every session on the server. A link opened while signed in (Q8) must not
+  // leave this device holding a dead token.
+  useEffect(() => {
+    if (reset.state === "confirmed" && signedIn) void signOut();
+  }, [reset.state, signedIn, signOut]);
 
   function retryReset() {
     setRetriedAfterUnknown(true);
@@ -66,6 +76,9 @@ export function ResetPasswordScreen({ token, onGoToSignIn, onRequestNewLink }: P
           {reset.state === "failed" && retriedAfterUnknown ? (
             // The first attempt may have changed the password before the connection dropped.
             <Text style={styles.body}>Lần gửi trước có thể đã đổi mật khẩu. Hãy thử đăng nhập bằng mật khẩu mới trước.</Text>
+          ) : reset.state === "failed" && reset.error?.code === "LINK_USED" ? (
+            // LINK_USED and LINK_EXPIRED differ (TB-8 error codes): a used link usually means the password was changed.
+            <Text style={styles.body}>Liên kết này đã được dùng. Nếu bạn vừa đặt lại mật khẩu, hãy đăng nhập bằng mật khẩu mới.</Text>
           ) : null}
           <Button
             title="Đặt lại mật khẩu"

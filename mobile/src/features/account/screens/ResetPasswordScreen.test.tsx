@@ -48,16 +48,32 @@ describe("AUTH05 ResetPasswordScreen", () => {
     expect(server.requests).toHaveLength(0);
   });
 
-  it("AC_UC01_02_expired_or_used_link_is_reported_and_offers_a_new_link", async () => {
+  it("AC_UC01_02_used_link_is_told_apart_from_an_expired_one", async () => {
     server = mockApi({
-      "POST /auth/reset": () => problem(409, "LINK_USED", "Liên kết đã được dùng hoặc đã hết hạn."),
+      "POST /auth/reset": () => problem(409, "LINK_USED", "Liên kết đã được dùng."),
+    });
+    await show();
+    fireEvent.changeText(screen.getByLabelText("Mật khẩu mới"), PASSWORD);
+
+    await pressReset();
+
+    expect(await screen.findByText("Liên kết đã được dùng.")).toBeOnTheScreen();
+    expect(
+      screen.getByText("Liên kết này đã được dùng. Nếu bạn vừa đặt lại mật khẩu, hãy đăng nhập bằng mật khẩu mới."),
+    ).toBeOnTheScreen();
+  });
+
+  it("AC_UC01_02_expired_link_is_reported_and_offers_a_new_link", async () => {
+    server = mockApi({
+      "POST /auth/reset": () => problem(400, "LINK_EXPIRED", "Liên kết đã hết hạn."),
     });
     const onRequestNewLink = await show();
     fireEvent.changeText(screen.getByLabelText("Mật khẩu mới"), PASSWORD);
 
     await pressReset();
 
-    expect(await screen.findByText("Liên kết đã được dùng hoặc đã hết hạn.")).toBeOnTheScreen();
+    expect(await screen.findByText("Liên kết đã hết hạn.")).toBeOnTheScreen();
+    expect(screen.queryByText(/Liên kết này đã được dùng/)).toBeNull();
     expect(screen.queryByRole("header", { name: "Đã đặt lại mật khẩu" })).toBeNull();
     expect(screen.getByLabelText("Mật khẩu mới")).toHaveDisplayValue(PASSWORD);
     await act(async () => fireEvent.press(screen.getByRole("button", { name: "Yêu cầu liên kết mới" })));

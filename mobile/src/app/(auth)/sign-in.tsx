@@ -8,6 +8,7 @@ export default function SignInRoute() {
     <SignInScreen
       onGoToRegister={() => router.push("/register")}
       onForgotPassword={() => router.push("/forgot-password")}
+      onResendVerification={() => router.push("/verify-email")}
     />
   );
 }

@@ -70,3 +70,14 @@ export const resetPasswordSchema = z.object({
     ),
 });
 export type ResetPasswordForm = z.infer<typeof resetPasswordSchema>;
+
+// ChangePasswordInput. The current password is the reauthentication step for this command
+// (handoff TB-10, Q10, Huy 07/11/2026).
+export const changePasswordSchema = z.object({
+  currentPassword: z
+    .string()
+    .min(1, "Vui lòng nhập mật khẩu hiện tại.")
+    .refine((value) => lengthOf(value) <= PASSWORD_MAX, `Mật khẩu tối đa ${PASSWORD_MAX} ký tự.`),
+  newPassword: resetPasswordSchema.shape.newPassword,
+});
+export type ChangePasswordForm = z.infer<typeof changePasswordSchema>;

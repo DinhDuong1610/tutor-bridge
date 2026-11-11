@@ -2,6 +2,7 @@ package com.tutorbridge.platform.web;
 
 import com.tutorbridge.platform.api.ApiException;
 import com.tutorbridge.platform.api.ApiException.FieldProblem;
+import com.tutorbridge.platform.api.TooManyRequests;
 import com.tutorbridge.platform.api.TraceContext;
 import java.util.List;
 import org.slf4j.Logger;
@@ -28,7 +29,11 @@ class ProblemHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(ApiException.class)
     ResponseEntity<Object> business(ApiException e) {
-        return problem(new HttpHeaders(), e.status(), e.code(), e.title(), e.fields());
+        HttpHeaders headers = new HttpHeaders();
+        if (e instanceof TooManyRequests limited) {
+            headers.set(HttpHeaders.RETRY_AFTER, Long.toString(limited.retryAfterSeconds()));
+        }
+        return problem(headers, e.status(), e.code(), e.title(), e.fields());
     }
 
     @ExceptionHandler(Exception.class)

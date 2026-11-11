@@ -1,0 +1,117 @@
+// AUTH03 Đăng nhập (UC01, FR-02)
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { ScrollView, StyleSheet, Text } from "react-native";
+import { useServerErrors } from "@/shared/form/serverErrors";
+import { useSession } from "@/shared/session/SessionProvider";
+import type { Session } from "@/shared/session/storage";
+import { Button } from "@/shared/ui/Button";
+import { CommandStatus } from "@/shared/ui/CommandStatus";
+import { Notice } from "@/shared/ui/Notice";
+import { colors, spacing, typography } from "@/shared/ui/theme";
+import { useSignIn } from "../api";
+import { AccountTextField } from "../components/fields";
+import { signInSchema, type SignInForm } from "../schemas";
+
+type Props = {
+  onGoToRegister: () => void;
+  onForgotPassword: () => void;
+  /** Opens AUTH02 without a token, where the user asks for a new verification link. */
+  onResendVerification: () => void;
+};
+
+// Fixed text, so the screen never says whether the email has an account.
+const WRONG_CREDENTIALS = "Email hoặc mật khẩu không đúng.";
+const NOT_SAVED = "Không lưu được phiên đăng nhập trên máy. Vui lòng thử lại.";
+// Why the user is back here. Wording to be checked against the approved AUTH03 design (#94).
+const ENDED_BY = {
+  expired: "Phiên đăng nhập đã kết thúc. Vui lòng đăng nhập lại.",
+  signedOut: "Bạn đã đăng xuất.",
+} as const;
+
+export function SignInScreen({ onGoToRegister, onForgotPassword, onResendVerification }: Props) {
+  const session = useSession();
+  const form = useForm<SignInForm>({ resolver: zodResolver(signInSchema), defaultValues: { email: "", password: "" } });
+  const signIn = useSignIn();
+  const otherErrors = useServerErrors(signIn.error, form.setError, ["email", "password"]);
+  const [problem, setProblem] = useState<string | null>(null);
+
+  async function submit(values: SignInForm) {
+    setProblem(null);
+    const result = await signIn.submit(values);
+    if (result === undefined) {
+      return;
+    }
+    if ("mfaRequired" in result || !result.accessToken) {
+      // TB-8 Q14: the server answers an admin with the same 401 as a wrong password. Anything without a
+      // mobile token is treated the same way and never kept, so the screen does not reveal an admin role.
+      setProblem(WRONG_CREDENTIALS);
+      return;
+    }
+    try {
+      // The entry route sends the new session to its role's home.
+      await session.signIn(result as Session);
+    } catch {
+      setProblem(NOT_SAVED);
+    }
+  }
+
+  // A 401 at login is a wrong email or password, never a session ending; say it the same way for both.
+  const wrongCredentials = signIn.state === "failed" && signIn.error?.kind === "session-expired";
+  // 403 ACCOUNT_UNVERIFIED comes only after a correct password (TB-8 Q5), so offering a new link leaks nothing.
+  const unverified = signIn.state === "failed" && signIn.error?.code === "ACCOUNT_UNVERIFIED";
+  // Shown until the next attempt: a session revoked elsewhere lands here with no other explanation.
+  const endedBy = session.status === "signedOut" && signIn.state === "idle" ? session.endedBy : null;
+
+  return (
+    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+      <Text accessibilityRole="header" style={styles.title}>
+        Đăng nhập
+      </Text>
+      <AccountTextField
+        control={form.control}
+        name="email"
+        label="Email"
+        autoCapitalize="none"
+        autoComplete="email"
+        keyboardType="email-address"
+        inputMode="email"
+      />
+      <AccountTextField
+        control={form.control}
+        name="password"
+        label="Mật khẩu"
+        secureTextEntry
+        autoCapitalize="none"
+        autoComplete="current-password"
+      />
+      {endedBy ? <Notice tone="info" message={ENDED_BY[endedBy]} /> : null}
+      {otherErrors.map((message) => (
+        <Notice key={message} tone="danger" message={message} />
+      ))}
+      {problem ? (
+        <Notice tone="danger" message={problem} />
+      ) : wrongCredentials ? (
+        <Notice tone="danger" message={WRONG_CREDENTIALS} />
+      ) : signIn.state === "unknown" ? (
+        // Not CommandStatus: its retry would skip keeping the session. Signing in again is safe;
+        // at worst the server holds one unused session that expires.
+        <Notice tone="warning" message="Chưa rõ kết quả. Vui lòng kiểm tra kết nối rồi đăng nhập lại." />
+      ) : signIn.state === "confirmed" ? null : (
+        <CommandStatus command={signIn} confirmedMessage="" />
+      )}
+      {unverified ? (
+        <Button variant="secondary" title="Gửi lại liên kết xác minh" onPress={onResendVerification} />
+      ) : null}
+      <Button title="Đăng nhập" busy={signIn.state === "sending"} onPress={form.handleSubmit(submit)} />
+      <Button variant="secondary" title="Quên mật khẩu?" onPress={onForgotPassword} />
+      <Button variant="secondary" title="Chưa có tài khoản? Đăng ký" onPress={onGoToRegister} />
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flexGrow: 1, gap: spacing.md, padding: spacing.md, backgroundColor: colors.background },
+  title: { ...typography.title, color: colors.text },
+});

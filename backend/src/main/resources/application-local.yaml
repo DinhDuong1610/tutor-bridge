@@ -1,12 +1,26 @@
 spring:
   flyway:
     enabled: true
+  # Mailpit from infra/compose.yaml. Messages stay on this machine: http://localhost:8025
+  mail:
+    host: 127.0.0.1
+    port: ${MAILPIT_SMTP_PORT:1025}
 logging:
   structured:
     format:
       # Plain text on a developer machine. Leaving it empty turns structured logging off.
       console: ""
 tutorbridge:
+  identity:
+    # Trial terms with no legal effect, until Đính provides the text (Q8 of TB-8).
+    terms-versions: ${TB_TERMS_VERSIONS:ban-thu-chua-hieu-luc}
+    mail:
+      from: no-reply@tutorbridge.invalid
+      # Opens the app on a developer phone. Release builds use an https domain (Q7 of TB-10).
+      link-base: tutorbridge://
+  # One process plays both roles on a developer machine.
+  worker:
+    enabled: true
   security:
     # Next.js dev server. Cookie writes from any other origin are rejected (ADR-0010).
     admin-origins: http://localhost:3000

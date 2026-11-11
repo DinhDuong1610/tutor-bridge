@@ -20,7 +20,27 @@ public abstract class IntegrationTest {
         registry.add("spring.datasource.password", () -> PostgresTestSupport.APP_PASSWORD);
         registry.add("spring.flyway.enabled", () -> "true");
         registry.add("spring.flyway.password", () -> PostgresTestSupport.MIGRATOR_PASSWORD);
+        identityProperties().forEach((name, value) -> registry.add(name, () -> value));
     }
+
+    /** Settings the identity module needs to start; also for a second instance built by hand. */
+    protected static java.util.Map<String, String> identityProperties() {
+        return java.util.Map.of(
+                "tutorbridge.identity.keys.email-digest", TEST_KEYS[0],
+                "tutorbridge.identity.keys.email-encryption", TEST_KEYS[1],
+                "tutorbridge.identity.keys.link-token", TEST_KEYS[2],
+                "tutorbridge.identity.terms-versions", TERMS_VERSION);
+    }
+
+    /** The only terms version tests may register with. */
+    protected static final String TERMS_VERSION = "test-terms-1";
+
+    /** Fresh random keys per test run, so no key is ever written into the repository. */
+    private static final String[] TEST_KEYS = java.util.stream.Stream.generate(() -> {
+        byte[] key = new byte[32];
+        new java.security.SecureRandom().nextBytes(key);
+        return java.util.Base64.getEncoder().encodeToString(key);
+    }).limit(3).toArray(String[]::new);
 
     protected UUID newAccount() {
         UUID id = UUID.randomUUID();

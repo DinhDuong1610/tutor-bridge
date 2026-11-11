@@ -89,9 +89,17 @@ class WebFoundationTest {
     }
 
     @Test
-    void missing_or_out_of_range_idempotency_key_is_rejected_before_the_controller() throws Exception {
+    void CR_014_missing_idempotency_key_is_400_before_the_controller() throws Exception {
+        mvc.perform(post("/probe/command"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("IDEMPOTENCY_KEY_REQUIRED"));
+    }
+
+    @Test
+    void out_of_range_idempotency_key_is_rejected_before_the_controller() throws Exception {
         for (var request : new org.springframework.test.web.servlet.RequestBuilder[] {
-            post("/probe/command"),
+            post("/probe/command").header(IdempotencyKey.HEADER, ""),
             post("/probe/command").header(IdempotencyKey.HEADER, "k".repeat(15)),
             post("/probe/command").header(IdempotencyKey.HEADER, "k".repeat(129)),
         }) {

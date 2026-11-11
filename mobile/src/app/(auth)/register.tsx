@@ -8,6 +8,7 @@ export default function RegisterRoute() {
     <RegisterScreen
       termsVersion={process.env.EXPO_PUBLIC_TERMS_VERSION}
       onGoToSignIn={() => (router.canGoBack() ? router.back() : router.replace("/sign-in"))}
+      onResendVerification={() => router.push("/verify-email")}
     />
   );
 }

@@ -21,6 +21,8 @@ type Props = {
   /** The terms version the user agrees to. Source still TBD (handoff TB-10, Q2); without it nothing is sent. */
   termsVersion: string | undefined;
   onGoToSignIn: () => void;
+  /** AUTH02 without a token: ask for a new verification link. */
+  onResendVerification: () => void;
 };
 
 const ROLES = [
@@ -28,7 +30,7 @@ const ROLES = [
   { value: "TUTOR", label: "Tôi là gia sư" },
 ] as const;
 
-export function RegisterScreen({ termsVersion, onGoToSignIn }: Props) {
+export function RegisterScreen({ termsVersion, onGoToSignIn, onResendVerification }: Props) {
   const form = useForm<RegistrationFormInput, unknown, RegistrationForm>({
     resolver: zodResolver(registrationSchema),
     defaultValues: { email: "", displayName: "", password: "", role: undefined, termsAccepted: false as true },
@@ -45,6 +47,7 @@ export function RegisterScreen({ termsVersion, onGoToSignIn }: Props) {
         </Text>
         <Notice tone="success" message={register.result.message} />
         <Text style={styles.body}>Mở liên kết trong email trong vòng 30 phút để xác minh tài khoản.</Text>
+        <Button variant="secondary" title="Chưa nhận được email? Gửi lại liên kết" onPress={onResendVerification} />
         <Button variant="secondary" title="Đến trang đăng nhập" onPress={onGoToSignIn} />
       </View>
     );

@@ -16,14 +16,21 @@ import { signInSchema, type SignInForm } from "../schemas";
 
 type Props = {
   onGoToRegister: () => void;
+  onForgotPassword: () => void;
+  /** Opens AUTH02 without a token, where the user asks for a new verification link. */
+  onResendVerification: () => void;
 };
 
 // Fixed text, so the screen never says whether the email has an account.
 const WRONG_CREDENTIALS = "Email hoặc mật khẩu không đúng.";
-const ADMIN_ON_WEB = "Tài khoản quản trị đăng nhập trên trang quản trị, không dùng ứng dụng.";
 const NOT_SAVED = "Không lưu được phiên đăng nhập trên máy. Vui lòng thử lại.";
+// Why the user is back here. Wording to be checked against the approved AUTH03 design (#94).
+const ENDED_BY = {
+  expired: "Phiên đăng nhập đã kết thúc. Vui lòng đăng nhập lại.",
+  signedOut: "Bạn đã đăng xuất.",
+} as const;
 
-export function SignInScreen({ onGoToRegister }: Props) {
+export function SignInScreen({ onGoToRegister, onForgotPassword, onResendVerification }: Props) {
   const session = useSession();
   const form = useForm<SignInForm>({ resolver: zodResolver(signInSchema), defaultValues: { email: "", password: "" } });
   const signIn = useSignIn();
@@ -37,8 +44,9 @@ export function SignInScreen({ onGoToRegister }: Props) {
       return;
     }
     if ("mfaRequired" in result || !result.accessToken) {
-      // Admins use the web console with MFA (TB-13); a credential without a token is not for mobile.
-      setProblem(ADMIN_ON_WEB);
+      // TB-8 Q14: the server answers an admin with the same 401 as a wrong password. Anything without a
+      // mobile token is treated the same way and never kept, so the screen does not reveal an admin role.
+      setProblem(WRONG_CREDENTIALS);
       return;
     }
     try {
@@ -51,6 +59,10 @@ export function SignInScreen({ onGoToRegister }: Props) {
 
   // A 401 at login is a wrong email or password, never a session ending; say it the same way for both.
   const wrongCredentials = signIn.state === "failed" && signIn.error?.kind === "session-expired";
+  // 403 ACCOUNT_UNVERIFIED comes only after a correct password (TB-8 Q5), so offering a new link leaks nothing.
+  const unverified = signIn.state === "failed" && signIn.error?.code === "ACCOUNT_UNVERIFIED";
+  // Shown until the next attempt: a session revoked elsewhere lands here with no other explanation.
+  const endedBy = session.status === "signedOut" && signIn.state === "idle" ? session.endedBy : null;
 
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
@@ -74,6 +86,7 @@ export function SignInScreen({ onGoToRegister }: Props) {
         autoCapitalize="none"
         autoComplete="current-password"
       />
+      {endedBy ? <Notice tone="info" message={ENDED_BY[endedBy]} /> : null}
       {otherErrors.map((message) => (
         <Notice key={message} tone="danger" message={message} />
       ))}
@@ -88,7 +101,11 @@ export function SignInScreen({ onGoToRegister }: Props) {
       ) : signIn.state === "confirmed" ? null : (
         <CommandStatus command={signIn} confirmedMessage="" />
       )}
+      {unverified ? (
+        <Button variant="secondary" title="Gửi lại liên kết xác minh" onPress={onResendVerification} />
+      ) : null}
       <Button title="Đăng nhập" busy={signIn.state === "sending"} onPress={form.handleSubmit(submit)} />
+      <Button variant="secondary" title="Quên mật khẩu?" onPress={onForgotPassword} />
       <Button variant="secondary" title="Chưa có tài khoản? Đăng ký" onPress={onGoToRegister} />
     </ScrollView>
   );

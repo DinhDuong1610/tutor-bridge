@@ -55,9 +55,15 @@ export function VerifyEmailScreen({ token, onGoToSignIn }: Props) {
           {verify.state === "failed" && retriedAfterUnknown ? (
             // The first attempt may have worked before the connection dropped, then the retry finds the link used.
             <Text style={styles.body}>Lần gửi trước có thể đã xác minh email của bạn. Hãy thử đăng nhập trước.</Text>
+          ) : verify.state === "failed" && verify.error?.code === "LINK_USED" ? (
+            // LINK_USED and LINK_EXPIRED differ (TB-8 error codes): a used link usually means the email is verified.
+            <Text style={styles.body}>Liên kết này đã được dùng. Nếu email của bạn đã được xác minh, hãy đăng nhập.</Text>
           ) : null}
           <Button title="Xác minh email" busy={verify.state === "sending"} onPress={() => void verify.submit(undefined)} />
         </>
+      ) : token === undefined ? (
+        // Opened from sign-in or registration to ask for a new link, not from an email link.
+        <Text style={styles.body}>Nhập email đã đăng ký để nhận liên kết xác minh mới.</Text>
       ) : (
         <Notice tone="danger" message="Liên kết xác minh không hợp lệ. Hãy mở đúng liên kết trong email, hoặc gửi lại liên kết mới." />
       )}

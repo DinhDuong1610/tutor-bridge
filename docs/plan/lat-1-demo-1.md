@@ -16,7 +16,7 @@ Mỗi tuần khoảng 16 giờ (20 giờ trừ 20% dự phòng). Mỗi dòng là
 ### Tuần 1: 11–15/11
 | # | Việc | Nhánh hoặc PR | Giờ | Mở khóa cho |
 |---|---|---|---|---|
-| 1 | Đóng TB-87: merge `dev` vào nhánh, gỡ xung đột `docs/decisions/change-requests.md` (CR-013 đứng trước CR-014), Huy duyệt, merge | #94 | 1–2 | #95 và mọi Issue màn hình |
+| 1 | Đóng TB-87: Huy gỡ xung đột `docs/decisions/change-requests.md` (CR-013 đứng trước CR-014) và merge, theo Đính giao ngày 11/11/2026. Đính không cần làm gì thêm | #94 | 0 | #95 và mọi Issue màn hình |
 | 2 | Duyệt chuỗi TB-10 để Huy rebase lên `dev` và merge | #78, #88, #90, #91, #93, #99 | 2–3 | Demo 1a, #67, #81, #89 |
 | 3 | Bắt đầu TB-11 API hồ sơ con. Draft PR sau commit đầu | `feature/TB-11-student-profiles` | 8–10 | #67 |
 | 4 | Trả lời #83: lỗi 5xx có Problem là thất bại hay chưa rõ kết quả | Comment trên #83 | 0,5 | #75 về sau |
@@ -65,7 +65,8 @@ TB-16 và #68 đến sau, theo bảng trong [kế hoạch Lát 1](lat-1-ke-hoach
 6. **`mobile/src/shared/` và phần dùng chung của web: một người tại một thời điểm.** #95, #81, #89 làm cùng một người, xong trước khi #67 và TB-14 dựng màn hình.
 7. **Route mobile của phụ huynh đổi theo thứ tự** TB-10 (`parent/security`, `parent/change-password`) → #67 (hồ sơ con) → TB-14 (`parent/index`, trang chủ PH01).
 8. **Không xếp chồng dài.** Chuỗi TB-10 có 6 PR xếp chồng, mỗi lần sửa phải rebase cả chuỗi. Từ TB-11 trở đi, mỗi nhánh tách từ `dev` mới nhất và sống 2–3 ngày. Cần chia thì merge phần trước rồi mới tách phần sau.
-9. **File khóa phụ thuộc bị xung đột thì sinh lại** (`npm install`), không sửa tay. Merge các PR Dependabot đang chờ trước khi rebase nhánh chức năng.
+9. **Xung đột khi merge do Huy giải quyết** (Đính giao ngày 11/11/2026). Đính vẫn tránh xung đột từ đầu theo các quy tắc trên.
+10. **File khóa phụ thuộc bị xung đột thì sinh lại** (`npm install`), không sửa tay. Merge các PR Dependabot đang chờ trước khi rebase nhánh chức năng.
 
 ## Demo 1: bản demo đầu của Lát 1
 Kết quả của M2 và phần phụ huynh của M3, chạy trên điện thoại Android thật với backend local. Chỉ dùng dữ liệu giả, không dùng thông tin trẻ thật.

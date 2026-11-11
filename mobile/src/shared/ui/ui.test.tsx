@@ -7,7 +7,9 @@ import { ApiError, UnknownOutcomeError } from "@/shared/api/errors";
 import { Button } from "./Button";
 import { CommandStatus } from "./CommandStatus";
 import { QueryScreen } from "./QueryScreen";
+import { StickyActionBar } from "./StickyActionBar";
 import { TextField } from "./TextField";
+import { TopAppBar } from "./TopAppBar";
 
 const problem = (status: number, title = "Không được phép.") =>
   new ApiError({
@@ -144,5 +146,31 @@ describe("CommandStatus", () => {
     expect(screen.getByText(/Chưa rõ kết quả/)).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole("button", { name: "Thử lại" }));
     expect(unknown.retry).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("TopAppBar", () => {
+  it("names the screen as a header and goes back from a labelled button", async () => {
+    const onBack = jest.fn();
+    await render(<TopAppBar title="Hồ sơ các con" onBack={onBack} />);
+
+    expect(screen.getByRole("header", { name: "Hồ sơ các con" })).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole("button", { name: "Quay lại" }));
+    expect(onBack).toHaveBeenCalledTimes(1);
+  });
+
+  it("has no back button when the screen cannot go back", async () => {
+    await render(<TopAppBar title="Trang chủ" />);
+    expect(screen.queryByRole("button", { name: "Quay lại" })).toBeNull();
+  });
+});
+
+describe("StickyActionBar", () => {
+  it("shows its actions", async () => {
+    const onPress = jest.fn();
+    await render(wrap(<StickyActionBar><Button title="Lưu hồ sơ" onPress={onPress} /></StickyActionBar>));
+
+    await fireEvent.press(screen.getByRole("button", { name: "Lưu hồ sơ" }));
+    expect(onPress).toHaveBeenCalledTimes(1);
   });
 });

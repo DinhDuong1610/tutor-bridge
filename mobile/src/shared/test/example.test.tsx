@@ -118,14 +118,14 @@ describe("example feature screen", () => {
     await renderScreen(<ExampleStudentsScreen />, { session: fakeSession("PARENT") });
     await screen.findByText("Minh");
 
-    fireEvent.changeText(screen.getByLabelText("Tên hiển thị"), "Lan!");
+    await fireEvent.changeText(screen.getByLabelText("Tên hiển thị"), "Lan!");
     await act(async () => fireEvent.press(screen.getByRole("button", { name: "Thêm hồ sơ" })));
 
     expect(await screen.findByText("Lỗi: Tên không được chứa ký tự đặc biệt.")).toBeOnTheScreen();
     expect(screen.getByText("Vui lòng sửa các ô được đánh dấu rồi gửi lại.")).toBeOnTheScreen();
     expect(screen.getByLabelText("Tên hiển thị")).toHaveDisplayValue("Lan!");
 
-    fireEvent.changeText(screen.getByLabelText("Tên hiển thị"), "Lan");
+    await fireEvent.changeText(screen.getByLabelText("Tên hiển thị"), "Lan");
     await act(async () => fireEvent.press(screen.getByRole("button", { name: "Thêm hồ sơ" })));
 
     expect(await screen.findByText("Đã thêm hồ sơ.")).toBeOnTheScreen();
@@ -152,7 +152,7 @@ describe("example feature screen", () => {
     await renderScreen(<ExampleStudentsScreen />, { session: fakeSession("PARENT") });
     await screen.findByText("Minh");
 
-    fireEvent.changeText(screen.getByLabelText("Tên hiển thị"), "Lan");
+    await fireEvent.changeText(screen.getByLabelText("Tên hiển thị"), "Lan");
     await act(async () => fireEvent.press(screen.getByRole("button", { name: "Thêm hồ sơ" })));
     expect(await screen.findByText(/Chưa rõ kết quả/)).toBeOnTheScreen();
 

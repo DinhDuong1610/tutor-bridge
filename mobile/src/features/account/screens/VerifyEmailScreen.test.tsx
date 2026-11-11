@@ -117,7 +117,7 @@ describe("AUTH02 VerifyEmailScreen", () => {
   it("resends with only the email and shows the server's generic answer", async () => {
     server = mockApi({ "POST /auth/verification-resend": () => json(202, ACK) });
     await show(undefined);
-    fireEvent.changeText(screen.getByLabelText("Email"), " phu.huynh@example.test ");
+    await fireEvent.changeText(screen.getByLabelText("Email"), " phu.huynh@example.test ");
 
     await press("Gửi lại liên kết");
 
@@ -130,7 +130,7 @@ describe("AUTH02 VerifyEmailScreen", () => {
       "POST /auth/verification-resend": () => problem(429, "RATE_LIMITED", "Bạn đã yêu cầu quá nhiều lần. Vui lòng thử lại sau."),
     });
     await show(undefined);
-    fireEvent.changeText(screen.getByLabelText("Email"), "phu.huynh@example.test");
+    await fireEvent.changeText(screen.getByLabelText("Email"), "phu.huynh@example.test");
 
     await press("Gửi lại liên kết");
 

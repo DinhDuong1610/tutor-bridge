@@ -101,7 +101,7 @@ describe("Button", () => {
     const onPress = jest.fn();
     await render(<Button title="Lưu" onPress={onPress} busy />);
 
-    fireEvent.press(screen.getByRole("button", { name: "Lưu" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Lưu" }));
 
     expect(onPress).not.toHaveBeenCalled();
     expect(screen.getByRole("button", { name: "Lưu" })).toBeDisabled();
@@ -142,7 +142,7 @@ describe("CommandStatus", () => {
     await render(<CommandStatus command={unknown} confirmedMessage="Đã lưu." />);
 
     expect(screen.getByText(/Chưa rõ kết quả/)).toBeOnTheScreen();
-    fireEvent.press(screen.getByRole("button", { name: "Thử lại" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Thử lại" }));
     expect(unknown.retry).toHaveBeenCalledTimes(1);
   });
 });

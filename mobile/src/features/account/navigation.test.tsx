@@ -9,7 +9,7 @@ beforeEach(() => {
 // Uses the real route tree in src/app.
 describe("account routes", () => {
   it("goes from sign-in to registration and back", async () => {
-    renderRouter("./src/app", { initialUrl: "/sign-in" });
+    await renderRouter("./src/app", { initialUrl: "/sign-in" });
     expect(await screen.findByRole("header", { name: "Đăng nhập" })).toBeOnTheScreen();
 
     await act(async () => fireEvent.press(screen.getByRole("button", { name: "Chưa có tài khoản? Đăng ký" })));
@@ -24,7 +24,7 @@ describe("account routes", () => {
   });
 
   it("opens registration from a link without a history to go back to", async () => {
-    renderRouter("./src/app", { initialUrl: "/register" });
+    await renderRouter("./src/app", { initialUrl: "/register" });
     expect(await screen.findByRole("header", { name: "Đăng ký tài khoản" })).toBeOnTheScreen();
 
     await act(async () => fireEvent.press(screen.getByRole("button", { name: "Đã có tài khoản? Đăng nhập" })));
@@ -38,10 +38,10 @@ describe("account routes", () => {
       "POST /auth/login": () => problem(403, "ACCOUNT_UNVERIFIED", "Email của bạn chưa được xác minh."),
     });
     try {
-      renderRouter("./src/app", { initialUrl: "/sign-in" });
+      await renderRouter("./src/app", { initialUrl: "/sign-in" });
       expect(await screen.findByRole("header", { name: "Đăng nhập" })).toBeOnTheScreen();
-      fireEvent.changeText(screen.getByLabelText("Email"), "phu.huynh@example.test");
-      fireEvent.changeText(screen.getByLabelText("Mật khẩu"), "mat khau rat bi mat 2026");
+      await fireEvent.changeText(screen.getByLabelText("Email"), "phu.huynh@example.test");
+      await fireEvent.changeText(screen.getByLabelText("Mật khẩu"), "mat khau rat bi mat 2026");
       await act(async () => fireEvent.press(screen.getByRole("button", { name: "Đăng nhập" })));
 
       const resend = await screen.findByRole("button", { name: "Gửi lại liên kết xác minh" });
@@ -59,7 +59,7 @@ describe("account routes", () => {
   });
 
   it("goes from sign-in to password recovery and back", async () => {
-    renderRouter("./src/app", { initialUrl: "/sign-in" });
+    await renderRouter("./src/app", { initialUrl: "/sign-in" });
     expect(await screen.findByRole("header", { name: "Đăng nhập" })).toBeOnTheScreen();
 
     await act(async () => fireEvent.press(screen.getByRole("button", { name: "Quên mật khẩu?" })));
@@ -76,7 +76,7 @@ describe("account routes", () => {
     ["/verify-email?token=fake-verification-token-0001", "Xác minh email", "Xác minh email"],
     ["/reset-password?token=fake-reset-token-000000001", "Đặt lại mật khẩu", "Đặt lại mật khẩu"],
   ])("opens the email link %s with its token", async (initialUrl, header, button) => {
-    renderRouter("./src/app", { initialUrl });
+    await renderRouter("./src/app", { initialUrl });
 
     expect(await screen.findByRole("header", { name: header })).toBeOnTheScreen();
     expect(screen.getByRole("button", { name: button })).toBeOnTheScreen();
@@ -85,7 +85,7 @@ describe("account routes", () => {
 
   it("opens an email link while signed in instead of losing its token (Q8)", async () => {
     storeSession(fakeSession("PARENT"));
-    renderRouter("./src/app", { initialUrl: "/verify-email?token=fake-verification-token-0001" });
+    await renderRouter("./src/app", { initialUrl: "/verify-email?token=fake-verification-token-0001" });
 
     expect(await screen.findByRole("header", { name: "Xác minh email" })).toBeOnTheScreen();
     expect(screen).toHavePathname("/verify-email");
@@ -95,9 +95,9 @@ describe("account routes", () => {
     const server = mockApi({ "POST /auth/reset": () => new Response(null, { status: 204 }) });
     try {
       storeSession(fakeSession("TUTOR"));
-      renderRouter("./src/app", { initialUrl: "/reset-password?token=fake-reset-token-000000001" });
+      await renderRouter("./src/app", { initialUrl: "/reset-password?token=fake-reset-token-000000001" });
       await screen.findByRole("header", { name: "Đặt lại mật khẩu" });
-      fireEvent.changeText(screen.getByLabelText("Mật khẩu mới"), "mot cau mat khau moi du dai");
+      await fireEvent.changeText(screen.getByLabelText("Mật khẩu mới"), "mot cau mat khau moi du dai");
 
       await act(async () => fireEvent.press(screen.getByRole("button", { name: "Đặt lại mật khẩu" })));
 
@@ -115,7 +115,7 @@ describe("account routes", () => {
     const server = mockApi({ "GET /me/sessions": () => json(200, { items: [], nextCursor: null }) });
     try {
       storeSession(fakeSession(role));
-      renderRouter("./src/app", { initialUrl });
+      await renderRouter("./src/app", { initialUrl });
 
       expect(await screen.findByRole("header", { name: "Bảo mật và phiên đăng nhập" })).toBeOnTheScreen();
       expect(screen).toHavePathname(initialUrl);
@@ -128,7 +128,7 @@ describe("account routes", () => {
     const server = mockApi({ "GET /me/sessions": () => json(200, { items: [], nextCursor: null }) });
     try {
       storeSession(fakeSession("PARENT"));
-      renderRouter("./src/app", { initialUrl: "/parent/security" });
+      await renderRouter("./src/app", { initialUrl: "/parent/security" });
       // The header shows while the list loads; the button comes with the list.
       const changePassword = await screen.findByRole("button", { name: "Đổi mật khẩu" });
       await act(async () => fireEvent.press(changePassword));
@@ -145,7 +145,7 @@ describe("account routes", () => {
   });
 
   it("sends a signed-out user from session security to sign-in", async () => {
-    renderRouter("./src/app", { initialUrl: "/parent/security" });
+    await renderRouter("./src/app", { initialUrl: "/parent/security" });
 
     expect(await screen.findByRole("header", { name: "Đăng nhập" })).toBeOnTheScreen();
     expect(screen).toHavePathname("/sign-in");
@@ -157,7 +157,7 @@ describe("account routes", () => {
       "GET /me/sessions": () => problem(401, "AUTHENTICATION_REQUIRED", "Phiên đăng nhập không còn hiệu lực."),
     });
     try {
-      renderRouter("./src/app", { initialUrl: "/parent/security" });
+      await renderRouter("./src/app", { initialUrl: "/parent/security" });
 
       expect(await screen.findByRole("header", { name: "Đăng nhập" })).toBeOnTheScreen();
       expect(screen).toHavePathname("/sign-in");
@@ -182,7 +182,7 @@ describe("account routes", () => {
       "POST /auth/logout": () => new Response(null, { status: 204 }),
     });
     try {
-      renderRouter("./src/app", { initialUrl: "/parent/security" });
+      await renderRouter("./src/app", { initialUrl: "/parent/security" });
       const signOut = await screen.findByRole("button", { name: "Đăng xuất" });
 
       await act(async () => fireEvent.press(signOut));
@@ -197,7 +197,7 @@ describe("account routes", () => {
 
   it("sends a signed-in user away from registration", async () => {
     storeSession(fakeSession("TUTOR"));
-    renderRouter("./src/app", { initialUrl: "/register" });
+    await renderRouter("./src/app", { initialUrl: "/register" });
 
     expect(await screen.findByRole("header", { name: "Trang chủ gia sư" })).toBeOnTheScreen();
     expect(screen).toHavePathname("/tutor");

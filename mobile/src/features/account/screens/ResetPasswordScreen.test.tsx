@@ -27,7 +27,7 @@ describe("AUTH05 ResetPasswordScreen", () => {
   it("sends the link token with the new password and says old sessions were signed out", async () => {
     server = mockApi({ "POST /auth/reset": noContent });
     await show();
-    fireEvent.changeText(screen.getByLabelText("Mật khẩu mới"), PASSWORD);
+    await fireEvent.changeText(screen.getByLabelText("Mật khẩu mới"), PASSWORD);
 
     await pressReset();
 
@@ -40,7 +40,7 @@ describe("AUTH05 ResetPasswordScreen", () => {
   it("checks the password length in code points before sending", async () => {
     server = mockApi({});
     await show();
-    fireEvent.changeText(screen.getByLabelText("Mật khẩu mới"), "🙂".repeat(14));
+    await fireEvent.changeText(screen.getByLabelText("Mật khẩu mới"), "🙂".repeat(14));
 
     await pressReset();
 
@@ -53,7 +53,7 @@ describe("AUTH05 ResetPasswordScreen", () => {
       "POST /auth/reset": () => problem(409, "LINK_USED", "Liên kết đã được dùng."),
     });
     await show();
-    fireEvent.changeText(screen.getByLabelText("Mật khẩu mới"), PASSWORD);
+    await fireEvent.changeText(screen.getByLabelText("Mật khẩu mới"), PASSWORD);
 
     await pressReset();
 
@@ -68,7 +68,7 @@ describe("AUTH05 ResetPasswordScreen", () => {
       "POST /auth/reset": () => problem(400, "LINK_EXPIRED", "Liên kết đã hết hạn."),
     });
     const onRequestNewLink = await show();
-    fireEvent.changeText(screen.getByLabelText("Mật khẩu mới"), PASSWORD);
+    await fireEvent.changeText(screen.getByLabelText("Mật khẩu mới"), PASSWORD);
 
     await pressReset();
 
@@ -86,7 +86,7 @@ describe("AUTH05 ResetPasswordScreen", () => {
         problem(422, "VALIDATION_FAILED", "Dữ liệu chưa hợp lệ.", [{ path: "newPassword", message: "Mật khẩu quá phổ biến." }]),
     });
     await show();
-    fireEvent.changeText(screen.getByLabelText("Mật khẩu mới"), PASSWORD);
+    await fireEvent.changeText(screen.getByLabelText("Mật khẩu mới"), PASSWORD);
 
     await pressReset();
 
@@ -113,7 +113,7 @@ describe("AUTH05 ResetPasswordScreen", () => {
       },
     });
     await show();
-    fireEvent.changeText(screen.getByLabelText("Mật khẩu mới"), PASSWORD);
+    await fireEvent.changeText(screen.getByLabelText("Mật khẩu mới"), PASSWORD);
 
     await pressReset();
     expect(await screen.findByText(/Chưa rõ kết quả/)).toBeOnTheScreen();
@@ -129,7 +129,7 @@ describe("AUTH05 ResetPasswordScreen", () => {
     server = mockApi({ "POST /auth/reset": noContent });
     try {
       await show();
-      fireEvent.changeText(screen.getByLabelText("Mật khẩu mới"), PASSWORD);
+      await fireEvent.changeText(screen.getByLabelText("Mật khẩu mới"), PASSWORD);
       await pressReset();
       await screen.findByRole("header", { name: "Đã đặt lại mật khẩu" });
 

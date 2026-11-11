@@ -10,12 +10,12 @@ async function show({ termsVersion }: { termsVersion?: string } = { termsVersion
   await renderScreen(<RegisterScreen termsVersion={termsVersion} onGoToSignIn={jest.fn()} onResendVerification={jest.fn()} />);
 }
 
-function fillValidForm() {
-  fireEvent.changeText(screen.getByLabelText("Email"), "  phu.huynh@example.test ");
-  fireEvent.changeText(screen.getByLabelText("Tên hiển thị"), "Phụ huynh A");
-  fireEvent.changeText(screen.getByLabelText("Mật khẩu"), PASSWORD);
-  fireEvent.press(screen.getByRole("radio", { name: "Tôi là phụ huynh" }));
-  fireEvent.press(screen.getByRole("checkbox", { name: "Tôi đồng ý với điều khoản sử dụng" }));
+async function fillValidForm() {
+  await fireEvent.changeText(screen.getByLabelText("Email"), "  phu.huynh@example.test ");
+  await fireEvent.changeText(screen.getByLabelText("Tên hiển thị"), "Phụ huynh A");
+  await fireEvent.changeText(screen.getByLabelText("Mật khẩu"), PASSWORD);
+  await fireEvent.press(screen.getByRole("radio", { name: "Tôi là phụ huynh" }));
+  await fireEvent.press(screen.getByRole("checkbox", { name: "Tôi đồng ý với điều khoản sử dụng" }));
 }
 
 async function pressRegister() {
@@ -37,7 +37,7 @@ describe("AUTH01 RegisterScreen", () => {
   it("sends the trimmed form with the chosen role and terms version, then asks to check email", async () => {
     server = mockApi({ "POST /auth/register": () => json(202, ACK) });
     await show();
-    fillValidForm();
+    await fillValidForm();
 
     await pressRegister();
 
@@ -71,9 +71,9 @@ describe("AUTH01 RegisterScreen", () => {
   it("counts password length in code points like the contract", async () => {
     server = mockApi({ "POST /auth/register": () => json(202, ACK) });
     await show();
-    fillValidForm();
+    await fillValidForm();
     // 14 emoji are 28 UTF-16 units but only 14 characters: still too short.
-    fireEvent.changeText(screen.getByLabelText("Mật khẩu"), "🙂".repeat(14));
+    await fireEvent.changeText(screen.getByLabelText("Mật khẩu"), "🙂".repeat(14));
 
     await pressRegister();
 
@@ -89,7 +89,7 @@ describe("AUTH01 RegisterScreen", () => {
         ]),
     });
     await show();
-    fillValidForm();
+    await fillValidForm();
 
     await pressRegister();
 
@@ -104,7 +104,7 @@ describe("AUTH01 RegisterScreen", () => {
       "POST /auth/register": () => problem(429, "RATE_LIMITED", "Bạn đã thử quá nhiều lần. Vui lòng thử lại sau."),
     });
     await show();
-    fillValidForm();
+    await fillValidForm();
 
     await pressRegister();
 
@@ -121,7 +121,7 @@ describe("AUTH01 RegisterScreen", () => {
       },
     });
     await show();
-    fillValidForm();
+    await fillValidForm();
 
     await pressRegister();
     expect(await screen.findByText(/Chưa rõ kết quả/)).toBeOnTheScreen();
@@ -136,7 +136,7 @@ describe("AUTH01 RegisterScreen", () => {
   it("does not send without a configured terms version", async () => {
     server = mockApi({});
     await show({});
-    fillValidForm();
+    await fillValidForm();
 
     await pressRegister();
 

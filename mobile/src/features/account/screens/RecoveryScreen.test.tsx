@@ -20,7 +20,7 @@ describe("AUTH04 RecoveryScreen", () => {
   it("sends the trimmed email and shows only the server's generic answer", async () => {
     server = mockApi({ "POST /auth/recovery": () => json(202, ACK) });
     await show();
-    fireEvent.changeText(screen.getByLabelText("Email"), "  gia.su@example.test ");
+    await fireEvent.changeText(screen.getByLabelText("Email"), "  gia.su@example.test ");
 
     await pressSend();
 
@@ -34,7 +34,7 @@ describe("AUTH04 RecoveryScreen", () => {
   it("does not send an invalid email and shows the error next to the field", async () => {
     server = mockApi({});
     await show();
-    fireEvent.changeText(screen.getByLabelText("Email"), "khong-phai-email");
+    await fireEvent.changeText(screen.getByLabelText("Email"), "khong-phai-email");
 
     await pressSend();
 
@@ -47,7 +47,7 @@ describe("AUTH04 RecoveryScreen", () => {
       "POST /auth/recovery": () => problem(429, "RATE_LIMITED", "Bạn đã yêu cầu quá nhiều lần. Vui lòng thử lại sau."),
     });
     await show();
-    fireEvent.changeText(screen.getByLabelText("Email"), "gia.su@example.test");
+    await fireEvent.changeText(screen.getByLabelText("Email"), "gia.su@example.test");
 
     await pressSend();
 
@@ -65,7 +65,7 @@ describe("AUTH04 RecoveryScreen", () => {
       },
     });
     await show();
-    fireEvent.changeText(screen.getByLabelText("Email"), "gia.su@example.test");
+    await fireEvent.changeText(screen.getByLabelText("Email"), "gia.su@example.test");
 
     await pressSend();
     expect(await screen.findByText(/Chưa rõ kết quả/)).toBeOnTheScreen();

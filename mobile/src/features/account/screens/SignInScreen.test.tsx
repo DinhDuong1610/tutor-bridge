@@ -27,8 +27,8 @@ async function signIn(onResendVerification = jest.fn()) {
       <SessionStatus />
     </>,
   );
-  fireEvent.changeText(screen.getByLabelText("Email"), "phu.huynh@example.test");
-  fireEvent.changeText(screen.getByLabelText("Mật khẩu"), PASSWORD);
+  await fireEvent.changeText(screen.getByLabelText("Email"), "phu.huynh@example.test");
+  await fireEvent.changeText(screen.getByLabelText("Mật khẩu"), PASSWORD);
   await act(async () => fireEvent.press(screen.getByRole("button", { name: "Đăng nhập" })));
   return onResendVerification;
 }

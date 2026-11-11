@@ -6,7 +6,7 @@ Mục ghi **TBD** là quyết định còn mở, chưa được tự chọn.
 - Code, tên biến, commit tiếng Anh. Giao diện, thông báo lỗi người dùng, tài liệu tiếng Việt.
 - Ghi mã liên quan ở test và PR, không rải trong code. Comment chỉ giải thích lý do không hiển nhiên.
 - Làm đúng phạm vi task. Không refactor ngoài lề.
-- Phiên bản khóa trong build và CI. Java 25 LTS, Spring Boot 4.1, Node.js 26 LTS, Python 3.14, Expo SDK 57, Next.js 16.4, React 19.2 dùng chung cho mobile và web. Kiểm tra lại bản vá mới nhất khi dựng từng phần.
+- Phiên bản khóa trong build và CI. Java 25 LTS, Spring Boot 4.1, Node.js 26 LTS, Python 3.14, Expo SDK 58 (React Native 0.88), Next.js 16.4, React 19.3 dùng chung cho mobile và web. Kiểm tra lại bản vá mới nhất khi dựng từng phần.
 
 ## API
 - Prefix `/api/v1`. `contracts/openapi.yaml` là nguồn chuẩn; code khớp hợp đồng, không ngược lại.

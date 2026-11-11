@@ -16,7 +16,7 @@ describe("AccountTextField", () => {
   it("hides a password until the user asks to show it, then hides it again", async () => {
     await render(<PasswordForm />);
     const input = screen.getByLabelText("Mật khẩu");
-    fireEvent.changeText(input, "mot cau mat khau du dai");
+    await fireEvent.changeText(input, "mot cau mat khau du dai");
     expect(input.props.secureTextEntry).toBe(true);
 
     await act(async () => fireEvent.press(screen.getByRole("button", { name: "Hiện mật khẩu" })));

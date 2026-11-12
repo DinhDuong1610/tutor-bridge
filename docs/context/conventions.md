@@ -107,7 +107,7 @@ mobile/__mocks__/      bản giả expo-secure-store, expo-crypto cho Jest
 - Màu, cỡ chữ, khoảng cách lấy từ `@/shared/ui/theme`, không viết số hay mã màu trong màn hình. Không đặt chiều cao cố định quanh chữ để chữ phóng to 200% vẫn đọc được.
 - Màn hình đọc dữ liệu dùng `QueryScreen`: đã có tải, rỗng, lỗi hệ thống kèm thử lại, mất quyền, không tìm thấy, dữ liệu cũ khi tải lại lỗi. `empty` thay cả nội dung; màn hình cần giữ form khi danh sách rỗng thì tự hiện thông báo rỗng.
 - Lệnh ghi hiển thị bằng `CommandStatus` cạnh nút gửi; nút gửi đặt `busy` khi `state === "sending"`.
-- Form: `useForm` với `zodResolver(schema)`; giới hạn lấy từ schema của hợp đồng, máy chủ vẫn kiểm lại. Ô nhập dùng `FormTextField`. Lỗi trường của máy chủ đặt vào ô bằng `useServerErrors(command.error, form.setError, [tên ô])`.
+- Form: `useForm` với `zodResolver(schema)`; giới hạn lấy từ schema của hợp đồng, máy chủ vẫn kiểm lại. Ô nhập dùng `FormTextField`; các thuộc tính khác của `TextInput` (`secureTextEntry`, `autoComplete`, `keyboardType`, `autoCapitalize`, `multiline`) truyền thẳng vào nó, không tự viết ô nhập riêng. Lỗi trường của máy chủ đặt vào ô bằng `useServerErrors(command.error, form.setError, [tên ô])`.
 
 ### Test
 - Màn hình: `mockApi({ "GET /students": () => json(200, ...) })` thay `fetch` theo đường dẫn hợp đồng, yêu cầu ngoài danh sách làm test hỏng; `renderScreen(<Screen />, { session: fakeSession("PARENT") })` dựng màn hình với đủ provider; `restore()` sau mỗi test.

@@ -63,6 +63,18 @@ describe("runCommand", () => {
     expect(await runCommand(answer(502, "<html>Bad gateway</html>"))).toEqual({ state: "unknown" });
   });
 
+  it.each([500, 503])(
+    "treats a %i with a problem body as an unknown outcome, since the write may have committed (#83)",
+    async (status) => {
+      const problem = { ...PROBLEM, status, code: "INTERNAL_ERROR", title: "Hệ thống gặp lỗi.", fields: undefined };
+      expect(await runCommand(answer(status, problem))).toEqual({ state: "unknown" });
+    },
+  );
+
+  it.each([400, 409, 412, 422, 429])("keeps a %i with a problem body as a known failure", async (status) => {
+    expect((await runCommand(answer(status, { ...PROBLEM, status }))).state).toBe("failed");
+  });
+
   it("ends the session on a 401", async () => {
     await expect(runCommand(answer(401, { ...PROBLEM, status: 401 }))).rejects.toThrow("REDIRECT /admin/session-expired");
   });

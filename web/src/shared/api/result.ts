@@ -52,8 +52,9 @@ export type ActionResult<T> =
   | { state: "unknown" };
 
 /**
- * Unwraps a write inside a Server Action. A lost connection or a gateway page is "unknown": the
- * command may have run, so the form offers a retry with the same Idempotency-Key (INV-20).
+ * Unwraps a write inside a Server Action. A lost connection or any 5xx, with or without a problem
+ * body, is "unknown": the command may have committed before the error, so the form offers a retry
+ * with the same Idempotency-Key (INV-20, Đính decided on #83). Only a 4xx is a known failure.
  */
 export async function runCommand<T>(request: Promise<FetchResult<T>>): Promise<ActionResult<T>> {
   let result: FetchResult<T>;
@@ -69,11 +70,11 @@ export async function runCommand<T>(request: Promise<FetchResult<T>>): Promise<A
   if (response.status === 401) {
     redirect(SESSION_EXPIRED_PATH);
   }
-  if (isProblem(error)) {
-    return { state: "failed", title: error.title, fields: fieldErrors(error) };
-  }
   if (response.status >= 500) {
     return { state: "unknown" };
+  }
+  if (isProblem(error)) {
+    return { state: "failed", title: error.title, fields: fieldErrors(error) };
   }
   return { state: "failed", title: "Yêu cầu không được chấp nhận.", fields: {} };
 }

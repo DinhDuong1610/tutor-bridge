@@ -13,7 +13,7 @@ export const studentSchema = z.object({
     .trim()
     .refine((value) => lengthOf(value) >= 1 && lengthOf(value) <= NAME_MAX, "Nhập tên hiển thị của con (1–100 ký tự)."),
   // Trimmed so a goal of only spaces is saved as "no goal" instead of a blank line.
-  // TBD (Đính): PH02 has no copy for a goal over the limit; this message is a placeholder (handoff TB-67).
+  // Copy confirmed by Đính on 12/11/2026 (review of #119); added to PH02.md in Đính's docs PR.
   shortGoal: z
     .string()
     .trim()

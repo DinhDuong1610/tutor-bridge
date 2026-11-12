@@ -126,7 +126,7 @@ Khi vẽ xong và duyệt, nội dung của màn hình chuyển sang `screens/<m
 - **Tác vụ:** "Lưu nháp".
 - **Trạng thái riêng:** bản cũ; sửa chuyên môn của bản đã duyệt: báo "Phần chuyên môn sẽ phải duyệt lại".
 - **Phải thấy:** đổi giá chỉ áp dụng cho đề nghị mới, lớp đã chốt giữ giá cũ. Kinh nghiệm luôn là tự khai (`TutorPublic.experienceLabel = SELF_DECLARED`).
-- **TBD (OP-24):** khi bản sửa đang chờ xác minh, phụ huynh còn thấy bản đang công khai không; khi đang chờ xác minh, gia sư có được sửa tiếp không; sau khi bị từ chối có được sửa và gửi lại không.
+- **OP-24 (chốt 12/11/2026):** bản sửa đang chờ xác minh thì phụ huynh vẫn thấy bản đã duyệt hiện hành; đang chờ thì khóa sửa; cần bổ sung hoặc bị từ chối thì được sửa và gửi lại thành phiên bản mới.
 
 ### GS03 Minh chứng và kết quả xác minh
 - **API:** `createEvidenceUpload`, `completeEvidenceUpload`, `submitTutorProfile`. **UC03.**

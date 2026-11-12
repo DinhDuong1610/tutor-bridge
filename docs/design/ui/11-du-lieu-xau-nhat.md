@@ -23,7 +23,7 @@ Mọi giá trị là tên và dữ liệu giả, nhưng có thể có thật ngo
 | Khung giờ rảnh gia sư | tối đa 200 khung | GS04 |
 | Một trang danh sách (nhu cầu, thông báo...) | tối đa 50, tải thêm bằng `cursor` | PH03, COM01, AD03 |
 
-Giá không có trần là điều cần Đính xem lại cùng backend: `rateVnd60` và `budgetVndSession` chỉ có `minimum: 1` (OP-20).
+Giá không có trần: `rateVnd60` và `budgetVndSession` chỉ có `minimum: 1`. Đính chốt 12/11/2026 không đặt trần (OP-20); app hiện số đã định dạng để người dùng tự thấy nếu nhập nhầm.
 
 ## Bộ giá trị
 | Loại | Bình thường | Xấu nhất nên vẽ |

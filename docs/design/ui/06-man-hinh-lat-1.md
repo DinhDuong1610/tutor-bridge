@@ -118,7 +118,7 @@ Khi vẽ xong và duyệt, nội dung của màn hình chuyển sang `screens/<m
 ### GS01 Trang chủ gia sư
 - **API:** `getOwnTutorProfile`, `listOffers`, `listSessions`, `listOwnNotifications`.
 - **Hiển thị:** "Việc cần làm" theo thứ tự: hoàn thiện hồ sơ, gửi duyệt, bổ sung theo yêu cầu, xác nhận lịch rảnh, đề nghị đang chờ (kèm `Deadline`); buổi sắp tới (`SessionCard`).
-- **Phải thấy:** vì sao hồ sơ chưa xuất hiện khi phụ huynh tìm. Không hiện nhật ký, bản soạn (ngoài Lát 1). Đề nghị và buổi học không có tên học sinh trong hợp đồng (OP-25).
+- **Phải thấy:** vì sao hồ sơ chưa xuất hiện khi phụ huynh tìm. Không hiện nhật ký, bản soạn (ngoài Lát 1). Gia sư chỉ thấy tên học sinh sau khi chốt lớp (OP-25, chốt 12/11/2026; trường mới ở #97).
 
 ### GS02 Hồ sơ chuyên môn và học phí
 - **API:** `getOwnTutorProfile`, `saveTutorProfile`. **UC03; BR02.**

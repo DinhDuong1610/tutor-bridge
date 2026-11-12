@@ -1,5 +1,5 @@
 import { act, fireEvent, renderRouter, screen } from "expo-router/testing-library";
-import { json, mockApi } from "@/shared/test/mockApi";
+import { json, mockApi, problem } from "@/shared/test/mockApi";
 import { clearStore, fakeSession, storeSession } from "@/shared/test/session";
 
 // Fake child only (AGENTS.md).
@@ -67,6 +67,32 @@ describe("PH02 routes", () => {
     // The form is closed, not left on screen under the list.
     expect(screen.queryByRole("header", { name: "Thêm hồ sơ con" })).toBeNull();
   });
+
+  it("still says the profile was saved when the list fails to reload after the save", async () => {
+    let created = false;
+    server = mockApi({
+      "GET /students": () =>
+        created ? problem(503, "UNAVAILABLE", "Dịch vụ tạm thời không sẵn sàng.") : json(200, { items: [], nextCursor: null }),
+      "POST /students": () => {
+        created = true;
+        return json(201, CREATED);
+      },
+    });
+    await renderRouter("./src/app", { initialUrl: "/parent/account/students" });
+    await screen.findByText("Chưa có hồ sơ con nào. Tạo hồ sơ cho con để bắt đầu tìm gia sư.");
+
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Thêm hồ sơ con" })));
+    await screen.findByRole("header", { name: "Thêm hồ sơ con" });
+    await fireEvent.changeText(screen.getByLabelText("Tên hiển thị của con"), "Minh An");
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Lưu hồ sơ" })));
+
+    // The reload fails (after its retries): old data with a warning, and the confirmed save still shown.
+    expect(
+      await screen.findByText("Không cập nhật được. Đang hiển thị dữ liệu đã tải trước đó.", {}, { timeout: 10_000 }),
+    ).toBeOnTheScreen();
+    expect(screen.getByText("Đã lưu hồ sơ Minh An.")).toBeOnTheScreen();
+    expect(screen).toHavePathname("/parent/account/students");
+  }, 20_000); // Reads retry twice on 5xx with the default backoff before the warning shows.
 
   it("keeps a tutor out of PH02", async () => {
     server = mockApi({});

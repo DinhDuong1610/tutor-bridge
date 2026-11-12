@@ -70,14 +70,23 @@ export function AddStudentScreen({ onBack, onSaved }: Props) {
           {otherErrors.map((message) => (
             <Notice key={message} tone="danger" message={message} />
           ))}
-          {hasFieldErrors ? (
+          {create.state === "unknown" ? (
+            // Always offer the safe retry here, even when a field shows an error.
+            <CommandStatus command={create} confirmedMessage="" />
+          ) : hasFieldErrors ? (
             <Notice tone="danger" message="Vui lòng sửa các ô được đánh dấu rồi gửi lại." />
           ) : create.state === "confirmed" ? null : (
             <CommandStatus command={create} confirmedMessage="" />
           )}
+          {/*
+            While the outcome is unknown the first profile may already exist. A new submit would reuse
+            the kept key with other input (409), then the next save would get a new key and create a
+            second profile. Only "Thử lại", same key and same input, is allowed until the answer is known.
+          */}
           <Button
             title="Lưu hồ sơ"
             busy={create.state === "sending" || savedId !== undefined}
+            disabled={create.state === "unknown"}
             onPress={form.handleSubmit((values) => create.submit(values))}
           />
         </StickyActionBar>

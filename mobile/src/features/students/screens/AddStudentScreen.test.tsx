@@ -178,6 +178,65 @@ describe("PH02 Hồ sơ các con: thêm hồ sơ con", () => {
     expect(second).toBe(first);
   });
 
+  it("blocks a new save after an unknown outcome, so editing cannot lead to a second profile", async () => {
+    // The first attempt reached the server and created the profile, but the answer was lost.
+    let attempts = 0;
+    server = mockApi({
+      "POST /students": () => {
+        attempts += 1;
+        if (attempts === 1) throw new TypeError("Network request failed");
+        return json(201, CREATED);
+      },
+    });
+    const { onSaved } = await renderForm();
+
+    await fireEvent.changeText(screen.getByLabelText("Tên hiển thị của con"), "Minh An");
+    await save();
+    await screen.findByText(/Chưa rõ kết quả/);
+
+    // The user edits the name and presses save again, even with a field error on screen.
+    await fireEvent.changeText(screen.getByLabelText("Tên hiển thị của con"), "");
+    expect(screen.getByRole("button", { name: "Lưu hồ sơ" })).toBeDisabled();
+    await save();
+    expect(posts(server)).toHaveLength(1);
+
+    await fireEvent.changeText(screen.getByLabelText("Tên hiển thị của con"), "Minh An Nguyễn");
+    await save();
+    expect(posts(server)).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "Thử lại" })).toBeOnTheScreen();
+
+    // Only the retry is possible: same key, same input as the first attempt.
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Thử lại" })));
+
+    await waitFor(() => expect(onSaved).toHaveBeenCalledWith(CREATED.id));
+    const sent = posts(server);
+    expect(sent).toHaveLength(2);
+    expect(sent[1].headers.get("Idempotency-Key")).toBe(sent[0].headers.get("Idempotency-Key"));
+    expect(await sent[1].json()).toEqual({ displayName: "Minh An", grade: 8, shortGoal: "" });
+  });
+
+  it("allows a corrected save after a known failure, with a new key", async () => {
+    let attempts = 0;
+    server = mockApi({
+      "POST /students": () => {
+        attempts += 1;
+        return attempts === 1 ? problem(429, "RATE_LIMITED", "Bạn thao tác quá nhanh. Vui lòng đợi một lúc rồi thử lại.") : json(201, CREATED);
+      },
+    });
+    const { onSaved } = await renderForm();
+
+    await fireEvent.changeText(screen.getByLabelText("Tên hiển thị của con"), "Minh An");
+    await save();
+    await screen.findByText("Bạn thao tác quá nhanh. Vui lòng đợi một lúc rồi thử lại.");
+    expect(screen.getByRole("button", { name: "Lưu hồ sơ" })).toBeEnabled();
+
+    await save();
+
+    await waitFor(() => expect(onSaved).toHaveBeenCalledWith(CREATED.id));
+    const [first, second] = posts(server).map((r) => r.headers.get("Idempotency-Key"));
+    expect(second).not.toBe(first);
+  });
+
   it("goes back from the top bar without sending", async () => {
     server = mockApi({});
     const { onBack } = await renderForm();

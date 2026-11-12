@@ -6,6 +6,12 @@ import { call } from "@/shared/api/errors";
 import { GRADE, type StudentForm } from "./schemas";
 
 export const STUDENTS_KEY = ["students"] as const;
+
+/**
+ * The profile the server just confirmed, kept for the "Đã lưu hồ sơ {tên}." notice so it does not
+ * depend on the list reloading. In memory only; cleared with the rest of the cache on sign-out.
+ */
+export const savedStudentKey = (studentId: string) => ["students", "saved", studentId] as const;
 const STUDENTS_PAGE_LIMIT = 50; // maxItems of StudentPage
 
 /** The signed-in parent's children. The server takes the owner from the session (AC-UC02-02). */
@@ -30,10 +36,12 @@ export function useCreateStudent() {
       }),
     ),
   );
+  const created = command.state === "confirmed" ? command.result : undefined;
   useEffect(() => {
-    if (command.state === "confirmed") {
-      void queryClient.invalidateQueries({ queryKey: STUDENTS_KEY });
+    if (created) {
+      queryClient.setQueryData(savedStudentKey(created.id), created);
+      void queryClient.invalidateQueries({ queryKey: STUDENTS_KEY, exact: true });
     }
-  }, [command.state, queryClient]);
+  }, [created, queryClient]);
   return command;
 }

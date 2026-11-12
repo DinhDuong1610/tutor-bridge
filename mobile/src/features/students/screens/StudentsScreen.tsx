@@ -1,4 +1,5 @@
 // PH02 Hồ sơ các con: danh sách (UC02, FR-03). Thiết kế: docs/design/ui/screens/PH02.md
+import { useQueryClient } from "@tanstack/react-query";
 import type { components } from "@tutorbridge/api-client";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { Button } from "@/shared/ui/Button";
@@ -6,7 +7,7 @@ import { Notice } from "@/shared/ui/Notice";
 import { QueryScreen } from "@/shared/ui/QueryScreen";
 import { StickyActionBar } from "@/shared/ui/StickyActionBar";
 import { colors, radius, spacing, typography } from "@/shared/ui/theme";
-import { useStudents } from "../api";
+import { savedStudentKey, useStudents } from "../api";
 
 type Student = components["schemas"]["Student"];
 
@@ -21,13 +22,17 @@ const LEAD = "Mỗi thao tác tìm gia sư, lịch và lớp đều gắn với 
 
 export function StudentsScreen({ onBack, onAdd, savedId }: Props) {
   const students = useStudents();
+  const queryClient = useQueryClient();
+  // Confirmed by the server when it was created, so the notice shows even if the list fails to reload.
+  const confirmed = savedId ? queryClient.getQueryData<Student>(savedStudentKey(savedId)) : undefined;
 
   return (
     // No `empty` on QueryScreen: the empty state keeps the lead and has its own action bar.
     <QueryScreen title="Hồ sơ các con" onBack={onBack} query={students}>
       {(data) => {
         const items = data.pages.flatMap((page) => page.items);
-        const saved = savedId ? items.find((item) => item.id === savedId) : undefined;
+        // The list holds the latest name when it loaded; otherwise the profile the server confirmed.
+        const saved = (savedId ? items.find((item) => item.id === savedId) : undefined) ?? confirmed;
         const header = (
           <>
             {saved ? <Notice tone="success" message={`Đã lưu hồ sơ ${saved.displayName}.`} /> : null}

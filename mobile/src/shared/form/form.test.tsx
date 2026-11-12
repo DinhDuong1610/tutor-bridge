@@ -31,7 +31,50 @@ function SignInLikeForm({ onSubmit }: { onSubmit: (values: Values) => void }) {
   );
 }
 
+function ErrorForm() {
+  const form = useForm<{ name: string }>({ defaultValues: { name: "" } });
+  return (
+    <>
+      <FormTextField control={form.control} name="name" label="Tên hiển thị" hint="Không cần họ tên đầy đủ." />
+      <Button title="Báo lỗi" onPress={() => form.setError("name", { type: "server", message: "Nhập tên hiển thị." })} />
+    </>
+  );
+}
+
+// Compile-time check: accessibilityHint is set by TextField from the error or hint.
+function NoHintOverride() {
+  const form = useForm<{ name: string }>({ defaultValues: { name: "" } });
+  // @ts-expect-error a screen cannot replace the hint that carries the field's error
+  return <FormTextField control={form.control} name="name" label="Tên" accessibilityHint="Gợi ý khác" />;
+}
+void NoHintOverride;
+
+/** TypeScript lets hyphenated attributes through, so this is checked at runtime. */
+function AriaLabelForm() {
+  const form = useForm<{ name: string }>({ defaultValues: { name: "" } });
+  return <FormTextField control={form.control} name="name" label="Tên hiển thị" aria-label="Tên khác" aria-labelledby="khac" />;
+}
+
 describe("FormTextField", () => {
+  it("reads the field's error to a screen reader, and the hint while there is no error", async () => {
+    await render(<ErrorForm />);
+    expect(screen.getByLabelText("Tên hiển thị").props.accessibilityHint).toBe("Không cần họ tên đầy đủ.");
+
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Báo lỗi" })));
+
+    expect(screen.getByLabelText("Tên hiển thị").props.accessibilityHint).toBe("Nhập tên hiển thị.");
+    expect(screen.getByText("Lỗi: Nhập tên hiển thị.")).toBeOnTheScreen();
+  });
+
+  it("keeps the label as the accessible name even when a screen passes aria-label", async () => {
+    await render(<AriaLabelForm />);
+
+    const input = screen.getByLabelText("Tên hiển thị");
+    expect(input.props["aria-label"]).toBeUndefined();
+    expect(input.props["aria-labelledby"]).toBeUndefined();
+    expect(screen.queryByLabelText("Tên khác")).toBeNull();
+  });
+
   it("passes TextInput options through, so a password field is hidden", async () => {
     await render(<SignInLikeForm onSubmit={jest.fn()} />);
 

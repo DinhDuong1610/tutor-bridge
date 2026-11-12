@@ -1,12 +1,11 @@
 import { Controller, type Control, type FieldValues, type Path } from "react-hook-form";
-import type { TextInputProps } from "react-native";
-import { TextField } from "@/shared/ui/TextField";
+import { TextField, type TextFieldInputProps } from "@/shared/ui/TextField";
 
-/** TextInput options a form may set. The value and its events belong to react-hook-form. */
-type InputProps = Omit<
-  TextInputProps,
-  "value" | "defaultValue" | "onChangeText" | "onChange" | "onBlur" | "style" | "accessibilityLabel"
->;
+/**
+ * TextInput options a form may set. The value and its events belong to react-hook-form; the
+ * accessible name and hint belong to TextField (label, error, hint).
+ */
+type InputProps = Omit<TextFieldInputProps, "value" | "defaultValue" | "onChangeText" | "onChange" | "onBlur">;
 
 type Props<T extends FieldValues> = InputProps & {
   control: Control<T>;

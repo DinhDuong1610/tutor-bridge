@@ -1,12 +1,32 @@
 import { StyleSheet, Text, TextInput, View, type TextInputProps } from "react-native";
 import { colors, minTouchSize, radius, spacing, typography } from "./theme";
 
-type Props = Omit<TextInputProps, "style" | "accessibilityLabel"> & {
+/**
+ * The input's accessible name and hint come from `label`, `error` and `hint` only. React Native
+ * prefers `aria-*` over `accessibility*`, so those are left out too: a screen must not be able to
+ * hide the field's error from a screen reader (NFR12).
+ */
+export type TextFieldInputProps = Omit<
+  TextInputProps,
+  "style" | "accessibilityLabel" | "accessibilityHint" | "aria-label" | "aria-labelledby" | "accessibilityLabelledBy"
+>;
+
+type Props = TextFieldInputProps & {
   label: string;
   /** Field message from the server (`ApiError.fields`) or the form schema. */
   error?: string;
   hint?: string;
 };
+
+// TypeScript does not check hyphenated JSX attributes, so `aria-label` can still be passed: drop
+// these at runtime as well.
+const NAME_AND_HINT = ["accessibilityLabel", "accessibilityHint", "aria-label", "aria-labelledby", "accessibilityLabelledBy"];
+
+function withoutNameAndHint(input: TextFieldInputProps): TextFieldInputProps {
+  const rest: Record<string, unknown> = { ...input };
+  for (const key of NAME_AND_HINT) delete rest[key];
+  return rest as TextFieldInputProps;
+}
 
 /** A labelled input. The error is text next to the field, not only a red border (NFR12). */
 export function TextField({ label, error, hint, ...input }: Props) {
@@ -14,11 +34,11 @@ export function TextField({ label, error, hint, ...input }: Props) {
     <View style={styles.container}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
+        placeholderTextColor={colors.textMuted}
+        {...withoutNameAndHint(input)}
         accessibilityLabel={label}
         accessibilityHint={error ?? hint}
-        placeholderTextColor={colors.textMuted}
         style={[styles.input, error ? styles.inputError : null]}
-        {...input}
       />
       {error ? (
         <Text accessibilityRole="alert" style={styles.error}>

@@ -8,8 +8,8 @@ spring:
 logging:
   structured:
     format:
-      # Plain text on a developer machine. Leaving it empty turns structured logging off.
-      console: ""
+      # Plain text on a developer machine, masked like the JSON logs (Issue #85).
+      console: com.tutorbridge.platform.web.RedactedTextLogFormatter
 tutorbridge:
   identity:
     # Trial terms with no legal effect, until Đính provides the text (Q8 of TB-8).

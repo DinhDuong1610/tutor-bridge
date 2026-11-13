@@ -6,10 +6,13 @@ import { ApiError } from "@/shared/api/errors";
 import { Button } from "./Button";
 import { Notice } from "./Notice";
 import { colors, spacing, typography } from "./theme";
+import { TopAppBar } from "./TopAppBar";
 
 type Props<T> = {
   /** Shown as the screen heading. Put the screen code (PH02...) in a comment at the top of the screen file. */
   title: string;
+  /** Shows a back button next to the title. */
+  onBack?: () => void;
   query: UseQueryResult<T>;
   /** Shown when `isEmpty(data)` is true, for example "Chưa có hồ sơ con nào." */
   empty?: { when: (data: T) => boolean; message: string; action?: ReactNode };
@@ -21,13 +24,11 @@ type Props<T> = {
  * FR-37): loading, empty, system error with retry, lost access, not found, and stale data after a
  * failed refresh. A 401 is handled by the session (M3), so nothing is shown for it here.
  */
-export function QueryScreen<T>({ title, query, empty, children }: Props<T>) {
+export function QueryScreen<T>({ title, onBack, query, empty, children }: Props<T>) {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
-        <Text accessibilityRole="header" style={styles.title}>
-          {title}
-        </Text>
+        <TopAppBar title={title} onBack={onBack} />
         <Body query={query} empty={empty}>
           {children}
         </Body>
@@ -36,7 +37,7 @@ export function QueryScreen<T>({ title, query, empty, children }: Props<T>) {
   );
 }
 
-function Body<T>({ query, empty, children }: Omit<Props<T>, "title">) {
+function Body<T>({ query, empty, children }: Omit<Props<T>, "title" | "onBack">) {
   if (query.isPending) {
     return (
       <View style={styles.center} accessibilityLiveRegion="polite">
@@ -90,7 +91,6 @@ function LoadError({ error, retry }: { error: Error; retry: () => void }) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   container: { flex: 1, padding: spacing.md, gap: spacing.md },
-  title: { ...typography.title, color: colors.text },
   center: { alignItems: "center", gap: spacing.sm, paddingVertical: spacing.xl },
   muted: { ...typography.body, color: colors.textMuted },
 });

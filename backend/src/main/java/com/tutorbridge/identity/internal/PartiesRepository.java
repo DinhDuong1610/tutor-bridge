@@ -25,6 +25,12 @@ class PartiesRepository implements Parties {
     }
 
     @Override
+    public boolean isOwnStudent(UUID parentId, UUID studentId) {
+        return jdbc.sql("select count(*) from students where id = ? and parent_id = ?")
+                .params(studentId, parentId).query(Integer.class).single() == 1;
+    }
+
+    @Override
     @Transactional(propagation = Propagation.MANDATORY)
     public Optional<UUID> lockAgreementParties(UUID tutorId, UUID profileId, int rateVnd60, UUID studentId) {
         Optional<UUID> parentId = jdbc.sql("select parent_id from students where id = ? for share")

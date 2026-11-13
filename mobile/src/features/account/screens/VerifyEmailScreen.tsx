@@ -69,8 +69,9 @@ export function VerifyEmailScreen({ token, onGoToSignIn }: Props) {
       )}
       {validToken === null || verify.state === "failed" ? (
         <View style={styles.section}>
-          {/* Not a header role: renderScreen of the foundation expects one header per screen. */}
-          <Text style={styles.subtitle}>Gửi lại liên kết xác minh</Text>
+          <Text accessibilityRole="header" style={styles.subtitle}>
+            Gửi lại liên kết xác minh
+          </Text>
           <Text style={styles.body}>Liên kết mới có hạn 30 phút.</Text>
           <EmailRequestForm command={resend} submitTitle="Gửi lại liên kết" />
         </View>

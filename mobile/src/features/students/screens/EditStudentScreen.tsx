@@ -1,6 +1,6 @@
 // PH02 Hồ sơ các con: sửa hồ sơ (UC02, FR-03). Thiết kế: docs/design/ui/screens/PH02.md
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { KeyboardAvoidingView, ScrollView, StyleSheet } from "react-native";
 import { useServerErrors } from "@/shared/form/serverErrors";
@@ -29,24 +29,28 @@ export function EditStudentScreen({ studentId, onBack, onSaved }: Props) {
   const profile = useStudentProfile(studentId);
   return (
     <QueryScreen title="Sửa hồ sơ" onBack={onBack} query={profile}>
-      {({ data, etag }) => (
-        <EditForm loaded={data} etag={etag} onReload={() => profile.refetch()} onSaved={onSaved} />
-      )}
+      {(loaded) => <EditForm initial={loaded} onReload={() => profile.refetch()} onSaved={onSaved} />}
     </QueryScreen>
   );
 }
 
+type Revision = { data: Student; etag: string };
+
 function EditForm({
-  loaded,
-  etag,
+  initial,
   onReload,
   onSaved,
 }: {
-  loaded: Student;
-  etag: string;
-  onReload: () => Promise<{ isSuccess: boolean }>;
+  initial: Revision;
+  onReload: () => Promise<{ isSuccess: boolean; data?: Revision }>;
   onSaved: (studentId: string) => void;
 }) {
+  // The revision the form was filled from. The changed fields and If-Match always come from this
+  // same revision. A background refetch must not replace it: the form would keep the old values
+  // while the new ETag let them overwrite a newer save (Codex review of #138). Only "Tải lại"
+  // after a 412 moves it to the server's latest revision.
+  const [base, setBase] = useState(initial);
+  const loaded = base.data;
   const form = useForm<StudentFormInput, unknown, StudentForm>({
     resolver: zodResolver(studentSchema),
     defaultValues: { displayName: loaded.displayName, shortGoal: loaded.shortGoal ?? "" },
@@ -59,7 +63,7 @@ function EditForm({
   const hasChanges =
     (displayName ?? "").trim() !== loaded.displayName || (shortGoal ?? "").trim() !== (loaded.shortGoal ?? "");
   const stale = update.state === "failed" && update.error?.kind === "stale";
-  const savedId = update.state === "confirmed" ? update.result?.id : undefined;
+  const savedId = update.state === "confirmed" ? update.result?.data.id : undefined;
 
   useEffect(() => {
     if (savedId) {
@@ -69,7 +73,9 @@ function EditForm({
 
   // Loads the new revision and its ETag. The form keeps what the user typed; they decide again.
   const reload = async () => {
-    if ((await onReload()).isSuccess) {
+    const result = await onReload();
+    if (result.isSuccess && result.data) {
+      setBase(result.data);
       update.reset();
     }
   };
@@ -94,7 +100,7 @@ function EditForm({
           busy={update.state === "sending" || savedId !== undefined}
           disabled={update.state === "unknown" || stale || !hasChanges}
           onPress={form.handleSubmit((values) =>
-            update.submit({ studentId: loaded.id, etag, changes: changedFields(loaded, values) }),
+            update.submit({ studentId: loaded.id, etag: base.etag, changes: changedFields(loaded, values) }),
           )}
         />
       </StickyActionBar>

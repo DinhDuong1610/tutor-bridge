@@ -59,7 +59,7 @@ export type StudentUpdate = { studentId: string; etag: string; changes: StudentP
 export function useUpdateStudent() {
   const queryClient = useQueryClient();
   const command = useCommand(({ studentId, etag, changes }: StudentUpdate, key: string) =>
-    call(
+    callWithEtag(
       api.PATCH("/students/{studentId}", {
         params: { path: { studentId }, header: { "Idempotency-Key": key, "If-Match": etag } },
         body: changes,
@@ -69,10 +69,11 @@ export function useUpdateStudent() {
   const updated = command.state === "confirmed" ? command.result : undefined;
   useEffect(() => {
     if (updated) {
-      queryClient.setQueryData(savedStudentKey(updated.id), updated);
+      queryClient.setQueryData(savedStudentKey(updated.data.id), updated.data);
+      // The saved revision with the server's new ETag, so the next edit starts from it instead of
+      // an older cached revision (Codex review of #138).
+      queryClient.setQueryData(studentProfileKey(updated.data.id), updated);
       void queryClient.invalidateQueries({ queryKey: STUDENTS_KEY, exact: true });
-      // Stale, not refetched now: the next edit loads the new revision and its ETag.
-      void queryClient.invalidateQueries({ queryKey: studentProfileKey(updated.id), refetchType: "none" });
     }
   }, [updated, queryClient]);
   return command;

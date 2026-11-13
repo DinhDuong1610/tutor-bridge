@@ -33,7 +33,7 @@ Mức theo Impeccable: P1 phải sửa trước khi phát hành, P2 sửa ở l�
 ## Phát hiện thêm khi thử frame chữ 200% trong Figma (08/11/2026)
 | Mức | Chỗ | Vấn đề | Đề xuất |
 |---|---|---|---|
-| P1 | `NavigationBar`, mọi màn hình có tab | Ở 200%, nhãn 5 tab trên khổ 360 gãy giữa chữ ("Thôn / g báo", "Tài khoả / n") | Cần Đính chọn (OP-22): giới hạn phóng nhãn tab (ví dụ `maxFontSizeMultiplier` khoảng 1,3 chỉ cho nhãn tab, icon vẫn có nhãn trợ năng), hoặc chỉ hiện nhãn của tab đang mở khi chữ lớn |
+| P1 | `NavigationBar`, mọi màn hình có tab | Ở 200%, nhãn 5 tab trên khổ 360 gãy giữa chữ ("Thôn / g báo", "Tài khoả / n") | Đính chốt 12/11/2026 (OP-22): giới hạn phóng riêng nhãn tab khoảng 1,3. Các phương án đã xét: giới hạn phóng nhãn tab (ví dụ `maxFontSizeMultiplier` khoảng 1,3 chỉ cho nhãn tab, icon vẫn có nhãn trợ năng), hoặc chỉ hiện nhãn của tab đang mở khi chữ lớn |
 | P1 | `Button` | Xác nhận phát hiện ở trên: nhãn dài ("Đăng xuất khỏi thiết bị này") tràn khỏi nút ở 200%. Thiết kế đã rút nhãn thành "Đăng xuất tài khoản"; code vẫn phải cho chữ trên nút xuống dòng | Như dòng `Button.tsx` ở trên |
 | P2 | `SessionCard` ở chữ 200% | Giờ "18:00–19:30" không có chỗ ngắt nên bị cắt mép phải khi khối ngày giữ cạnh trái | Khi cỡ chữ hệ thống lớn (khoảng 1,5 lần trở lên), xếp khối ngày lên trên nội dung; hoặc cho giờ xuống dòng sau dấu gạch nối. Đính chọn khi duyệt `SessionCard` |
 | P2 | `StatusLabel`, `VerificationLabel` ở chữ 200% | Nhãn dài ("Đang chờ gia sư trả lời", "Đã xác minh: Toán 8, đại số") không xuống dòng, bị cắt | Code cho chữ trong nhãn xuống dòng và nhãn rộng tối đa bằng khung chứa |

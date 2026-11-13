@@ -118,7 +118,7 @@ Khi vẽ xong và duyệt, nội dung của màn hình chuyển sang `screens/<m
 ### GS01 Trang chủ gia sư
 - **API:** `getOwnTutorProfile`, `listOffers`, `listSessions`, `listOwnNotifications`.
 - **Hiển thị:** "Việc cần làm" theo thứ tự: hoàn thiện hồ sơ, gửi duyệt, bổ sung theo yêu cầu, xác nhận lịch rảnh, đề nghị đang chờ (kèm `Deadline`); buổi sắp tới (`SessionCard`).
-- **Phải thấy:** vì sao hồ sơ chưa xuất hiện khi phụ huynh tìm. Không hiện nhật ký, bản soạn (ngoài Lát 1). Đề nghị và buổi học không có tên học sinh trong hợp đồng (OP-25).
+- **Phải thấy:** vì sao hồ sơ chưa xuất hiện khi phụ huynh tìm. Không hiện nhật ký, bản soạn (ngoài Lát 1). Gia sư chỉ thấy tên học sinh sau khi chốt lớp (OP-25, chốt 12/11/2026; trường mới ở #97).
 
 ### GS02 Hồ sơ chuyên môn và học phí
 - **API:** `getOwnTutorProfile`, `saveTutorProfile`. **UC03; BR02.**
@@ -126,7 +126,7 @@ Khi vẽ xong và duyệt, nội dung của màn hình chuyển sang `screens/<m
 - **Tác vụ:** "Lưu nháp".
 - **Trạng thái riêng:** bản cũ; sửa chuyên môn của bản đã duyệt: báo "Phần chuyên môn sẽ phải duyệt lại".
 - **Phải thấy:** đổi giá chỉ áp dụng cho đề nghị mới, lớp đã chốt giữ giá cũ. Kinh nghiệm luôn là tự khai (`TutorPublic.experienceLabel = SELF_DECLARED`).
-- **TBD (OP-24):** khi bản sửa đang chờ xác minh, phụ huynh còn thấy bản đang công khai không; khi đang chờ xác minh, gia sư có được sửa tiếp không; sau khi bị từ chối có được sửa và gửi lại không.
+- **OP-24 (chốt 12/11/2026):** bản sửa đang chờ xác minh thì phụ huynh vẫn thấy bản đã duyệt hiện hành; đang chờ thì khóa sửa; cần bổ sung hoặc bị từ chối thì được sửa và gửi lại thành phiên bản mới.
 
 ### GS03 Minh chứng và kết quả xác minh
 - **API:** `createEvidenceUpload`, `completeEvidenceUpload`, `submitTutorProfile`. **UC03.**
@@ -142,7 +142,7 @@ Khi vẽ xong và duyệt, nội dung của màn hình chuyển sang `screens/<m
 - **Tác vụ:** thêm, sửa khung giờ; thêm ngoại lệ; "Xem lại" rồi "Xác nhận lịch rảnh".
 - **Trạng thái riêng:** giờ kết thúc không sau giờ bắt đầu; bản cũ.
 - **Phải thấy:** sửa lịch rảnh không hủy buổi đã đặt; buổi đã đặt không sửa được ở đây. Khung sát nhau 18:00–19:00 và 19:00–20:00 hợp lệ.
-- **Cách nhập:** theo tuần cộng ngoại lệ theo ngày (UC07). `EffectiveCalendar.windows` là các khoảng cụ thể, tối đa 200, nên ứng dụng trải mẫu tuần ra các ngày rồi trừ ngoại lệ. Màn hình xem lại cho biết số khoảng sẽ tạo. TBD (OP-26): trải ra bao lâu; bản nháp dùng 28 ngày tới.
+- **Cách nhập:** theo tuần cộng ngoại lệ theo ngày (UC07). `EffectiveCalendar.windows` là các khoảng cụ thể, tối đa 200, nên ứng dụng trải mẫu tuần ra các ngày rồi trừ ngoại lệ. Màn hình xem lại cho biết số khoảng sẽ tạo. OP-26 (chốt 12/11/2026): trải ra 56 ngày (8 tuần) tới; `PREFERRED` tính là rảnh.
 
 ### GS05 Đề nghị nhận lớp
 - **API:** `listOffers`, `getOffer`, `acceptOffer`, `rejectOffer`. **UC06; BR05.**

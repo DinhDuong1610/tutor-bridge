@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Stream;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -43,14 +42,16 @@ class AcceptOfferService implements AcceptOffer {
     private final CommandReceipts receipts;
     private final Outbox outbox;
     private final Parties parties;
+    private final ResourceLocks resourceLocks;
 
-    AcceptOfferService(
-            JdbcClient jdbc, TransactionTemplate tx, CommandReceipts receipts, Outbox outbox, Parties parties) {
+    AcceptOfferService(JdbcClient jdbc, TransactionTemplate tx, CommandReceipts receipts, Outbox outbox,
+            Parties parties, ResourceLocks resourceLocks) {
         this.jdbc = jdbc;
         this.tx = tx;
         this.receipts = receipts;
         this.outbox = outbox;
         this.parties = parties;
+        this.resourceLocks = resourceLocks;
     }
 
     @Override
@@ -164,10 +165,9 @@ class AcceptOfferService implements AcceptOffer {
                 offer.durationMinutes(), goalId, offer.goalSnapshot(), receipt.id());
     }
 
+    /** ADR-0007: shared with calendar replacement, ascending hash order, 5 second lock_timeout. */
     private void lockResources(UUID studentId, UUID tutorId) {
-        Stream.of("STUDENT:" + studentId, "TUTOR:" + tutorId).sorted().forEach(resource ->
-                jdbc.sql("select pg_advisory_xact_lock(hashtextextended(?, 0))")
-                        .param(resource).query((rs, row) -> 1).single());
+        resourceLocks.lock(ResourceLocks.student(studentId), ResourceLocks.tutor(tutorId));
     }
 
     private void requireSessionsAvailable(UUID offerId, String ownerKind, UUID ownerId) {

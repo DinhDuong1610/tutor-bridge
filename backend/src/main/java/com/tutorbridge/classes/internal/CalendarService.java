@@ -1,0 +1,185 @@
+package com.tutorbridge.classes.internal;
+
+import com.tutorbridge.identity.api.Parties;
+import com.tutorbridge.platform.api.Actor;
+import com.tutorbridge.platform.api.ApiException;
+import com.tutorbridge.platform.api.ApiException.FieldProblem;
+import com.tutorbridge.platform.api.CommandReceipts;
+import com.tutorbridge.platform.api.CommandReceipts.Receipt;
+import com.tutorbridge.platform.api.IdempotencyKey;
+import com.tutorbridge.platform.api.WritePrecondition;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionOperations;
+import org.springframework.util.IdGenerator;
+
+/**
+ * UC07 availability calendars (TB-15, FR-08): read and replace the tutor's own calendar. The student's
+ * calendar comes in the next part of TB-15, once {@code Parties.isOwnStudent} is on dev.
+ *
+ * <p>The client sends finite UTC windows; GS04 spreads the weekly pattern over 56 days (OP-26). Each
+ * replacement is a new immutable version. It never touches bookings or sessions (UC07: "Sửa rảnh
+ * không hủy buổi đã đặt", INV-15).
+ *
+ * <p>Transaction, in INV-16 order: receipt, then the resource lock {@code TUTOR:<id>} shared with
+ * TX05 (ADR-0007, so an acceptance never checks availability against a calendar being replaced),
+ * then the account and the latest version, then the write and the receipt result in the same commit
+ * (INV-21). No outside I/O inside it (INV-18).
+ */
+@Service
+public class CalendarService {
+
+    public record Window(Instant start, Instant end, String kind) {}
+
+    /** The {@code EffectiveCalendar} schema of the contract. */
+    public record Calendar(UUID id, long version, String timezone, List<Window> windows) {}
+
+    static final String TIMEZONE = "Asia/Ho_Chi_Minh";
+    static final ZoneId VIETNAM = ZoneId.of(TIMEZONE);
+    /** CalendarInput.windows maxItems. */
+    static final int MAX_WINDOWS = 200;
+    /** Today plus 56 days of spread pattern (OP-26) and one day of margin, decided by Đính on #15 (Q5). */
+    static final int HORIZON_DAYS = 57;
+    static final Set<String> KINDS = Set.of("AVAILABLE", "PREFERRED", "BLOCKED");
+    static final String REPLACE_TUTOR = "REPLACE_TUTOR_CALENDAR";
+    private static final String TUTOR = "TUTOR";
+    private static final String RESULT_TYPE = "CALENDAR";
+
+    private final CalendarRepository calendars;
+    private final ResourceLocks locks;
+    private final Parties parties;
+    private final CommandReceipts receipts;
+    private final TransactionOperations transactions;
+    private final Clock clock;
+    private final IdGenerator ids;
+
+    CalendarService(CalendarRepository calendars, ResourceLocks locks, Parties parties, CommandReceipts receipts,
+            TransactionOperations transactions, Clock clock, IdGenerator ids) {
+        this.calendars = calendars;
+        this.locks = locks;
+        this.parties = parties;
+        this.receipts = receipts;
+        this.transactions = transactions;
+        this.clock = clock;
+        this.ids = ids;
+    }
+
+    /** No calendar yet is 404, so GS04 knows to create the first one with {@code If-None-Match: *}. */
+    public Calendar getTutorCalendar(Actor actor) {
+        requireTutorRole(actor);
+        return calendars.findEffective(TUTOR, actor.accountId())
+                .map(this::calendar)
+                .orElseThrow(CalendarService::notFound);
+    }
+
+    public Calendar replaceTutorCalendar(Actor actor, IdempotencyKey key, WritePrecondition precondition,
+            String timezone, List<Window> windows) {
+        requireTutorRole(actor);
+        validate(timezone, windows);
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("precondition", precondition instanceof WritePrecondition.Expected expected
+                ? expected.version() : "*");
+        payload.put("timezone", timezone);
+        payload.put("windows", windows.stream()
+                .map(w -> List.of(w.start().toString(), w.end().toString(), w.kind())).toList());
+        return transactions.execute(status -> {
+            Receipt receipt = receipts.begin(actor.accountId(), REPLACE_TUTOR, key.value(), payload);
+            locks.lock(ResourceLocks.tutor(actor.accountId()));
+            if (!parties.isActiveTutor(actor.accountId())) {
+                throw accessUnavailable();
+            }
+            if (receipt.replay()) {
+                // INV-22: the owner is checked again; the answer is the version that command wrote.
+                return calendars.findVersion(receipt.resultId(), TUTOR, actor.accountId())
+                        .map(this::calendar)
+                        .orElseThrow(CalendarService::notFound);
+            }
+            Optional<CalendarRepository.Version> latest = calendars.lockLatest(TUTOR, actor.accountId());
+            requireMatches(precondition, latest);
+            UUID id = ids.generateId();
+            long version = latest.map(v -> v.version() + 1).orElse(1L);
+            List<CalendarRepository.Window> rows = windows.stream()
+                    .map(w -> new CalendarRepository.Window(w.start(), w.end(), w.kind())).toList();
+            List<UUID> windowIds = windows.stream().map(w -> ids.generateId()).toList();
+            calendars.replace(latest, id, TUTOR, actor.accountId(), version, rows, windowIds);
+            receipts.succeed(receipt.id(), RESULT_TYPE, id);
+            return calendar(new CalendarRepository.Version(id, version));
+        });
+    }
+
+    private static void requireMatches(WritePrecondition precondition, Optional<CalendarRepository.Version> latest) {
+        boolean matches = switch (precondition) {
+            case WritePrecondition.CreateNew create -> latest.isEmpty();
+            case WritePrecondition.Expected expected ->
+                    latest.isPresent() && latest.get().version() == expected.version();
+        };
+        if (!matches) {
+            throw WritePrecondition.stale();
+        }
+    }
+
+    /**
+     * AC-UC07-01: a window must end after it starts and lie between the start of today in
+     * Asia/Ho_Chi_Minh and {@link #HORIZON_DAYS} days later. Windows may overlap; BLOCKED wins
+     * where they do, as TX05 and matching read them (Q5 of #15).
+     */
+    void validate(String timezone, List<Window> windows) {
+        List<FieldProblem> problems = new ArrayList<>();
+        if (!TIMEZONE.equals(timezone)) {
+            problems.add(new FieldProblem("timezone", "Chỉ hỗ trợ múi giờ Asia/Ho_Chi_Minh."));
+        }
+        if (windows.size() > MAX_WINDOWS) {
+            problems.add(new FieldProblem("windows", "Tối đa 200 khoảng thời gian."));
+        }
+        LocalDate today = LocalDate.now(clock.withZone(VIETNAM));
+        Instant earliest = today.atStartOfDay(VIETNAM).toInstant();
+        Instant latest = today.plusDays(HORIZON_DAYS).atStartOfDay(VIETNAM).toInstant();
+        for (int i = 0; i < windows.size() && problems.size() < 20; i++) {
+            Window w = windows.get(i);
+            String path = "windows[" + i + "]";
+            if (!KINDS.contains(w.kind())) {
+                problems.add(new FieldProblem(path + ".kind", "Loại khoảng thời gian không hợp lệ."));
+            }
+            if (!w.end().isAfter(w.start())) {
+                problems.add(new FieldProblem(path + ".end", "Giờ kết thúc phải sau giờ bắt đầu."));
+            } else if (w.start().isBefore(earliest) || w.end().isAfter(latest)) {
+                problems.add(new FieldProblem(path, "Chỉ nhận lịch từ hôm nay đến 57 ngày tới."));
+            }
+        }
+        if (!problems.isEmpty()) {
+            throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "VALIDATION_FAILED", "Dữ liệu chưa hợp lệ.",
+                    problems);
+        }
+    }
+
+    private Calendar calendar(CalendarRepository.Version version) {
+        return new Calendar(version.id(), version.version(), TIMEZONE, calendars.windows(version.id()).stream()
+                .map(w -> new Window(w.start(), w.end(), w.kind())).toList());
+    }
+
+    private static void requireTutorRole(Actor actor) {
+        if (actor.role() != Actor.Role.TUTOR) {
+            throw accessUnavailable();
+        }
+    }
+
+    private static ApiException notFound() {
+        return new ApiException(HttpStatus.NOT_FOUND, "CALENDAR_NOT_FOUND", "Chưa có lịch rảnh.");
+    }
+
+    private static ApiException accessUnavailable() {
+        return new ApiException(HttpStatus.FORBIDDEN, "ACCESS_UNAVAILABLE",
+                "Tài khoản không thể thực hiện thao tác này.");
+    }
+}

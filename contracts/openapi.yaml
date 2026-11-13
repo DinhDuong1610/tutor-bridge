@@ -6658,6 +6658,57 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/SubmitTutorProfileInput'
+  /me/tutor-profile/verification:
+    get:
+      operationId: getOwnTutorVerification
+      summary: getOwnTutorVerification
+      tags:
+      - UC03
+      x-authorization: TUTOR own data only
+      x-transaction: UC03
+      description: 'Latest verification of the tutor''s own most recently submitted
+        profile version (OP-23, G3-D07-05). The server derives state: WAITING is
+        PENDING without a reason, NEEDS_INFO is PENDING with a reason. reason is
+        shown only for NEEDS_INFO and REJECTED; it is null for WAITING and VERIFIED.
+        decidedAt is the verifier''s decision time, null while WAITING. Never exposes
+        the assigned or deciding verifier, evidence or other tutors'' records. 404
+        when the tutor has never submitted.'
+      parameters: []
+      responses:
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+        '200':
+          description: Authorized committed result; no credentials in ordinary DTOs
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                const: private, no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TutorVerificationView'
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
   /admin/verifications:
     get:
       operationId: listAssignedVerifications
@@ -11544,6 +11595,77 @@ components:
       required:
       - items
       - nextCursor
+    TutorVerificationView:
+      type: object
+      additionalProperties: false
+      description: What a tutor may read about the verification of their own profile
+        (OP-23). No verifier identity, no evidence.
+      properties:
+        id:
+          type: string
+          format: uuid
+        profileVersionId:
+          type: string
+          format: uuid
+        profileVersion:
+          type: integer
+          minimum: 1
+        state:
+          type: string
+          enum:
+          - WAITING
+          - NEEDS_INFO
+          - VERIFIED
+          - REJECTED
+        scope:
+          type: string
+          maxLength: 200
+        reason:
+          type:
+          - string
+          - 'null'
+          maxLength: 2000
+          minLength: 1
+        decidedAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+      required:
+      - id
+      - profileVersionId
+      - profileVersion
+      - state
+      - scope
+      - reason
+      - decidedAt
+      allOf:
+      - if:
+          properties:
+            state:
+              enum:
+              - NEEDS_INFO
+              - REJECTED
+        then:
+          properties:
+            reason:
+              type: string
+        else:
+          properties:
+            reason:
+              type: 'null'
+      - if:
+          properties:
+            state:
+              const: WAITING
+        then:
+          properties:
+            decidedAt:
+              type: 'null'
+        else:
+          properties:
+            decidedAt:
+              type: string
     VerificationDecisionInput:
       type: object
       additionalProperties: false

@@ -8,7 +8,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="vi">
+    // Browser extensions add attributes such as class="mdl-js" to <html> before React hydrates.
+    // suppressHydrationWarning only ignores attribute differences on this one element, not its children.
+    <html lang="vi" suppressHydrationWarning>
       <body>{children}</body>
     </html>
   );

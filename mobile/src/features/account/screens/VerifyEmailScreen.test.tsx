@@ -53,7 +53,7 @@ describe("AUTH02 VerifyEmailScreen", () => {
 
     expect(await screen.findByText("Liên kết đã hết hạn.")).toBeOnTheScreen();
     expect(screen.queryByRole("header", { name: "Email đã được xác minh" })).toBeNull();
-    expect(screen.getByText("Gửi lại liên kết xác minh")).toBeOnTheScreen();
+    expect(screen.getByRole("header", { name: "Gửi lại liên kết xác minh" })).toBeOnTheScreen();
     expect(screen.queryByText(/đã được dùng/)).toBeNull();
     // Only after a retry of an unknown outcome may the first attempt have worked.
     expect(screen.queryByText(/Lần gửi trước có thể đã xác minh/)).toBeNull();
@@ -69,7 +69,7 @@ describe("AUTH02 VerifyEmailScreen", () => {
 
     expect(await screen.findByText("Liên kết đã được dùng.")).toBeOnTheScreen();
     expect(screen.getByText("Liên kết này đã được dùng. Nếu email của bạn đã được xác minh, hãy đăng nhập.")).toBeOnTheScreen();
-    expect(screen.getByText("Gửi lại liên kết xác minh")).toBeOnTheScreen();
+    expect(screen.getByRole("header", { name: "Gửi lại liên kết xác minh" })).toBeOnTheScreen();
   });
 
   it("opened without a token only asks for the email, without an error", async () => {

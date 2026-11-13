@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Controller, type Control, type FieldValues, type Path } from "react-hook-form";
 import { Pressable, StyleSheet, Text, View, type TextInputProps } from "react-native";
-import { TextField } from "@/shared/ui/TextField";
+import { FormTextField } from "@/shared/form/FormTextField";
 import { colors, minTouchSize, spacing, typography } from "@/shared/ui/theme";
 
 type InputProps = Pick<TextInputProps, "secureTextEntry" | "autoComplete" | "autoCapitalize" | "keyboardType" | "inputMode">;
@@ -22,21 +22,13 @@ export function AccountTextField<T extends FieldValues>({
   const [revealed, setRevealed] = useState(false);
   return (
     <View style={styles.group}>
-      <Controller
+      <FormTextField
+        {...input}
         control={control}
         name={name}
-        render={({ field, fieldState }) => (
-          <TextField
-            label={label}
-            hint={hint}
-            value={typeof field.value === "string" ? field.value : ""}
-            onChangeText={field.onChange}
-            onBlur={field.onBlur}
-            error={fieldState.error?.message}
-            secureTextEntry={secureTextEntry === true && !revealed}
-            {...input}
-          />
-        )}
+        label={label}
+        hint={hint}
+        secureTextEntry={secureTextEntry === true && !revealed}
       />
       {secureTextEntry ? (
         <Pressable

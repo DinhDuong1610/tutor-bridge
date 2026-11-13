@@ -42,6 +42,27 @@ type FetchResult<T> = { data?: T; error?: unknown; response: Response };
  * </pre>
  */
 export async function call<T>(request: Promise<FetchResult<T>>): Promise<T> {
+  return (await answer(request)).data;
+}
+
+/**
+ * Like {@link call}, and also returns the strong `ETag` of the resource, for an `If-Match` on the
+ * next write. The client never builds an ETag itself (G3-D07-06), so a missing header is an error.
+ *
+ * <pre>
+ * const { data, etag } = await callWithEtag(api.GET("/students/{studentId}", { params }));
+ * </pre>
+ */
+export async function callWithEtag<T>(request: Promise<FetchResult<T>>): Promise<{ data: T; etag: string }> {
+  const { data, response } = await answer(request);
+  const etag = response.headers.get("ETag");
+  if (!etag) {
+    throw new Error("The answer has no ETag, so the resource cannot be changed safely.");
+  }
+  return { data, etag };
+}
+
+async function answer<T>(request: Promise<FetchResult<T>>): Promise<{ data: T; response: Response }> {
   let result: FetchResult<T>;
   try {
     result = await request;
@@ -50,7 +71,7 @@ export async function call<T>(request: Promise<FetchResult<T>>): Promise<T> {
   }
   const { data, error, response } = result;
   if (response.ok) {
-    return data as T;
+    return { data: data as T, response };
   }
   if (isProblem(error)) {
     throw new ApiError(error);

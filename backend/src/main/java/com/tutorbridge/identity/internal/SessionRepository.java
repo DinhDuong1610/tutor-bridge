@@ -72,9 +72,33 @@ class SessionRepository {
                 .query((rs, n) -> rs.getObject(1, OffsetDateTime.class).toInstant()).list();
     }
 
-    void recordFailure(String scope, String subjectDigest, Instant now) {
-        jdbc.sql("insert into auth_login_failures (scope, subject_digest, failed_at) values (?, ?, ?)")
-                .params(scope, subjectDigest, at(now)).update();
+    /** The row id, so a try that turns out to be correct can take its row back (Issue #141). */
+    long recordFailure(String scope, String subjectDigest, Instant now) {
+        return jdbc.sql("insert into auth_login_failures (scope, subject_digest, failed_at) values (?, ?, ?) returning id")
+                .params(scope, subjectDigest, at(now)).query(Long.class).single();
+    }
+
+    /** Records the failure again only when its row was removed meanwhile, keeping its time. */
+    void restoreFailure(long id, String scope, String subjectDigest, Instant failedAt) {
+        jdbc.sql("""
+                insert into auth_login_failures (scope, subject_digest, failed_at)
+                select ?, ?, ? where not exists (select 1 from auth_login_failures where id = ?)
+                """).params(scope, subjectDigest, at(failedAt), id).update();
+    }
+
+    void deleteFailures(List<Long> ids) {
+        jdbc.sql("delete from auth_login_failures where id in (:ids)").param("ids", ids).update();
+    }
+
+    /**
+     * Serializes every try against one login subject until the transaction ends, so counting and
+     * recording a try is atomic across requests and API instances (ADR-0007; no session-level lock
+     * because of the pooler, INV-83).
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    void lockSubject(String scope, String subjectDigest) {
+        jdbc.sql("select pg_advisory_xact_lock(hashtextextended(?, 0))")
+                .param("LOGIN:" + scope + ":" + subjectDigest).query((rs, row) -> 1).single();
     }
 
     @Transactional(propagation = Propagation.MANDATORY)

@@ -31,6 +31,16 @@ sh scripts/ci/contract-check.sh origin/dev  # cần oasdiff trên PATH hoặc Do
 npm run lint && npm run typecheck && npm test
 ```
 
+### Test mobile lần đầu trên Windows (#123)
+Sau `npm ci` hoặc `npx jest --clearCache`, chạy tuần tự một lần trước khi chạy song song:
+
+```bash
+(cd mobile && npx jest --ci --runInBand)   # làm ấm cache Jest, một tiến trình
+npm test                                   # từ đây chạy song song bình thường
+```
+
+Lý do: `react-native` nạp component lười, nên Babel biên dịch chúng ở lần render đầu, tức là bên trong ca test đầu của mỗi file (giới hạn 5 giây). Khi cache trống, nhiều worker cùng biên dịch một lúc, ca đầu kéo lên 11–17 giây và hết giờ. Làm ấm bằng một tiến trình thì các worker sau đó chỉ đọc cache. Đo ngày 12/11/2026 trên máy 20 luồng: không làm ấm thì hỏng 8–10/116 ca; làm ấm trước thì qua 118/118 ba lần liền. Chỉ nạp sẵn module trong `setupFilesAfterEnv` thì gây `EPERM` khi các worker cùng ghi một file cache, nên không dùng. CI không bị ảnh hưởng. Không tăng `testTimeout` để che lỗi này.
+
 ## Quy tắc
 - Action pin theo commit SHA, image pin theo digest. Dependabot đề xuất bản mới qua PR.
 - Workflow chỉ có quyền đọc. Tiêu đề và nội dung PR đi qua biến môi trường, không chèn thẳng vào lệnh.

@@ -23,8 +23,8 @@ Phần nền sau M0 cũng merge theo ngoại lệ OP-15 (06/11/2026). Theo OP-14
 
 ## Bắt đầu cho người mới vào repo
 1. Clone, rồi chạy `git config core.hooksPath .githooks`.
-2. Cài Docker, Node 26 và Python 3.14. JDK 25 không cần cài: Gradle tự tải lần đầu.
-3. `cp .env.example .env`, rồi làm theo phần Lệnh trong `AGENTS.md`.
+2. Cài Docker, Node 26, Python 3.14 và một JDK (dùng JDK 25), đặt `JAVA_HOME`; kiểm bằng `java -version`. Gradle cần sẵn một bản Java để tự chạy; nó chỉ tự tải JDK 25 để biên dịch code (thiếu thì `./gradlew` báo `JAVA_HOME is not set`).
+3. `cp .env.example .env`, rồi làm theo phần Lệnh trong `AGENTS.md`. Trên Windows, mở terminal tại `D:\tutor-bridge` đúng chữ hoa của ổ đĩa trước khi `npm ci` và chạy mọi lệnh từ đó: liên kết workspace lệch hoa thường làm Metro không tìm thấy `@tutorbridge/shared` hoặc Jest nạp hai bản React. Lần chạy test mobile đầu tiên làm theo mục "Test mobile lần đầu trên Windows" trong `docs/process/ci.md`.
 4. Đọc `AGENTS.md` và `docs/context/invariants.md`, rồi lấy Issue và chạy `start-task`.
 
 ## Quyết định cần chốt

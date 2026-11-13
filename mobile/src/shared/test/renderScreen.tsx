@@ -41,6 +41,8 @@ export async function renderScreen(ui: ReactElement, { session }: { session?: Se
       </SessionProvider>
     </SafeAreaProvider>,
   );
-  await screen.findByRole("header");
+  // Waits until the screen has drawn its title. A screen may have more than one header (section
+  // titles help screen reader users jump through the page), so do not expect exactly one.
+  await screen.findAllByRole("header");
   return result;
 }

@@ -1,15 +1,13 @@
 import { z } from "zod";
+import { lengthOf } from "@/shared/form/length";
+
+export { lengthOf };
 
 // Limits from the contract (RegistrationInput, LoginInput). The server checks them again.
 export const PASSWORD_MIN = 15;
 export const PASSWORD_MAX = 128;
 const EMAIL_MAX = 254;
 const NAME_MAX = 100;
-
-/** JSON Schema counts code points, not UTF-16 units, so an emoji counts as one character. */
-export function lengthOf(value: string): number {
-  return [...value].length;
-}
 
 const email = z
   .string()

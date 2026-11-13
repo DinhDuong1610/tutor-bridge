@@ -1644,6 +1644,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/tutor-profile/verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * getOwnTutorVerification
+         * @description Latest verification of the tutor's own most recently submitted profile version (OP-23, G3-D07-05). The server derives state: WAITING is PENDING without a reason, NEEDS_INFO is PENDING with a reason. reason is shown only for NEEDS_INFO and REJECTED; it is null for WAITING and VERIFIED. decidedAt is the verifier's decision time, null while WAITING. Never exposes the assigned or deciding verifier, evidence or other tutors' records. 404 when the tutor has never submitted.
+         */
+        get: operations["getOwnTutorVerification"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/verifications": {
         parameters: {
             query?: never;
@@ -3219,6 +3239,20 @@ export interface components {
             items: components["schemas"]["VerificationRecord"][];
             nextCursor: string | null;
         };
+        /** @description What a tutor may read about the verification of their own profile (OP-23). No verifier identity, no evidence. */
+        TutorVerificationView: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            profileVersionId: string;
+            profileVersion: number;
+            /** @enum {string} */
+            state: "WAITING" | "NEEDS_INFO" | "VERIFIED" | "REJECTED";
+            scope: string;
+            reason: string | null;
+            /** Format: date-time */
+            decidedAt: string | null;
+        } & (unknown & unknown);
         VerificationDecisionInput: {
             /** Format: uuid */
             profileVersionId: string;
@@ -9624,6 +9658,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VerificationRecord"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            412: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+            428: components["responses"]["Problem"];
+            429: components["responses"]["Problem"];
+            503: components["responses"]["Problem"];
+        };
+    };
+    getOwnTutorVerification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authorized committed result; no credentials in ordinary DTOs */
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TutorVerificationView"];
                 };
             };
             400: components["responses"]["Problem"];

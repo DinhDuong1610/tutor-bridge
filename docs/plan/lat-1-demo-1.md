@@ -86,9 +86,9 @@ Không có trong Demo 1: web quản trị, hồ sơ gia sư và xác minh, lịc
 ### Điều kiện để chạy
 | Điều kiện | Hiện trạng | Ai |
 |---|---|---|
-| TB-10 merge | Chờ Đính duyệt, Huy rebase | Đính, Huy |
-| TB-11 và #67 merge | Chưa bắt đầu | Đính, Huy |
-| Lối vào AUTH06 và PH02 từ khu phụ huynh | `TBD` (Huy): TB-10 Q11 để lối vào AUTH06 cho trang chủ TB-14. Cho Demo 1, hoặc #67 thêm lối vào tạm ở `parent/index`, hoặc làm trước phần khung của PH01 | Huy |
+| TB-10 merge | Đã merge (#78, #88, #90, #91, #93, #99) | Đính, Huy |
+| TB-11 và #67 merge | TB-11 đã merge (#113, #114). #67 chia hai PR (Huy, 12/11/2026): danh sách và thêm hồ sơ ở PR nháp #119; sửa hồ sơ làm sau khi #119 merge | Đính, Huy |
+| Lối vào AUTH06 và PH02 từ khu phụ huynh | Huy chọn ngày 12/11/2026: liên kết tạm "Hồ sơ các con" và "Bảo mật" trên `parent/index`, làm trong #119. TB-14 thay bằng PH01 và thanh tab | Huy |
 | Chạy được trên điện thoại thật | Handoff TB-10 ghi chưa chạy được trên emulator, chưa chạy trên điện thoại thật | Huy, Đính diễn tập |
 | Mở liên kết trong email | Backend local gửi liên kết `tutorbridge://`. Expo Go chỉ mở `exp://<máy>:8081/--/...`, `tutorbridge://` cần bản dev build. `TBD` (Đính, Huy): đổi `link-base` khi demo, hay thêm dev build (thêm gói thì cần duyệt theo ADR-0009) | Đính chốt |
 | Phiên bản điều khoản | Dùng bản thử `ban-thu-chua-hieu-luc` ở cả backend local và `EXPO_PUBLIC_TERMS_VERSION`. Văn bản thật vẫn là việc của Đính (TB-8 Q8) | Đính |
@@ -101,7 +101,7 @@ Hai người cùng chạy kịch bản trên một điện thoại, ghi lại l�
 | # | Câu hỏi | Ai |
 |---|---|---|
 | 1 | Huy nhận #95, #81, #89 trong tuần 2? | Huy |
-| 2 | Lối vào AUTH06 và PH02 cho Demo 1: lối vào tạm trong #67, hay làm trước khung PH01? | Huy, Đính duyệt |
+| 2 | Lối vào AUTH06 và PH02 cho Demo 1: lối vào tạm trong #67, hay làm trước khung PH01? Huy trả lời ngày 12/11/2026: lối vào tạm trong #67 (PR #119). Chờ Đính duyệt qua PR | Huy, Đính duyệt |
 | 3 | Mở liên kết email khi demo: đổi `link-base` hay dùng dev build? | Đính chốt, Huy góp ý |
 | 4 | Giữ trước số OP, CR trong Issue như số migration? | Huy |
 | 5 | Rà ADR-0007 trước tuần 3 để TB-15 bắt đầu được | Huy |

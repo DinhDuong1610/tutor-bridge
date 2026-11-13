@@ -5,7 +5,8 @@ Issue #128. Dùng cho kịch bản Demo 1a và Demo 1 trong [lat-1-demo-1.md](la
 Đính chốt ngày 12/11/2026 (câu 3 của #112): liên kết trong email mở Expo Go bằng cách đổi `link-base`, không dùng dev build.
 
 ## Cần có
-- Máy Windows có Docker Desktop đang chạy, Node 26, đã chạy `npm ci` ở thư mục gốc. Lần đầu chạy backend, Gradle tự tải JDK 25.
+- Máy Windows có Docker Desktop đang chạy, Node 26, đã chạy `npm ci` ở thư mục gốc.
+- JDK 25 đã cài, `JAVA_HOME` trỏ tới nó; kiểm bằng `java -version`. Gradle cần một bản Java có sẵn để tự chạy (thiếu thì báo `JAVA_HOME is not set and no 'java' command could be found`). Gradle chỉ tự tải JDK 25 để biên dịch code, không thay được bản Java này.
 - iPhone có Expo Go cho SDK 58, cùng mạng Wi-Fi với máy tính. Mạng khách hoặc mạng công ty có thể chặn hai máy thấy nhau; khi đó dùng điểm phát Wi-Fi từ điện thoại.
 - Tài khoản thử chỉ dùng đuôi `@example.test`. Mật khẩu trao đổi riêng, không ghi vào repo, Issue hay Notion.
 
@@ -107,6 +108,7 @@ docker compose --env-file .env -f infra/compose.yaml down -v    # xóa sạch, t
 | Đăng ký báo lỗi điều khoản | `EXPO_PUBLIC_TERMS_VERSION` khác `ban-thu-chua-hieu-luc`, hoặc `.env` đặt `TB_TERMS_VERSIONS` khác |
 | Chạm liên kết không mở app | Liên kết còn `tutorbridge://`: backend chưa nhận `TUTORBRIDGE_IDENTITY_MAIL_LINK_BASE`. Cổng trong liên kết khác cổng Metro |
 | Test Testcontainers lỗi `DockerClientProviderStrategy` | Docker Desktop chưa chạy |
+| `./gradlew` báo `JAVA_HOME is not set and no 'java' command could be found` | Chưa cài JDK hoặc chưa đặt `JAVA_HOME` (mục "Cần có") |
 | Mã QR mang IP khác `<IP>` (ví dụ của Docker hoặc WSL), iPhone không mở được app | Chưa đặt `REACT_NATIVE_PACKAGER_HOSTNAME=<IP>` khi chạy Metro (mục 5) |
 | Bundle báo `Unable to resolve module @tutorbridge/shared`, hoặc Jest báo `Cannot read properties of null (reading 'use')` | Liên kết workspace lệch chữ hoa thường của ổ đĩa: `npm ci` chạy từ `d:\tutor-bridge` còn Expo dùng `D:\tutor-bridge`. Mở terminal tại `D:\tutor-bridge` (chữ D hoa), chạy lại `npm ci`, và chạy mọi lệnh từ đó (gặp trên máy Huy ngày 12/11/2026) |
 

@@ -78,6 +78,14 @@ class SessionRepository {
                 .params(scope, subjectDigest, at(now)).query(Long.class).single();
     }
 
+    /** Records the failure again only when its row was removed meanwhile, keeping its time. */
+    void restoreFailure(long id, String scope, String subjectDigest, Instant failedAt) {
+        jdbc.sql("""
+                insert into auth_login_failures (scope, subject_digest, failed_at)
+                select ?, ?, ? where not exists (select 1 from auth_login_failures where id = ?)
+                """).params(scope, subjectDigest, at(failedAt), id).update();
+    }
+
     void deleteFailures(List<Long> ids) {
         jdbc.sql("delete from auth_login_failures where id in (:ids)").param("ids", ids).update();
     }

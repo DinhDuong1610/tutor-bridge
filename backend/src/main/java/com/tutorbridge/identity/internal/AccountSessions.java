@@ -60,6 +60,7 @@ public class AccountSessions {
         boolean passwordMatches = hasher.matches(password, found.map(SessionRepository.Login::passwordHash).orElse(null));
         SessionRepository.Login login = found.orElse(null);
         if (!passwordMatches || "ADMIN".equals(login.role()) || "DELETED".equals(login.status())) {
+            throttle.failed(attempt);
             throw authenticationFailed();
         }
         throttle.passed(attempt);

@@ -92,6 +92,7 @@ public class PasswordChange {
         // Counted as a failure before the password check, so concurrent tries cannot pass the limit (#141).
         LoginThrottle.Attempt attempt = throttle.begin(own.emailDigest(), sourceDigest);
         if (!hasher.matches(password, own.passwordHash())) {
+            throttle.failed(attempt);
             throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "CURRENT_PASSWORD_INVALID",
                     "Mật khẩu hiện tại không đúng.",
                     List.of(new FieldProblem(field, "Mật khẩu hiện tại không đúng.")));

@@ -18,7 +18,7 @@ import org.springframework.transaction.support.TransactionOperations;
  * both subjects, refuses a delayed try and records this one as a failure in one short transaction,
  * so concurrent tries cannot all see fewer than five failures. The slow password check runs after
  * that transaction, holding no lock (ADR-0008). A correct password then takes the try back with
- * {@link #passed}; a wrong one leaves it counted.
+ * {@link #passed}; a wrong one keeps it counted with {@link #failed}.
  */
 @Component
 class LoginThrottle {
@@ -26,8 +26,11 @@ class LoginThrottle {
     static final int FAILURES_BEFORE_DELAY = 5;
     static final Duration WINDOW = Duration.ofMinutes(15);
 
+    /** One recorded failure row of a try. */
+    record Recorded(long id, String scope, String subjectDigest, Instant failedAt) {}
+
     /** A try that is already counted as a failure until {@link #passed} takes it back. */
-    record Attempt(List<Long> failureIds) {}
+    record Attempt(List<Recorded> rows) {}
 
     private final SessionRepository sessions;
     private final TransactionOperations transactions;
@@ -51,14 +54,24 @@ class LoginThrottle {
             Instant now = clock.instant();
             refuseWhileDelayed(emailDigest, sourceDigest, now);
             return new Attempt(List.of(
-                    sessions.recordFailure("ACCOUNT", emailDigest, now),
-                    sessions.recordFailure("SOURCE", sourceDigest, now)));
+                    new Recorded(sessions.recordFailure("ACCOUNT", emailDigest, now), "ACCOUNT", emailDigest, now),
+                    new Recorded(sessions.recordFailure("SOURCE", sourceDigest, now), "SOURCE", sourceDigest, now)));
         });
     }
 
     /** The password was correct: this try is not a failure. */
     void passed(Attempt attempt) {
-        sessions.deleteFailures(attempt.failureIds());
+        sessions.deleteFailures(attempt.rows().stream().map(Recorded::id).toList());
+    }
+
+    /**
+     * The password was wrong: this try stays counted. A correct login that finished during the slow
+     * check may have cleared the account's failures, this row included (Codex review of #153), so a
+     * row that is gone is recorded again with its original time; a row that is still there is not
+     * counted twice.
+     */
+    void failed(Attempt attempt) {
+        attempt.rows().forEach(row -> sessions.restoreFailure(row.id(), row.scope(), row.subjectDigest(), row.failedAt()));
     }
 
     private void refuseWhileDelayed(String emailDigest, String sourceDigest, Instant now) {

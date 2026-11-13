@@ -37,4 +37,13 @@ class PartiesTest extends IntegrationTest {
     void an_unknown_student_is_not_owned() {
         assertThat(parties.isOwnStudent(newAccount(), UUID.randomUUID())).isFalse();
     }
+
+    @Test
+    void a_parent_that_is_no_longer_active_owns_no_student() {
+        UUID parent = newAccount();
+        UUID own = student(parent);
+        jdbc.sql("update accounts set status = 'LOCKED' where id = ?").param(parent).update();
+
+        assertThat(parties.isOwnStudent(parent, own)).isFalse();
+    }
 }

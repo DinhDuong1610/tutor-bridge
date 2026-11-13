@@ -26,8 +26,10 @@ class PartiesRepository implements Parties {
 
     @Override
     public boolean isOwnStudent(UUID parentId, UUID studentId) {
-        return jdbc.sql("select count(*) from students where id = ? and parent_id = ?")
-                .params(studentId, parentId).query(Integer.class).single() == 1;
+        return jdbc.sql("""
+                select count(*) from students s join accounts a on a.id = s.parent_id
+                where s.id = ? and s.parent_id = ? and a.role = 'PARENT' and a.status = 'ACTIVE'
+                """).params(studentId, parentId).query(Integer.class).single() == 1;
     }
 
     @Override

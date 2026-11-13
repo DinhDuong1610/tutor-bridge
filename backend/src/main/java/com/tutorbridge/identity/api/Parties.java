@@ -9,9 +9,10 @@ public interface Parties {
     boolean isActiveTutor(UUID accountId);
 
     /**
-     * Whether this student profile belongs to this parent account. Another family's student and an
-     * unknown id both answer false, so callers give the same reply for both (INV-06). Used by the
-     * classes module for the student's calendar (TB-15, INV-82).
+     * Whether this student profile belongs to this parent account, and that account is still an
+     * ACTIVE parent ("Verified owning PARENT" in the contract). Another family's student, an unknown
+     * id and a parent locked or deleted meanwhile all answer false, so callers give one reply for all
+     * of them (INV-06). Used by the classes module for the student's calendar (TB-15, INV-82).
      */
     boolean isOwnStudent(UUID parentId, UUID studentId);
 

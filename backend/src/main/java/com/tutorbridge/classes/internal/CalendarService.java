@@ -25,17 +25,19 @@ import org.springframework.transaction.support.TransactionOperations;
 import org.springframework.util.IdGenerator;
 
 /**
- * UC07 availability calendars (TB-15, FR-08): read and replace the tutor's own calendar. The student's
- * calendar comes in the next part of TB-15, once {@code Parties.isOwnStudent} is on dev.
+ * UC07 availability calendars (TB-15, FR-08): read and replace the tutor's own calendar, and the
+ * calendar of a student owned by the calling parent ({@code Parties.isOwnStudent}, INV-82).
  *
  * <p>The client sends finite UTC windows; GS04 spreads the weekly pattern over 56 days (OP-26). Each
  * replacement is a new immutable version. It never touches bookings or sessions (UC07: "Sửa rảnh
  * không hủy buổi đã đặt", INV-15).
  *
- * <p>Transaction, in INV-16 order: receipt, then the resource lock {@code TUTOR:<id>} shared with
- * TX05 (ADR-0007, so an acceptance never checks availability against a calendar being replaced),
- * then the account and the latest version, then the write and the receipt result in the same commit
- * (INV-21). No outside I/O inside it (INV-18).
+ * <p>Transaction, in INV-16 order: receipt, then the resource lock {@code TUTOR:<id>} or
+ * {@code STUDENT:<id>} shared with TX05 (ADR-0007, so an acceptance never checks availability
+ * against a calendar being replaced), then the owner and the latest version, then the write and the
+ * receipt result in the same commit (INV-21). No outside I/O inside it (INV-18).
+ *
+ * <p>A student that is not the caller's own, or does not exist, answers the same 404 (INV-06).
  */
 @Service
 public class CalendarService {
@@ -53,7 +55,9 @@ public class CalendarService {
     static final int HORIZON_DAYS = 57;
     static final Set<String> KINDS = Set.of("AVAILABLE", "PREFERRED", "BLOCKED");
     static final String REPLACE_TUTOR = "REPLACE_TUTOR_CALENDAR";
+    static final String REPLACE_STUDENT = "REPLACE_STUDENT_CALENDAR";
     private static final String TUTOR = "TUTOR";
+    private static final String STUDENT = "STUDENT";
     private static final String RESULT_TYPE = "CALENDAR";
 
     private final CalendarRepository calendars;
@@ -86,33 +90,66 @@ public class CalendarService {
     public Calendar replaceTutorCalendar(Actor actor, IdempotencyKey key, WritePrecondition precondition,
             String timezone, List<Window> windows) {
         requireTutorRole(actor);
+        UUID tutorId = actor.accountId();
+        return replace(new Owner(TUTOR, tutorId, REPLACE_TUTOR, ResourceLocks.tutor(tutorId), () -> {
+            if (!parties.isActiveTutor(tutorId)) {
+                throw accessUnavailable();
+            }
+        }), actor, key, precondition, timezone, windows);
+    }
+
+    public Calendar getStudentCalendar(Actor actor, UUID studentId) {
+        requireParentRole(actor);
+        if (!parties.isOwnStudent(actor.accountId(), studentId)) {
+            throw studentNotFound();
+        }
+        return calendars.findEffective(STUDENT, studentId)
+                .map(this::calendar)
+                .orElseThrow(CalendarService::notFound);
+    }
+
+    public Calendar replaceStudentCalendar(Actor actor, UUID studentId, IdempotencyKey key,
+            WritePrecondition precondition, String timezone, List<Window> windows) {
+        requireParentRole(actor);
+        return replace(new Owner(STUDENT, studentId, REPLACE_STUDENT, ResourceLocks.student(studentId), () -> {
+            if (!parties.isOwnStudent(actor.accountId(), studentId)) {
+                throw studentNotFound();
+            }
+        }), actor, key, precondition, timezone, windows);
+    }
+
+    /** Whose calendar, the receipt command, the TX05 lock, and the owner check made under that lock. */
+    private record Owner(String kind, UUID id, String command, String lock, Runnable check) {}
+
+    private Calendar replace(Owner owner, Actor actor, IdempotencyKey key, WritePrecondition precondition,
+            String timezone, List<Window> windows) {
         validate(timezone, windows);
         Map<String, Object> payload = new LinkedHashMap<>();
+        // The owner is part of the payload: one key reused for another student is 409, not a replay.
+        payload.put("owner", owner.id().toString());
         payload.put("precondition", precondition instanceof WritePrecondition.Expected expected
                 ? expected.version() : "*");
         payload.put("timezone", timezone);
         payload.put("windows", windows.stream()
                 .map(w -> List.of(w.start().toString(), w.end().toString(), w.kind())).toList());
         return transactions.execute(status -> {
-            Receipt receipt = receipts.begin(actor.accountId(), REPLACE_TUTOR, key.value(), payload);
-            locks.lock(ResourceLocks.tutor(actor.accountId()));
-            if (!parties.isActiveTutor(actor.accountId())) {
-                throw accessUnavailable();
-            }
+            Receipt receipt = receipts.begin(actor.accountId(), owner.command(), key.value(), payload);
+            locks.lock(owner.lock());
+            owner.check().run();
             if (receipt.replay()) {
                 // INV-22: the owner is checked again; the answer is the version that command wrote.
-                return calendars.findVersion(receipt.resultId(), TUTOR, actor.accountId())
+                return calendars.findVersion(receipt.resultId(), owner.kind(), owner.id())
                         .map(this::calendar)
                         .orElseThrow(CalendarService::notFound);
             }
-            Optional<CalendarRepository.Version> latest = calendars.lockLatest(TUTOR, actor.accountId());
+            Optional<CalendarRepository.Version> latest = calendars.lockLatest(owner.kind(), owner.id());
             requireMatches(precondition, latest);
             UUID id = ids.generateId();
             long version = latest.map(v -> v.version() + 1).orElse(1L);
             List<CalendarRepository.Window> rows = windows.stream()
                     .map(w -> new CalendarRepository.Window(w.start(), w.end(), w.kind())).toList();
             List<UUID> windowIds = windows.stream().map(w -> ids.generateId()).toList();
-            calendars.replace(latest, id, TUTOR, actor.accountId(), version, rows, windowIds);
+            calendars.replace(latest, id, owner.kind(), owner.id(), version, rows, windowIds);
             receipts.succeed(receipt.id(), RESULT_TYPE, id);
             return calendar(new CalendarRepository.Version(id, version));
         });
@@ -172,6 +209,17 @@ public class CalendarService {
         if (actor.role() != Actor.Role.TUTOR) {
             throw accessUnavailable();
         }
+    }
+
+    private static void requireParentRole(Actor actor) {
+        if (actor.role() != Actor.Role.PARENT) {
+            throw accessUnavailable();
+        }
+    }
+
+    /** The same answer as the identity module gives for a student it cannot show (INV-06). */
+    private static ApiException studentNotFound() {
+        return new ApiException(HttpStatus.NOT_FOUND, "STUDENT_NOT_FOUND", "Không tìm thấy hồ sơ học sinh.");
     }
 
     private static ApiException notFound() {

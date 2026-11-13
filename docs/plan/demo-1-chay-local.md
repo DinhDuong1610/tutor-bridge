@@ -70,13 +70,20 @@ EXPO_PUBLIC_TERMS_VERSION=ban-thu-chua-hieu-luc
 
 `ban-thu-chua-hieu-luc` là phiên bản điều khoản thử mà profile local chấp nhận, chưa có hiệu lực pháp lý (TB-8 Q8). Thiếu biến này thì app không gửi form đăng ký.
 
-Từ thư mục gốc:
+Từ thư mục gốc. Máy Windows thường có nhiều card mạng (Docker, WSL, VirtualBox), nên phải chỉ rõ IP để mã QR mang đúng `<IP>` của card Wi-Fi:
 
 ```bash
-npm run start --workspace @tutorbridge/mobile -- --port 8082
+# Git Bash
+REACT_NATIVE_PACKAGER_HOSTNAME=<IP> npm run start --workspace @tutorbridge/mobile -- --lan --port 8082
 ```
 
-Quét mã QR bằng camera của iPhone, mở bằng Expo Go. Đổi `.env.local` thì dừng Metro và chạy lại với `--clear`.
+```powershell
+# PowerShell
+$env:REACT_NATIVE_PACKAGER_HOSTNAME = "<IP>"
+npm run start --workspace @tutorbridge/mobile -- --lan --port 8082
+```
+
+Quét mã QR bằng camera của iPhone, mở bằng Expo Go. Địa chỉ trong mã QR phải là `exp://<IP>:8082`. Đổi `.env.local` thì dừng Metro và chạy lại với `--clear`.
 
 ## 6. Tài khoản thử và liên kết trong email
 1. Trên app, đăng ký phụ huynh (AUTH01) với email dạng `phuhuynh@example.test`.
@@ -100,6 +107,8 @@ docker compose --env-file .env -f infra/compose.yaml down -v    # xóa sạch, t
 | Đăng ký báo lỗi điều khoản | `EXPO_PUBLIC_TERMS_VERSION` khác `ban-thu-chua-hieu-luc`, hoặc `.env` đặt `TB_TERMS_VERSIONS` khác |
 | Chạm liên kết không mở app | Liên kết còn `tutorbridge://`: backend chưa nhận `TUTORBRIDGE_IDENTITY_MAIL_LINK_BASE`. Cổng trong liên kết khác cổng Metro |
 | Test Testcontainers lỗi `DockerClientProviderStrategy` | Docker Desktop chưa chạy |
+| Mã QR mang IP khác `<IP>` (ví dụ của Docker hoặc WSL), iPhone không mở được app | Chưa đặt `REACT_NATIVE_PACKAGER_HOSTNAME=<IP>` khi chạy Metro (mục 5) |
+| Bundle báo `Unable to resolve module @tutorbridge/shared`, hoặc Jest báo `Cannot read properties of null (reading 'use')` | Liên kết workspace lệch chữ hoa thường của ổ đĩa: `npm ci` chạy từ `d:\tutor-bridge` còn Expo dùng `D:\tutor-bridge`. Mở terminal tại `D:\tutor-bridge` (chữ D hoa), chạy lại `npm ci`, và chạy mọi lệnh từ đó (gặp trên máy Huy ngày 12/11/2026) |
 
 ## Đã kiểm
 Mục 3, 4 và liên kết `exp://` trong email đã chạy thử ngày 12/11/2026, xem "Đã kiểm thế nào" của PR đóng #128. Phần iPhone (mục 5, 6) chưa chạy thật: kiểm ở buổi diễn tập Demo 1a.

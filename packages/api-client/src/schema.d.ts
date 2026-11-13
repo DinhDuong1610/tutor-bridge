@@ -1387,7 +1387,7 @@ export interface paths {
         put?: never;
         /**
          * loginAccount
-         * @description 5 failures/15min then 15min delay; reject locked/unverified; no token in log. Errors 401 AUTHENTICATION_FAILED for an unknown email or a wrong password (same body for both), 403 ACCOUNT_UNVERIFIED (only after a correct password), 403 ACCOUNT_LOCKED, 429 LOGIN_DELAYED with Retry-After. An ADMIN account gets the same 401 AUTHENTICATION_FAILED and no session; admins sign in through a separate web endpoint (TB-13). No Idempotency-Key (CR-014).
+         * @description 5 failures/15min then 15min delay; reject locked/unverified; no token in log. Errors 401 AUTHENTICATION_FAILED for an unknown email or a wrong password (same body for both), 403 ACCOUNT_UNVERIFIED (only after a correct password), 403 ACCOUNT_LOCKED, 429 LOGIN_DELAYED with Retry-After. An ADMIN account gets the same 401 AUTHENTICATION_FAILED and no session; admins sign in through loginAdmin then completeAdminMfa (TB-8 Q17, Issue 136). Never returns an MFA challenge. No Idempotency-Key (CR-014).
          */
         post: operations["loginAccount"];
         delete?: never;
@@ -1968,6 +1968,46 @@ export interface paths {
          * @description No passwords,tokens,raw learning content; restricted scope; access audited
          */
         get: operations["listAuditEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/admin-login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * loginAdmin
+         * @description First factor of the admin sign-in (TB-8 Q17, Issue 136, G3-D16-02). Issues a single-use challenge for completeAdminMfa and never a session. An unknown email, a wrong password, an account that is not ADMIN and an ADMIN without an active MFA enrollment all get the same 401 AUTHENTICATION_FAILED. 403 ACCOUNT_LOCKED only after a correct password; 429 LOGIN_DELAYED with Retry-After. Failures count per email together with loginAccount (5 failures/15min then 15min delay). No token or challenge in log. No Idempotency-Key (CR-014).
+         */
+        post: operations["loginAdmin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * getAdminSession
+         * @description The calling admin session (TB-8 Q17, Issue 136). The admin web checks it on every console render (Issue 82). 401 AUTHENTICATION_REQUIRED without a live session; 403 ACCESS_DENIED for a session that is not ADMIN or an ADMIN session without completed MFA (mfaVerifiedAt unset). Expiry and revocation are checked on each request (ADR-0004).
+         */
+        get: operations["getAdminSession"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3118,7 +3158,19 @@ export interface components {
             /** Format: date-time */
             expiresAt: string;
         };
-        LoginResult: components["schemas"]["SessionCredential"] | components["schemas"]["AdminMfaChallenge"];
+        /** @description The calling admin session, only ever for an ADMIN that completed MFA (G3-D16-02). Never carries the session token. */
+        AdminSessionView: {
+            /** Format: uuid */
+            sessionId: string;
+            /** @constant */
+            role: "ADMIN";
+            /** Format: date-time */
+            mfaVerifiedAt: string;
+            /** Format: date-time */
+            idleExpiresAt: string;
+            /** Format: date-time */
+            absoluteExpiresAt: string;
+        };
         RecoveryInput: {
             /** Format: email */
             email: string;
@@ -9140,7 +9192,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["LoginResult"];
+                    "application/json": components["schemas"]["SessionCredential"];
                 };
             };
             400: components["responses"]["Problem"];
@@ -10425,6 +10477,62 @@ export interface operations {
             412: components["responses"]["Problem"];
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
+            429: components["responses"]["Problem"];
+            503: components["responses"]["Problem"];
+        };
+    };
+    loginAdmin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginInput"];
+            };
+        };
+        responses: {
+            /** @description Challenge for the second factor; no session yet */
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminMfaChallenge"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+            429: components["responses"]["Problem"];
+            503: components["responses"]["Problem"];
+        };
+    };
+    getAdminSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authorized committed result; no credentials in ordinary DTOs */
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminSessionView"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };

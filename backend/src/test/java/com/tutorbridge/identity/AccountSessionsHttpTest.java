@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.tutorbridge.Concurrently;
 import com.tutorbridge.Contract;
 import com.tutorbridge.IntegrationTest;
 import com.tutorbridge.identity.internal.AccountSecrets;
@@ -129,6 +130,31 @@ class AccountSessionsHttpTest extends IntegrationTest {
                 .andExpect(jsonPath("$.code").value("LOGIN_DELAYED"))
                 .andExpect(header().string("Retry-After", org.hamcrest.Matchers.matchesPattern("(8[5-9]\\d|900)")));
         assertThat(sessionCount(account.id())).isZero();
+    }
+
+    @Test
+    void wrong_passwords_sent_at_the_same_time_check_only_five_and_delay_the_rest() throws Exception {
+        // Issue #141: the count, the slow password check and the record were not atomic, so all of
+        // these used to be checked (20 x 401). Each try uses its own address so only the per-email
+        // limit applies.
+        Account account = account("PARENT", "ACTIVE");
+        List<Integer> statuses = Concurrently.atOnce(20,
+                i -> login(account.email(), "sai-" + i + "-mat-khau-dai", randomIp()).andReturn().getResponse().getStatus());
+
+        assertThat(statuses).filteredOn(status -> status == 401).hasSize(5);
+        assertThat(statuses).filteredOn(status -> status == 429).hasSize(15);
+        assertThat(failures("ACCOUNT", secrets.emailDigest(account.email()))).isEqualTo(5);
+    }
+
+    @Test
+    void a_correct_password_leaves_no_failure_behind() throws Exception {
+        Account account = account("PARENT", "ACTIVE");
+        String ip = randomIp();
+
+        loginOk(account.email(), ip);
+
+        assertThat(failures("ACCOUNT", secrets.emailDigest(account.email()))).isZero();
+        assertThat(failures("SOURCE", secrets.sourceDigest(ip))).isZero();
     }
 
     @Test
@@ -324,6 +350,11 @@ class AccountSessionsHttpTest extends IntegrationTest {
         jdbc.sql("insert into account_credentials (account_id, password_hash, hash_policy) values (?, ?, ?)")
                 .params(id, hasher.hash(PASSWORD), PasswordHasher.POLICY).update();
         return new Account(id, email);
+    }
+
+    private int failures(String scope, String digest) {
+        return jdbc.sql("select count(*) from auth_login_failures where scope = ? and subject_digest = ?")
+                .params(scope, digest).query(Integer.class).single();
     }
 
     private ResultActions login(String email, String password, String ip) throws Exception {

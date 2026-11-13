@@ -47,8 +47,8 @@ class RecoveryController {
 
     @PostMapping("/api/v1/auth/reset")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    void resetPassword(@Valid @RequestBody ResetInput input) {
-        recovery.resetPassword(input.token(), input.newPassword());
+    void resetPassword(@Valid @RequestBody ResetInput input, HttpServletRequest request) {
+        recovery.resetPassword(input.token(), input.newPassword(), request.getRemoteAddr());
     }
 
     @Configuration(proxyBeanMethods = false)

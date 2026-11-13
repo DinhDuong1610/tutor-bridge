@@ -12,7 +12,7 @@ const BIN = { id: "2d9e6b5a-4c73-4caf-9c65-8f3b2e4d1a32", displayName: "Bin", gr
 const page = (items: unknown[], nextCursor: string | null = null) => json(200, { items, nextCursor });
 
 function renderList(props: Partial<Parameters<typeof StudentsScreen>[0]> = {}) {
-  const handlers = { onBack: jest.fn(), onAdd: jest.fn() };
+  const handlers = { onBack: jest.fn(), onAdd: jest.fn(), onEdit: jest.fn() };
   return renderScreen(<StudentsScreen {...handlers} {...props} />, { session: fakeSession("PARENT") }).then(() => handlers);
 }
 
@@ -67,6 +67,17 @@ describe("PH02 Hồ sơ các con: danh sách", () => {
     await screen.findByText("Minh An");
     await act(async () => fireEvent.press(screen.getByRole("button", { name: "Thêm hồ sơ con" })));
     expect(onAdd).toHaveBeenCalledTimes(1);
+  });
+
+  it("opens the edit screen of the chosen child, named for screen readers", async () => {
+    server = mockApi({ "GET /students": () => page([MINH, NGOC]) });
+    const { onEdit } = await renderList();
+    await screen.findByText("Minh An");
+
+    expect(screen.getAllByText("Sửa hồ sơ")).toHaveLength(2);
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Sửa hồ sơ Bảo Ngọc" })));
+
+    expect(onEdit).toHaveBeenCalledWith(NGOC.id);
   });
 
   it("goes back from the top bar", async () => {

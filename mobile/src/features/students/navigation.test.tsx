@@ -94,6 +94,113 @@ describe("PH02 routes", () => {
     expect(screen).toHavePathname("/parent/account/students");
   }, 20_000); // Reads retry twice on 5xx with the default backoff before the warning shows.
 
+  it("edits a child from the list and returns to the list that names the saved profile", async () => {
+    let name = "Minh An";
+    server = mockApi({
+      "GET /students": () => json(200, { items: [{ ...CREATED, displayName: name, revision: name === "Minh An" ? 1 : 2 }], nextCursor: null }),
+      "GET /students/{studentId}": () =>
+        new Response(JSON.stringify(CREATED), { status: 200, headers: { "Content-Type": "application/json", ETag: '"1"' } }),
+      "PATCH /students/{studentId}": () => {
+        name = "Minh An Nguyễn";
+        return new Response(JSON.stringify({ ...CREATED, displayName: name, revision: 2 }), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ETag: '"2"' },
+        });
+      },
+    });
+    await renderRouter("./src/app", { initialUrl: "/parent/account/students" });
+    await screen.findByText("Minh An");
+
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Sửa hồ sơ Minh An" })));
+    expect(await screen.findByRole("header", { name: "Sửa hồ sơ" })).toBeOnTheScreen();
+    expect(screen).toHavePathname(`/parent/account/students/${CREATED.id}`);
+
+    await screen.findByDisplayValue("Minh An");
+    await fireEvent.changeText(screen.getByLabelText("Tên hiển thị của con"), "Minh An Nguyễn");
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Lưu thay đổi" })));
+
+    expect(await screen.findByText("Đã lưu hồ sơ Minh An Nguyễn.")).toBeOnTheScreen();
+    expect(screen).toHavePathname("/parent/account/students");
+    expect(screen.queryByRole("header", { name: "Sửa hồ sơ" })).toBeNull();
+  });
+
+  it("after saving, a second edit starts from the saved revision and never sends back the old name", async () => {
+    // Server state: the name changes on the first save, the goal on the second (Codex review of #138).
+    let current = { ...CREATED, displayName: "Minh An", shortGoal: "", revision: 3 };
+    const withEtag = (body: unknown, revision: number) =>
+      new Response(JSON.stringify(body), { status: 200, headers: { "Content-Type": "application/json", ETag: `"${revision}"` } });
+    server = mockApi({
+      "GET /students": () => json(200, { items: [current], nextCursor: null }),
+      "GET /students/{studentId}": () => withEtag(current, current.revision),
+      "PATCH /students/{studentId}": async (request) => {
+        const changes = (await request.json()) as Partial<typeof current>;
+        if (request.headers.get("If-Match") !== `"${current.revision}"`) {
+          return problem(412, "PRECONDITION_FAILED", "Dữ liệu đã thay đổi.");
+        }
+        current = { ...current, ...changes, revision: current.revision + 1 };
+        return withEtag(current, current.revision);
+      },
+    });
+    await renderRouter("./src/app", { initialUrl: "/parent/account/students" });
+    await screen.findByText("Minh An");
+
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Sửa hồ sơ Minh An" })));
+    await screen.findByDisplayValue("Minh An");
+    await fireEvent.changeText(screen.getByLabelText("Tên hiển thị của con"), "Minh Anh");
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Lưu thay đổi" })));
+    expect(await screen.findByText("Đã lưu hồ sơ Minh Anh.")).toBeOnTheScreen();
+
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Sửa hồ sơ Minh Anh" })));
+    expect(await screen.findByDisplayValue("Minh Anh")).toBeOnTheScreen();
+    await fireEvent.changeText(screen.getByLabelText("Mục tiêu ngắn"), "Ôn tập phân thức.");
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Lưu thay đổi" })));
+
+    expect(await screen.findByText("Đã lưu hồ sơ Minh Anh.")).toBeOnTheScreen();
+    const patches = server.requests.filter((r) => r.method === "PATCH");
+    expect(patches).toHaveLength(2);
+    expect(patches[1].headers.get("If-Match")).toBe('"4"');
+    expect(await patches[1].json()).toEqual({ shortGoal: "Ôn tập phân thức." });
+    expect(current).toMatchObject({ displayName: "Minh Anh", shortGoal: "Ôn tập phân thức.", revision: 5 });
+  });
+
+  it("an edit opened from an older cached revision gets 412 instead of overwriting a newer change", async () => {
+    let current = { ...CREATED, displayName: "Minh An", shortGoal: "", revision: 3 };
+    const withEtag = (body: unknown, revision: number) =>
+      new Response(JSON.stringify(body), { status: 200, headers: { "Content-Type": "application/json", ETag: `"${revision}"` } });
+    server = mockApi({
+      "GET /students": () => json(200, { items: [current], nextCursor: null }),
+      "GET /students/{studentId}": () => withEtag(current, current.revision),
+      "PATCH /students/{studentId}": async (request) => {
+        const changes = (await request.json()) as Partial<typeof current>;
+        if (request.headers.get("If-Match") !== `"${current.revision}"`) {
+          return problem(412, "PRECONDITION_FAILED", "Dữ liệu đã thay đổi.");
+        }
+        current = { ...current, ...changes, revision: current.revision + 1 };
+        return withEtag(current, current.revision);
+      },
+    });
+    await renderRouter("./src/app", { initialUrl: "/parent/account/students" });
+    await screen.findByText("Minh An");
+
+    // Open the edit screen once, so revision 3 is cached, and go back without saving.
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Sửa hồ sơ Minh An" })));
+    await screen.findByDisplayValue("Minh An");
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Quay lại" })));
+    await screen.findByText("Minh An");
+
+    // Someone else renames the child: revision 4. The cache still holds revision 3.
+    current = { ...current, displayName: "Bé An", revision: 4 };
+
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Sửa hồ sơ Minh An" })));
+    await screen.findByDisplayValue("Minh An");
+    await fireEvent.changeText(screen.getByLabelText("Mục tiêu ngắn"), "Ôn tập phân thức.");
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Lưu thay đổi" })));
+
+    expect(await screen.findByText(/Dữ liệu đã thay đổi từ lúc bạn mở/)).toBeOnTheScreen();
+    // The newer name is not overwritten by the name the form was filled with.
+    expect(current).toMatchObject({ displayName: "Bé An", shortGoal: "", revision: 4 });
+  });
+
   it("keeps a tutor out of PH02", async () => {
     server = mockApi({});
     clearStore();

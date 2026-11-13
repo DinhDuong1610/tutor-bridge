@@ -64,6 +64,7 @@ backend/src/test/java/com/tutorbridge/<mô-đun>/
 - Cả workspace dùng một bản `react`, `react-dom`, `@types/react`, `@types/react-dom` (`overrides` ở `package.json` gốc), đúng bản Expo SDK yêu cầu. Sau khi thêm thư viện, `npm ls react @types/react` chỉ được có một phiên bản.
 - Mỗi màn hình có đủ: tải, rỗng, lỗi trường, lỗi hệ thống, hết phiên, mất quyền. Lệnh ghi có: đang gửi, đã xác nhận, chưa rõ kết quả, thử lại an toàn. Không hiện thành công trước khi máy chủ xác nhận.
 - Mỗi thao tác ghi của người dùng có một `Idempotency-Key`: thử lại sau khi chưa rõ kết quả thì giữ khóa; sau kết quả rõ (thành công hay lỗi) thì lần sau dùng khóa mới. Nền đã làm việc này, màn hình không tự sinh khóa.
+- Lệnh ghi nhận lỗi 5xx, có hay không có thân Problem, là **chưa rõ kết quả**, vì lỗi có thể xảy ra sau khi giao dịch đã commit (Đính chốt trên #83, 12/11/2026). Chỉ lỗi 4xx là thất bại rõ. Đọc dữ liệu không theo quy tắc này. Web đã làm trong `runCommand`; mobile (`call`, `useCommand`) làm ở PR sau.
 - Giữ dữ liệu đã nhập khi lỗi. Không chỉ dùng màu để phân biệt trạng thái. Câu chữ trạng thái giống nhau trên mobile và web.
 - Mã màn hình (`PH06`, `AD03`) ghi trong comment đầu file màn hình để truy vết.
 - Màu lấy từ token (mobile `theme.ts`, web biến CSS trong `globals.css`), cùng một bảng màu. Đổi màu thì đo lại độ tương phản theo WCAG 2.1 và ghi số đo.
@@ -107,7 +108,7 @@ mobile/__mocks__/      bản giả expo-secure-store, expo-crypto cho Jest
 - Màu, cỡ chữ, khoảng cách lấy từ `@/shared/ui/theme`, không viết số hay mã màu trong màn hình. Không đặt chiều cao cố định quanh chữ để chữ phóng to 200% vẫn đọc được.
 - Màn hình đọc dữ liệu dùng `QueryScreen`: đã có tải, rỗng, lỗi hệ thống kèm thử lại, mất quyền, không tìm thấy, dữ liệu cũ khi tải lại lỗi. `empty` thay cả nội dung; màn hình cần giữ form khi danh sách rỗng thì tự hiện thông báo rỗng.
 - Lệnh ghi hiển thị bằng `CommandStatus` cạnh nút gửi; nút gửi đặt `busy` khi `state === "sending"`.
-- Form: `useForm` với `zodResolver(schema)`; giới hạn lấy từ schema của hợp đồng, máy chủ vẫn kiểm lại. Ô nhập dùng `FormTextField`. Lỗi trường của máy chủ đặt vào ô bằng `useServerErrors(command.error, form.setError, [tên ô])`.
+- Form: `useForm` với `zodResolver(schema)`; giới hạn lấy từ schema của hợp đồng, máy chủ vẫn kiểm lại. Ô nhập dùng `FormTextField`; các thuộc tính khác của `TextInput` (`secureTextEntry`, `autoComplete`, `keyboardType`, `autoCapitalize`, `multiline`) truyền thẳng vào nó, không tự viết ô nhập riêng. Lỗi trường của máy chủ đặt vào ô bằng `useServerErrors(command.error, form.setError, [tên ô])`.
 
 ### Test
 - Màn hình: `mockApi({ "GET /students": () => json(200, ...) })` thay `fetch` theo đường dẫn hợp đồng, yêu cầu ngoài danh sách làm test hỏng; `renderScreen(<Screen />, { session: fakeSession("PARENT") })` dựng màn hình với đủ provider; `restore()` sau mỗi test.

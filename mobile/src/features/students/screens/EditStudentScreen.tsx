@@ -71,10 +71,20 @@ function EditForm({
     }
   }, [savedId, onSaved]);
 
-  // Loads the new revision and its ETag. The form keeps what the user typed; they decide again.
+  // Loads the new revision and its ETag. A field the user changed keeps what they typed; a field
+  // they did not touch takes the server's newer value, so saving again cannot send back a value
+  // that another device has since replaced (Huy's review of #138). The user then decides again.
   const reload = async () => {
     const result = await onReload();
     if (result.isSuccess && result.data) {
+      const typed = form.getValues();
+      const latest = result.data.data;
+      const nameChanged = typed.displayName.trim() !== loaded.displayName;
+      const goalChanged = typed.shortGoal.trim() !== (loaded.shortGoal ?? "");
+      form.reset({
+        displayName: nameChanged ? typed.displayName : latest.displayName,
+        shortGoal: goalChanged ? typed.shortGoal : (latest.shortGoal ?? ""),
+      });
       setBase(result.data);
       update.reset();
     }

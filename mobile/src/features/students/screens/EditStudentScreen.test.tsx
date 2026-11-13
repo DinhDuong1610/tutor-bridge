@@ -117,8 +117,9 @@ describe("PH02 Hồ sơ các con: sửa hồ sơ", () => {
 
     await waitFor(() => expect(gets).toBe(2));
     await waitFor(() => expect(screen.queryByText(/Dữ liệu đã thay đổi từ lúc bạn mở/)).toBeNull());
-    // What the user typed stays; nothing is merged on the device.
+    // What the user typed stays; the field they did not touch shows the server's newer goal.
     expect(screen.getByLabelText("Tên hiển thị của con")).toHaveDisplayValue("Minh An Nguyễn");
+    expect(screen.getByLabelText("Mục tiêu ngắn")).toHaveDisplayValue("Ôn tập phân thức.");
 
     await save();
 
@@ -127,7 +128,41 @@ describe("PH02 Hồ sơ các con: sửa hồ sơ", () => {
     expect(first.headers.get("If-Match")).toBe('"3"');
     expect(second.headers.get("If-Match")).toBe('"4"');
     expect(second.headers.get("Idempotency-Key")).not.toBe(first.headers.get("Idempotency-Key"));
-    expect(await second.json()).toEqual({ displayName: "Minh An Nguyễn", shortGoal: "Củng cố hằng đẳng thức." });
+    // Only the name the user changed: the other device's goal is not overwritten (Huy's review of #138).
+    expect(await second.json()).toEqual({ displayName: "Minh An Nguyễn" });
+  });
+
+  it("after a reload keeps a field the user changed even when the server changed it too", async () => {
+    let gets = 0;
+    let attempts = 0;
+    server = mockApi({
+      [`GET ${PATH}`]: () => {
+        gets += 1;
+        return gets === 1 ? profile(MINH) : profile({ ...MINH, shortGoal: "Ôn tập phân thức.", revision: 4 });
+      },
+      [`PATCH ${PATH}`]: () => {
+        attempts += 1;
+        return attempts === 1
+          ? problem(412, "PRECONDITION_FAILED", "Dữ liệu đã thay đổi.")
+          : saved({ ...MINH, shortGoal: "Luyện đề kiểm tra.", revision: 5 });
+      },
+    });
+    const { onSaved } = await renderEdit();
+    await screen.findByDisplayValue("Minh An");
+
+    await fireEvent.changeText(screen.getByLabelText("Mục tiêu ngắn"), "Luyện đề kiểm tra.");
+    await save();
+    await act(async () => fireEvent.press(await screen.findByRole("button", { name: "Tải lại" })));
+    await waitFor(() => expect(screen.queryByText(/Dữ liệu đã thay đổi từ lúc bạn mở/)).toBeNull());
+
+    // The user decides again: their own goal stays on screen, and is sent against revision 4.
+    expect(screen.getByLabelText("Mục tiêu ngắn")).toHaveDisplayValue("Luyện đề kiểm tra.");
+    await save();
+
+    await waitFor(() => expect(onSaved).toHaveBeenCalledWith(MINH.id));
+    const second = patches(server)[1];
+    expect(second.headers.get("If-Match")).toBe('"4"');
+    expect(await second.json()).toEqual({ shortGoal: "Luyện đề kiểm tra." });
   });
 
   it("after an unknown outcome allows only the retry, with the same key, changes and ETag", async () => {

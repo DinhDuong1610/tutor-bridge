@@ -2005,7 +2005,7 @@ export interface paths {
         };
         /**
          * getAdminSession
-         * @description The calling admin session (TB-8 Q17, Issue 136). The admin web checks it on every console render (Issue 82). 401 AUTHENTICATION_REQUIRED without a live session; 403 ACCESS_DENIED for a session that is not ADMIN. Expiry and revocation are checked on each request (ADR-0004).
+         * @description The calling admin session (TB-8 Q17, Issue 136). The admin web checks it on every console render (Issue 82). 401 AUTHENTICATION_REQUIRED without a live session; 403 ACCESS_DENIED for a session that is not ADMIN or an ADMIN session without completed MFA (mfaVerifiedAt unset). Expiry and revocation are checked on each request (ADR-0004).
          */
         get: operations["getAdminSession"];
         put?: never;

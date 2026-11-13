@@ -34,7 +34,7 @@ Mục ghi **TBD** là quyết định còn mở, chưa được tự chọn.
 - Nền chung theo [ADR-0010](../decisions/adr/0010-nen-backend.md), đặt trong `platform`: `Actor` và `SessionResolver` cho xác thực, đọc `Idempotency-Key` và `If-Match`, `Cache-Control`, ánh xạ lỗi validate. Controller dùng các phần này, không tự đọc header.
 - Controller khai báo tham số `IdempotencyKey` cho lệnh ghi, `WritePrecondition.Expected` khi cần `If-Match`, `WritePrecondition` khi cho phép tạo lần đầu bằng `If-None-Match: *`. Phản hồi có phiên bản đặt `ETag` bằng `Etag.of(version)`. Mọi phản hồi đã có sẵn `Cache-Control: private, no-store`.
 - Code mới lấy thời gian từ bean `Clock` (UTC) và ID từ bean `IdGenerator`, không gọi `Instant.now()` hay `UUID.randomUUID()` trực tiếp, để test cố định được.
-- Không ghi bí mật hay dữ liệu cá nhân vào log. `LogRedaction` che bearer, cookie phiên, email, cặp `password=`… trong log JSON, nhưng chỉ là lớp chặn cuối.
+- Không ghi bí mật hay dữ liệu cá nhân vào log. `LogRedaction` che bearer, cookie phiên, email, cặp `password=`… trong log JSON và trong log text của profile `local` (`RedactedTextLogFormatter`, cả stack trace; Đính chốt 13/11/2026, #85), nhưng chỉ là lớp chặn cuối.
 - Dữ liệu giả cho máy local: mỗi mô-đun khai báo một bean `LocalSeed` trong gói `internal`, chỉ ghi bảng của mình, chạy lại được nhiều lần, dữ liệu rõ ràng là giả.
 - Service nhận `Actor` làm tham số, không đọc request hay context tĩnh. Controller lấy nó bằng `@AuthenticationPrincipal Actor actor`.
 - Mọi đường dẫn cần phiên, trừ thao tác mô-đun khai báo công khai bằng một bean `PublicEndpoints` (ví dụ đăng ký, đăng nhập). Không mở đường dẫn bằng cách sửa `SecurityConfig`.

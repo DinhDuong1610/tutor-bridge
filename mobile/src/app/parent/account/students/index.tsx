@@ -10,6 +10,7 @@ export default function StudentsRoute() {
       savedId={typeof saved === "string" ? saved : undefined}
       onBack={() => (router.canGoBack() ? router.back() : router.replace("/parent"))}
       onAdd={() => router.push("/parent/account/students/new")}
+      onEdit={(studentId) => router.push({ pathname: "/parent/account/students/[studentId]", params: { studentId } })}
     />
   );
 }

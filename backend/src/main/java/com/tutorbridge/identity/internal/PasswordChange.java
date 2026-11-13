@@ -89,13 +89,15 @@ public class PasswordChange {
     private SessionRepository.Own checkPassword(Actor actor, String password, String field, String source) {
         SessionRepository.Own own = sessions.findOwn(actor.accountId()).orElseThrow(PasswordChange::sessionEnded);
         String sourceDigest = secrets.sourceDigest(source);
-        throttle.refuseWhileDelayed(own.emailDigest(), sourceDigest);
+        // Counted as a failure before the password check, so concurrent tries cannot pass the limit (#141).
+        LoginThrottle.Attempt attempt = throttle.begin(own.emailDigest(), sourceDigest);
         if (!hasher.matches(password, own.passwordHash())) {
-            throttle.recordFailure(own.emailDigest(), sourceDigest);
+            throttle.failed(attempt);
             throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "CURRENT_PASSWORD_INVALID",
                     "Mật khẩu hiện tại không đúng.",
                     List.of(new FieldProblem(field, "Mật khẩu hiện tại không đúng.")));
         }
+        throttle.passed(attempt);
         return own;
     }
 

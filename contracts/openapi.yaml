@@ -5852,8 +5852,9 @@ paths:
         token in log. Errors 401 AUTHENTICATION_FAILED for an unknown email or a wrong
         password (same body for both), 403 ACCOUNT_UNVERIFIED (only after a correct
         password), 403 ACCOUNT_LOCKED, 429 LOGIN_DELAYED with Retry-After. An ADMIN account
-        gets the same 401 AUTHENTICATION_FAILED and no session; admins sign in through a
-        separate web endpoint (TB-13). No Idempotency-Key (CR-014).
+        gets the same 401 AUTHENTICATION_FAILED and no session; admins sign in through
+        loginAdmin then completeAdminMfa (TB-8 Q17, Issue 136). Never returns an MFA challenge.
+        No Idempotency-Key (CR-014).
       parameters: []
       responses:
         '400':
@@ -5890,7 +5891,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LoginResult'
+                $ref: '#/components/schemas/SessionCredential'
       security: []
       requestBody:
         required: true
@@ -7765,15 +7766,98 @@ paths:
       security:
       - bearerAuth: []
       - cookieAuth: []
+  /auth/admin-login:
+    post:
+      operationId: loginAdmin
+      summary: loginAdmin
+      tags:
+      - UC01
+      x-authorization: public
+      x-transaction: UC01
+      description: First factor of the admin sign-in (TB-8 Q17, Issue 136, G3-D16-02). Issues
+        a single-use challenge for completeAdminMfa and never a session. An unknown
+        email, a wrong password, an account that is not ADMIN and an ADMIN without an
+        active MFA enrollment all get the same 401 AUTHENTICATION_FAILED. 403
+        ACCOUNT_LOCKED only after a correct password; 429 LOGIN_DELAYED with Retry-After.
+        Failures count per email together with loginAccount (5 failures/15min then
+        15min delay). No token or challenge in log. No Idempotency-Key (CR-014).
+      parameters: []
+      responses:
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+        '200':
+          description: Challenge for the second factor; no session yet
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                const: private, no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminMfaChallenge'
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginInput'
+  /admin/session:
+    get:
+      operationId: getAdminSession
+      summary: getAdminSession
+      tags:
+      - UC01
+      x-authorization: ADMIN session that completed MFA only
+      x-transaction: UC01
+      description: The calling admin session (TB-8 Q17, Issue 136). The admin web checks it on
+        every console render (Issue 82). 401 AUTHENTICATION_REQUIRED without a live session;
+        403 ACCESS_DENIED for a session that is not ADMIN or an ADMIN session without
+        completed MFA (mfaVerifiedAt unset). Expiry and revocation are
+        checked on each request (ADR-0004).
+      parameters: []
+      responses:
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+        '200':
+          description: Authorized committed result; no credentials in ordinary DTOs
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                const: private, no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminSessionView'
+      security:
+      - cookieAuth: []
   /auth/admin-mfa:
     post:
       operationId: completeAdminMfa
       summary: completeAdminMfa
       tags:
       - UC01
-      x-authorization: Consume first-factor-bound challenge and verify enrolled MFA;
-        issue session only after success. Single-use challenge, rate limit, no secret
-        in receipts.
+      x-authorization: Consume first-factor-bound challenge from loginAdmin and verify
+        enrolled MFA; issue session only after success. Single-use challenge, rate
+        limit, no secret in receipts.
       x-transaction: UC01
       description: Consume first-factor-bound challenge and verify enrolled MFA; issue
         session only after success. Single-use challenge, rate limit, no secret in
@@ -11292,10 +11376,25 @@ components:
       - mfaRequired
       - challengeToken
       - expiresAt
-    LoginResult:
-      oneOf:
-      - $ref: '#/components/schemas/SessionCredential'
-      - $ref: '#/components/schemas/AdminMfaChallenge'
+    AdminSessionView:
+      type: object
+      additionalProperties: false
+      description: The calling admin session, only ever for an ADMIN that completed MFA
+        (G3-D16-02). Never carries the session token.
+      properties:
+        sessionId: *id004
+        role:
+          type: string
+          const: ADMIN
+        mfaVerifiedAt: *id001
+        idleExpiresAt: *id001
+        absoluteExpiresAt: *id001
+      required:
+      - sessionId
+      - role
+      - mfaVerifiedAt
+      - idleExpiresAt
+      - absoluteExpiresAt
     RecoveryInput:
       type: object
       additionalProperties: false

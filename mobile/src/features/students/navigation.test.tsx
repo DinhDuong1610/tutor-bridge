@@ -94,6 +94,36 @@ describe("PH02 routes", () => {
     expect(screen).toHavePathname("/parent/account/students");
   }, 20_000); // Reads retry twice on 5xx with the default backoff before the warning shows.
 
+  it("edits a child from the list and returns to the list that names the saved profile", async () => {
+    let name = "Minh An";
+    server = mockApi({
+      "GET /students": () => json(200, { items: [{ ...CREATED, displayName: name, revision: name === "Minh An" ? 1 : 2 }], nextCursor: null }),
+      "GET /students/{studentId}": () =>
+        new Response(JSON.stringify(CREATED), { status: 200, headers: { "Content-Type": "application/json", ETag: '"1"' } }),
+      "PATCH /students/{studentId}": () => {
+        name = "Minh An Nguyễn";
+        return new Response(JSON.stringify({ ...CREATED, displayName: name, revision: 2 }), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ETag: '"2"' },
+        });
+      },
+    });
+    await renderRouter("./src/app", { initialUrl: "/parent/account/students" });
+    await screen.findByText("Minh An");
+
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Sửa hồ sơ Minh An" })));
+    expect(await screen.findByRole("header", { name: "Sửa hồ sơ" })).toBeOnTheScreen();
+    expect(screen).toHavePathname(`/parent/account/students/${CREATED.id}`);
+
+    await screen.findByDisplayValue("Minh An");
+    await fireEvent.changeText(screen.getByLabelText("Tên hiển thị của con"), "Minh An Nguyễn");
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Lưu thay đổi" })));
+
+    expect(await screen.findByText("Đã lưu hồ sơ Minh An Nguyễn.")).toBeOnTheScreen();
+    expect(screen).toHavePathname("/parent/account/students");
+    expect(screen.queryByRole("header", { name: "Sửa hồ sơ" })).toBeNull();
+  });
+
   it("keeps a tutor out of PH02", async () => {
     server = mockApi({});
     clearStore();

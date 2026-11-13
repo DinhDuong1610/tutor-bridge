@@ -1,8 +1,9 @@
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { components } from "@tutorbridge/api-client";
 import { useEffect } from "react";
 import { api } from "@/shared/api/client";
 import { useCommand } from "@/shared/api/command";
-import { call } from "@/shared/api/errors";
+import { call, callWithEtag } from "@/shared/api/errors";
 import { GRADE, type StudentForm } from "./schemas";
 
 export const STUDENTS_KEY = ["students"] as const;
@@ -23,6 +24,58 @@ export function useStudents() {
       call(api.GET("/students", { params: { query: { limit: STUDENTS_PAGE_LIMIT, ...(pageParam ? { cursor: pageParam } : {}) } } })),
     getNextPageParam: (page) => page.nextCursor,
   });
+}
+
+export const studentProfileKey = (studentId: string) => ["students", "profile", studentId] as const;
+
+/** getStudentProfile with its ETag. The server checks the owner; another family's id gets 403 or 404 (AC-UC02-02). */
+export function useStudentProfile(studentId: string) {
+  return useQuery({
+    queryKey: studentProfileKey(studentId),
+    queryFn: () => callWithEtag(api.GET("/students/{studentId}", { params: { path: { studentId } } })),
+  });
+}
+
+export type Student = components["schemas"]["Student"];
+type StudentPatch = components["schemas"]["StudentPatchInput"];
+
+/**
+ * Only the fields that differ from the loaded profile (StudentPatchInput). Empty when nothing
+ * changed; the contract needs at least one field. Grade is fixed at 8, so it is never sent.
+ */
+export function changedFields(loaded: Student, form: StudentForm): StudentPatch {
+  const changes: StudentPatch = {};
+  if (form.displayName !== loaded.displayName) changes.displayName = form.displayName;
+  if (form.shortGoal !== (loaded.shortGoal ?? "")) changes.shortGoal = form.shortGoal;
+  return changes;
+}
+
+export type StudentUpdate = { studentId: string; etag: string; changes: StudentPatch };
+
+/**
+ * patchStudent with If-Match (INV-23). The ETag travels in the input, so a retry after an unknown
+ * outcome resends the same key, the same changes and the same ETag.
+ */
+export function useUpdateStudent() {
+  const queryClient = useQueryClient();
+  const command = useCommand(({ studentId, etag, changes }: StudentUpdate, key: string) =>
+    call(
+      api.PATCH("/students/{studentId}", {
+        params: { path: { studentId }, header: { "Idempotency-Key": key, "If-Match": etag } },
+        body: changes,
+      }),
+    ),
+  );
+  const updated = command.state === "confirmed" ? command.result : undefined;
+  useEffect(() => {
+    if (updated) {
+      queryClient.setQueryData(savedStudentKey(updated.id), updated);
+      void queryClient.invalidateQueries({ queryKey: STUDENTS_KEY, exact: true });
+      // Stale, not refetched now: the next edit loads the new revision and its ETag.
+      void queryClient.invalidateQueries({ queryKey: studentProfileKey(updated.id), refetchType: "none" });
+    }
+  }, [updated, queryClient]);
+  return command;
 }
 
 /** createStudent. No owner in the body: the contract does not accept one (INV-03). */

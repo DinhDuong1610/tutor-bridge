@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.tutorbridge.Concurrently;
 import com.tutorbridge.Contract;
 import com.tutorbridge.IntegrationTest;
 import com.tutorbridge.identity.internal.AccountSecrets;
@@ -78,6 +79,18 @@ class PasswordChangeHttpTest extends IntegrationTest {
         mvc.perform(get("/api/v1/me/sessions").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk());
         login(account.email(), OLD);
+    }
+
+    @Test
+    void wrong_current_passwords_sent_at_the_same_time_check_only_five() throws Exception {
+        // Issue #141: changePassword and reauthenticate share the login limit, so they had the same race.
+        Account account = account();
+        String token = login(account.email(), OLD);
+        List<Integer> statuses = Concurrently.atOnce(20,
+                i -> change(token, "sai-" + i + "-mat-khau-dai", NEW, randomIp()).andReturn().getResponse().getStatus());
+
+        assertThat(statuses).filteredOn(status -> status == 422).hasSize(5);
+        assertThat(statuses).filteredOn(status -> status == 429).hasSize(15);
     }
 
     @Test

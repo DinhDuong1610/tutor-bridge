@@ -3,7 +3,7 @@ import { act, renderHook, waitFor } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { createClient } from "./client";
 import { useCommand } from "./command";
-import { ApiError, UnknownOutcomeError, call } from "./errors";
+import { ApiError, UnknownOutcomeError, call, callWithEtag } from "./errors";
 import { createQueryClient, shouldRetryRead } from "./queryClient";
 
 const PROBLEM = {
@@ -89,6 +89,42 @@ describe("call", () => {
     const gateway = client(async () => respond(502, undefined, "text/html"));
 
     await expect(call(gateway.GET("/students", {}))).rejects.toBeInstanceOf(UnknownOutcomeError);
+  });
+});
+
+describe("callWithEtag", () => {
+  const client = (answer: () => Promise<Response>) =>
+    createClient({ baseUrl: "https://api.test/api/v1", token: () => null, fetch: answer });
+  const STUDENT = { id: "0b7c4f3e-2a51-4a8e-9a43-6d1f0c2b9e10", displayName: "Minh An", grade: 8, revision: 3 };
+  const withEtag = (etag: string | null) => async () =>
+    new Response(JSON.stringify(STUDENT), {
+      status: 200,
+      headers: { "Content-Type": "application/json", ...(etag ? { ETag: etag } : {}) },
+    });
+  const params = { params: { path: { studentId: STUDENT.id } } };
+
+  it("returns the data with the resource's strong ETag, as the server sent it", async () => {
+    const result = await callWithEtag(client(withEtag('"3"')).GET("/students/{studentId}", params));
+
+    expect(result).toEqual({ data: STUDENT, etag: '"3"' });
+  });
+
+  it("refuses an answer without an ETag instead of guessing one", async () => {
+    await expect(callWithEtag(client(withEtag(null)).GET("/students/{studentId}", params))).rejects.toThrow(
+      "The answer has no ETag",
+    );
+  });
+
+  it("classifies failures exactly like call", async () => {
+    const forbidden = client(async () => respond(403, { ...PROBLEM, status: 403, code: "FORBIDDEN" }, "application/problem+json"));
+    const error = await callWithEtag(forbidden.GET("/students/{studentId}", params)).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ApiError);
+    expect((error as ApiError).kind).toBe("forbidden");
+
+    const offline = client(async () => {
+      throw new TypeError("Network request failed");
+    });
+    await expect(callWithEtag(offline.GET("/students/{studentId}", params))).rejects.toBeInstanceOf(UnknownOutcomeError);
   });
 });
 

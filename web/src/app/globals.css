@@ -1,9 +1,9 @@
 @import "tailwindcss";
 
 /*
- * Design tokens, the same palette as mobile/src/shared/ui/theme.ts (contrast measured there:
- * text at least 5.4:1, borders 3.8:1). Names follow shadcn/ui so its components pick them up.
- * Placeholder colors until there is a visual design.
+ * Design tokens, the same roles and values as docs/design/ui/02-nen-thiet-ke.md and
+ * mobile/src/shared/ui/theme.ts (contrast measured there). Names follow shadcn/ui so its
+ * components pick them up. --divider is decoration only (1.41:1), never an input edge.
  */
 :root {
   color-scheme: light;
@@ -12,9 +12,11 @@
   --muted: #f4f6f8;
   --muted-foreground: #4a5361;
   --border: #7a8494;
+  --divider: #d5dae1;
   --input: #7a8494;
   --ring: #0b5cad;
   --primary: #0b5cad;
+  --primary-pressed: #08467f;
   --primary-foreground: #ffffff;
   --secondary: #f4f6f8;
   --secondary-foreground: #14181f;
@@ -31,7 +33,8 @@
   --card-foreground: #14181f;
   --popover: #ffffff;
   --popover-foreground: #14181f;
-  --radius: 0.625rem;
+  /* shadcn/ui derives 8px (sm) and 12px (lg) from it: radius sm and md of 02-nen-thiet-ke.md. */
+  --radius: 0.75rem;
 }
 
 @theme inline {
@@ -40,9 +43,11 @@
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
+  --color-divider: var(--divider);
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-primary: var(--primary);
+  --color-primary-pressed: var(--primary-pressed);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -62,7 +67,8 @@
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
-  --font-sans: system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* Be Vietnam Pro from next/font (layout.tsx); the system fonts only while it loads. */
+  --font-sans: var(--font-be-vietnam-pro), system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 @layer base {

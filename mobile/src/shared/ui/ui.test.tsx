@@ -1,15 +1,16 @@
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
-import { Text } from "react-native";
+import { StyleSheet, Text } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ApiError, UnknownOutcomeError } from "@/shared/api/errors";
-import { Button } from "./Button";
+import { Button, buttonStyle } from "./Button";
 import { CommandStatus } from "./CommandStatus";
 import { QueryScreen } from "./QueryScreen";
 import { StickyActionBar } from "./StickyActionBar";
 import { TextField } from "./TextField";
 import { TopAppBar } from "./TopAppBar";
+import { colors, typography } from "./theme";
 
 const problem = (status: number, title = "Không được phép.") =>
   new ApiError({
@@ -99,6 +100,33 @@ describe("TextField", () => {
 });
 
 describe("Button", () => {
+  it("turns primaryPressed, not see-through, while a primary button is pressed", async () => {
+    const look = (pressed: boolean, inactive = false) => StyleSheet.flatten(buttonStyle("primary", pressed, inactive));
+
+    expect(look(false)).toMatchObject({ backgroundColor: colors.primary });
+    expect(look(true)).toMatchObject({ backgroundColor: colors.primaryPressed });
+    expect(look(true)).not.toHaveProperty("opacity");
+    expect(StyleSheet.flatten(buttonStyle("secondary", false, false))).toMatchObject({ borderColor: colors.primary });
+  });
+
+  it("lets a long label wrap inside the button instead of overflowing", async () => {
+    await render(<Button title="Đăng xuất khỏi thiết bị này" onPress={() => undefined} />);
+    const label = screen.getByText("Đăng xuất khỏi thiết bị này");
+
+    expect(label).toHaveStyle({ flexShrink: 1, ...typography.label });
+    expect(label.props.numberOfLines).toBeUndefined();
+  });
+
+  it("ignores presses while disabled", async () => {
+    const onPress = jest.fn();
+    await render(<Button title="Lưu" onPress={onPress} disabled />);
+
+    await fireEvent.press(screen.getByRole("button", { name: "Lưu" }));
+
+    expect(onPress).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Lưu" })).toBeDisabled();
+  });
+
   it("ignores presses while busy", async () => {
     const onPress = jest.fn();
     await render(<Button title="Lưu" onPress={onPress} busy />);
@@ -172,5 +200,13 @@ describe("StickyActionBar", () => {
 
     await fireEvent.press(screen.getByRole("button", { name: "Lưu hồ sơ" }));
     expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  it("is set apart by the divider line, not a shadow", async () => {
+    await render(wrap(<StickyActionBar><Text>Hành động</Text></StickyActionBar>));
+
+    let bar = screen.getByText("Hành động").parent;
+    while (bar && !StyleSheet.flatten(bar.props.style)?.borderTopWidth) bar = bar.parent;
+    expect(StyleSheet.flatten(bar?.props.style)).toMatchObject({ borderTopColor: colors.divider });
   });
 });

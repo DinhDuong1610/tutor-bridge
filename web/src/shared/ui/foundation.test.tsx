@@ -44,3 +44,27 @@ describe("web foundation (#95)", () => {
     expect(css).toMatch(/scrollbar-color:\s*var\(--muted-foreground\) var\(--muted\);/);
   });
 });
+
+describe("web tokens (#95)", () => {
+  const doc = readFileSync(resolve(__dirname, "../../../../docs/design/ui/02-nen-thiet-ke.md"), "utf8");
+
+  it("gives every CSS variable of the color table its documented value", () => {
+    // | `figma` | `mobile` | `--web`, `--web2` | `#value` | use |
+    const rows = [...doc.matchAll(/^\| `[^`]+`[^|]*\| `\w+` \| ([^|]+)\| `(#[0-9A-F]{6})` \|/gm)];
+    const checked = new Set<string>();
+    for (const [, cell, value] of rows) {
+      for (const [, name] of cell.matchAll(/`(--[\w-]+)`/g)) {
+        // `--primary` also stands for status/info: same value, so one variable.
+        expect({ name, value: new RegExp(`${name}:\\s*(#[0-9a-f]{6});`).exec(css)?.[1] }).toEqual({ name, value: value.toLowerCase() });
+        checked.add(name);
+      }
+    }
+    expect(checked).toEqual(new Set(["--background", "--muted", "--secondary", "--foreground", "--muted-foreground", "--border", "--input", "--divider", "--primary", "--ring", "--primary-pressed", "--primary-foreground", "--accent", "--success", "--success-surface", "--warning", "--warning-surface", "--destructive", "--destructive-surface"]));
+  });
+
+  it("derives the 8 and 12 radius of the design from --radius", () => {
+    expect(css).toMatch(/--radius:\s*0\.75rem;/);
+    expect(css).toMatch(/--radius-sm:\s*calc\(var\(--radius\) - 4px\);/);
+    expect(css).toMatch(/--radius-lg:\s*var\(--radius\);/);
+  });
+});

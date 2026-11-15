@@ -1,10 +1,10 @@
 # Tài liệu TutorBridge
 
-Điểm bắt đầu cho Đính, Huy và các agent. Cập nhật lần cuối: 12/11/2026.
+Điểm bắt đầu cho Đính, Huy và các agent. Cập nhật lần cuối: 15/11/2026.
 
 ## Trạng thái
 
-Đã hoàn thành 8 nhóm tài liệu. Repo: https://github.com/DinhDuong1610/tutor-bridge, làm việc trên nhánh `dev`. Đã xong M0 của Lát 1, xem [bàn giao](plan/m0-ban-giao.md). Cổng phỏng vấn đã qua bằng chấp nhận rủi ro; chia việc theo CR-012. Nền backend, mobile, web (module N0, S1, B1–B4, M1–M5, W1–W3) đã merge vào `dev` ngày 06/11/2026 qua #63–#66 theo ngoại lệ OP-15. Đến 12/11/2026 đã merge thêm: tài khoản backend TB-8, TB-9 (#39, #80, #92, #108–#111), màn hình tài khoản mobile TB-10 (#78, #88, #90, #91, #93, #99), API hồ sơ con TB-11 (#113, #114), tài liệu UX-UI TB-87 (#94), Expo SDK 58 TB-117 (#118). Thứ tự việc tiếp theo và Demo 1 ở [lat-1-demo-1.md](plan/lat-1-demo-1.md).
+Đã hoàn thành 8 nhóm tài liệu. Repo: https://github.com/DinhDuong1610/tutor-bridge, làm việc trên nhánh `dev`. Đã xong M0 của Lát 1, xem [bàn giao](plan/m0-ban-giao.md). Cổng phỏng vấn đã qua bằng chấp nhận rủi ro; chia việc theo CR-012. Nền backend, mobile, web (module N0, S1, B1–B4, M1–M5, W1–W3) đã merge vào `dev` ngày 06/11/2026 qua #63–#66 theo ngoại lệ OP-15. Đến 12/11/2026 đã merge thêm: tài khoản backend TB-8, TB-9 (#39, #80, #92, #108–#111), màn hình tài khoản mobile TB-10 (#78, #88, #90, #91, #93, #99), API hồ sơ con TB-11 (#113, #114), tài liệu UX-UI TB-87 (#94), Expo SDK 58 TB-117 (#118). Từ 13/11 đến 15/11/2026: màn hình hồ sơ con #67 (#119, #138), hợp đồng đọc kết quả xác minh cho gia sư #96 (#129), hợp đồng đăng nhập quản trị riêng #136 (#139), sửa bảo mật sau rà TB-8, TB-9 (#153, #154), che log text local #85 (#155), 5xx của lệnh ghi là chưa rõ kết quả #83 (#133, #156), nền web của #95 (#151), ADR-0007 (#148), `Parties.isOwnStudent` cho TB-15 (#149). Thứ tự việc tiếp theo và Demo 1 ở [lat-1-demo-1.md](plan/lat-1-demo-1.md).
 
 | Nhóm | Nội dung | Vị trí | Trạng thái |
 |---|---|---|---|

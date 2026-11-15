@@ -2,6 +2,9 @@
 
 Issue #112. Viết ngày 11/11/2026, sau khi TB-8 và TB-9 đã merge vào `dev` (#92, #39, #109, #110). Đây là **đề xuất của Đính**. Các dòng ghi `TBD` cần Huy đồng ý. Ngày ở đây là mục tiêu để sắp thứ tự, không phải cam kết (OP-01 chưa chốt).
 
+## Cập nhật ngày 15/11/2026
+Đã merge từ 11/11: TB-11 (#113, #114), #67 (#119, #138), #81 (#124), #89 (#125), #96 (#129), Q17 (#139), rà sau merge TB-8, TB-9 (#141, #140 qua #153, #154), #85 (#155), #83 (#133, #156), phần web của #95 (#151), ADR-0007 (#148), `Parties.isOwnStudent` (#149). Đang mở: TB-15 phần 1 (#152, Ready), hướng dẫn cache Jest (#150, Refs #123). Chưa bắt đầu: phần mobile của #95, TB-12, TB-14, #98. Chưa diễn tập Demo 1. Bảng tuần dưới đây giữ nguyên như đã viết ngày 11/11.
+
 ## Hiện trạng `dev` ngày 11/11/2026
 | Phần | Đã có | Chưa có |
 |---|---|---|
@@ -87,10 +90,10 @@ Không có trong Demo 1: web quản trị, hồ sơ gia sư và xác minh, lịc
 | Điều kiện | Hiện trạng | Ai |
 |---|---|---|
 | TB-10 merge | Đã merge (#78, #88, #90, #91, #93, #99) | Đính, Huy |
-| TB-11 và #67 merge | TB-11 đã merge (#113, #114). #67 chia hai PR (Huy, 12/11/2026): danh sách và thêm hồ sơ ở PR nháp #119; sửa hồ sơ làm sau khi #119 merge | Đính, Huy |
-| Lối vào AUTH06 và PH02 từ khu phụ huynh | Huy chọn ngày 12/11/2026: liên kết tạm "Hồ sơ các con" và "Bảo mật" trên `parent/index`, làm trong #119. TB-14 thay bằng PH01 và thanh tab | Huy |
+| TB-11 và #67 merge | Đã merge: TB-11 (#113, #114), #67 (#119 danh sách và thêm, #138 sửa hồ sơ) | Đính, Huy |
+| Lối vào AUTH06 và PH02 từ khu phụ huynh | Đã có: liên kết tạm "Hồ sơ các con" và "Bảo mật" trên `parent/index`, merge qua #119. TB-14 thay bằng PH01 và thanh tab | Huy |
 | Chạy được trên điện thoại thật | Handoff TB-10 ghi chưa chạy được trên emulator, chưa chạy trên điện thoại thật | Huy, Đính diễn tập |
-| Mở liên kết trong email | Backend local gửi liên kết `tutorbridge://`. Expo Go chỉ mở `exp://<máy>:8081/--/...`, `tutorbridge://` cần bản dev build. `TBD` (Đính, Huy): đổi `link-base` khi demo, hay thêm dev build (thêm gói thì cần duyệt theo ADR-0009) | Đính chốt |
+| Mở liên kết trong email | Backend local gửi liên kết `tutorbridge://`. Expo Go chỉ mở `exp://<máy>:8081/--/...`, `tutorbridge://` cần bản dev build. Đính chốt ngày 12/11/2026: đổi `link-base` bằng `TUTORBRIDGE_IDENTITY_MAIL_LINK_BASE`, không dùng dev build. Cách chạy ở [demo-1-chay-local.md](demo-1-chay-local.md) | Xong |
 | Phiên bản điều khoản | Dùng bản thử `ban-thu-chua-hieu-luc` ở cả backend local và `EXPO_PUBLIC_TERMS_VERSION`. Văn bản thật vẫn là việc của Đính (TB-8 Q8) | Đính |
 | Máy chạy backend | `.env` có `TB_EMAIL_DIGEST_KEY`, `TB_EMAIL_ENCRYPTION_KEY` và các khóa ghi trong handoff TB-10. Điện thoại dùng IP LAN của máy trong `EXPO_PUBLIC_API_URL` | Người chạy demo |
 
@@ -100,8 +103,8 @@ Hai người cùng chạy kịch bản trên một điện thoại, ghi lại l�
 ## Câu hỏi còn mở
 | # | Câu hỏi | Ai |
 |---|---|---|
-| 1 | Huy nhận #95, #81, #89 trong tuần 2? | Huy |
-| 2 | Lối vào AUTH06 và PH02 cho Demo 1: lối vào tạm trong #67, hay làm trước khung PH01? Huy trả lời ngày 12/11/2026: lối vào tạm trong #67 (PR #119). Chờ Đính duyệt qua PR | Huy, Đính duyệt |
-| 3 | Mở liên kết email khi demo: đổi `link-base` hay dùng dev build? | Đính chốt, Huy góp ý |
+| 1 | Huy nhận #95, #81, #89 trong tuần 2? Huy đã làm #81 (#124), #89 (#125) và phần web của #95 (#151); phần mobile của #95 chưa có PR | Huy |
+| 2 | Lối vào AUTH06 và PH02 cho Demo 1: lối vào tạm trong #67, hay làm trước khung PH01? Huy trả lời ngày 12/11/2026: lối vào tạm trong #67 (PR #119). Xong: #119 đã merge | Huy, Đính duyệt |
+| 3 | Mở liên kết email khi demo: đổi `link-base` hay dùng dev build? Xong: đổi `link-base` (Đính, 12/11/2026) | Đính chốt, Huy góp ý |
 | 4 | Giữ trước số OP, CR trong Issue như số migration? | Huy |
-| 5 | Rà ADR-0007 trước tuần 3 để TB-15 bắt đầu được | Huy |
+| 5 | Rà ADR-0007 trước tuần 3 để TB-15 bắt đầu được. Xong: Huy rà ngày 12/11/2026, ADR-0007 chốt ở #148 | Huy |

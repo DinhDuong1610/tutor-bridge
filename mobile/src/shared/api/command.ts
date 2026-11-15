@@ -15,6 +15,18 @@ function settle<T>(attempt: Promise<T>): Promise<T | undefined> {
   return attempt.catch(() => undefined);
 }
 
+/**
+ * A write that gets any 5xx, with or without a problem body, has an unknown outcome: the command
+ * may have committed before the error, so the retry keeps the same Idempotency-Key (INV-20, Đính
+ * decided on #83). Only a 4xx is a known failure. Reads keep the {@link ApiError}.
+ */
+function rethrowAsCommandOutcome(error: unknown): never {
+  if (error instanceof ApiError && error.problem.status >= 500) {
+    throw new UnknownOutcomeError(error);
+  }
+  throw error;
+}
+
 export function newCommandKey(): string {
   return newIdempotencyKey((bytes) => getRandomValues(bytes));
 }
@@ -35,7 +47,7 @@ export function useCommand<TInput, TResult>(
   const lastInput = useRef<TInput | null>(null);
 
   const mutation = useMutation<TResult, Error, { input: TInput; key: string }>({
-    mutationFn: ({ input, key: idempotencyKey }) => send(input, idempotencyKey),
+    mutationFn: ({ input, key: idempotencyKey }) => send(input, idempotencyKey).catch(rethrowAsCommandOutcome),
     retry: false,
     onSettled: (_data, error) => {
       if (!(error instanceof UnknownOutcomeError)) {

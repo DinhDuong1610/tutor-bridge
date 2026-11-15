@@ -207,6 +207,25 @@ describe("useCommand", () => {
     await waitFor(() => expect(result.current.state).toBe("confirmed"));
   });
 
+  it.each([
+    [500, "INTERNAL_ERROR"],
+    [503, "SERVICE_BUSY"],
+  ])("treats a %i problem as an unknown outcome and retries with the same key", async (status, code) => {
+    const send = jest
+      .fn()
+      .mockRejectedValueOnce(new ApiError({ ...PROBLEM, status, code, fields: undefined }))
+      .mockResolvedValueOnce({ id: "s1" });
+    const { result } = await setup(send);
+
+    await act(() => result.current.submit({ name: "Minh" }));
+    await waitFor(() => expect(result.current.state).toBe("unknown"));
+    expect(result.current.error).toBeNull();
+
+    await act(() => result.current.retry());
+    await waitFor(() => expect(result.current.state).toBe("confirmed"));
+    expect(send.mock.calls[1][1]).toBe(send.mock.calls[0][1]);
+  });
+
   it("shows sending while the server has not answered", async () => {
     let answer: (value: { id: string }) => void = () => undefined;
     const send = jest.fn(() => new Promise<{ id: string }>((resolve) => (answer = resolve)));

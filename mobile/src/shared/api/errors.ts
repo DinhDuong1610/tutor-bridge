@@ -23,6 +23,7 @@ export class ApiError extends Error {
 /**
  * No usable answer: the network failed, or a gateway answered instead of the API. A write may or
  * may not have taken effect, so the screen must not say it failed (FR-37 "chưa rõ kết quả").
+ * `useCommand` also turns a write's 5xx problem into this error (#83).
  */
 export class UnknownOutcomeError extends Error {
   constructor(cause?: unknown) {

@@ -3,7 +3,19 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("./globals.css", () => ({}));
 
-const { default: RootLayout } = await import("./layout");
+const { default: RootLayout, viewport } = await import("./layout");
+
+describe("viewport", () => {
+  it("colors the browser bar with the page background token (#95)", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { resolve } = await import("node:path");
+    const css = readFileSync(resolve(__dirname, "globals.css"), "utf8");
+    const background = /--background:\s*(#[0-9a-f]{6});/i.exec(css)?.[1];
+
+    expect(background).toBeDefined();
+    expect(viewport.themeColor).toBe(background);
+  });
+});
 
 type Props = { lang?: string; suppressHydrationWarning?: boolean; children?: unknown };
 

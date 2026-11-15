@@ -1,12 +1,12 @@
 // PH02 Hồ sơ các con: danh sách (UC02, FR-03). Thiết kế: docs/design/ui/screens/PH02.md
 import { useQueryClient } from "@tanstack/react-query";
 import type { components } from "@tutorbridge/api-client";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Button } from "@/shared/ui/Button";
 import { Notice } from "@/shared/ui/Notice";
 import { QueryScreen } from "@/shared/ui/QueryScreen";
 import { StickyActionBar } from "@/shared/ui/StickyActionBar";
-import { colors, radius, spacing, typography } from "@/shared/ui/theme";
+import { colors, minTouchSize, radius, spacing, typography } from "@/shared/ui/theme";
 import { savedStudentKey, useStudents } from "../api";
 
 type Student = components["schemas"]["Student"];
@@ -14,13 +14,14 @@ type Student = components["schemas"]["Student"];
 type Props = {
   onBack: () => void;
   onAdd: () => void;
+  onEdit: (studentId: string) => void;
   /** Id of the profile just saved. Its name is read from the list, never passed in the route. */
   savedId?: string;
 };
 
 const LEAD = "Mỗi thao tác tìm gia sư, lịch và lớp đều gắn với một con. Chỉ bạn quản lý các hồ sơ này.";
 
-export function StudentsScreen({ onBack, onAdd, savedId }: Props) {
+export function StudentsScreen({ onBack, onAdd, onEdit, savedId }: Props) {
   const students = useStudents();
   const queryClient = useQueryClient();
   // Confirmed by the server when it was created, so the notice shows even if the list fails to reload.
@@ -58,7 +59,7 @@ export function StudentsScreen({ onBack, onAdd, savedId }: Props) {
           <ScrollView contentContainerStyle={styles.list}>
             {header}
             {items.map((student) => (
-              <StudentCard key={student.id} student={student} />
+              <StudentCard key={student.id} student={student} onEdit={() => onEdit(student.id)} />
             ))}
             {students.hasNextPage ? (
               <Button
@@ -77,7 +78,7 @@ export function StudentsScreen({ onBack, onAdd, savedId }: Props) {
 }
 
 /** Name up to 2 lines and goal up to 3 lines, then cut; the full text is in the edit screen (PH02). */
-function StudentCard({ student }: { student: Student }) {
+function StudentCard({ student, onEdit }: { student: Student; onEdit: () => void }) {
   const goal = student.shortGoal?.trim() ?? "";
   return (
     <View style={styles.card}>
@@ -88,6 +89,15 @@ function StudentCard({ student }: { student: Student }) {
       <Text style={styles.body} numberOfLines={3}>
         {goal === "" ? "Chưa ghi mục tiêu." : `Mục tiêu: ${goal}`}
       </Text>
+      {/* The visible text is the same on every card; the accessible name says whose profile it opens. */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Sửa hồ sơ ${student.displayName}`}
+        onPress={onEdit}
+        style={({ pressed }) => [styles.edit, pressed && styles.pressed]}
+      >
+        <Text style={styles.editText}>Sửa hồ sơ</Text>
+      </Pressable>
     </View>
   );
 }
@@ -102,4 +112,7 @@ const styles = StyleSheet.create({
   name: { ...typography.heading, color: colors.text },
   muted: { ...typography.caption, color: colors.textMuted },
   body: { ...typography.body, color: colors.text },
+  edit: { minHeight: minTouchSize, justifyContent: "center", alignSelf: "flex-start" },
+  pressed: { opacity: 0.6 },
+  editText: { ...typography.label, color: colors.primary },
 });

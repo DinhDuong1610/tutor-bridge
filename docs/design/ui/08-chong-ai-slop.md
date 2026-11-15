@@ -80,7 +80,7 @@ Theo luật Android của Impeccable: Material 3 quyết định cấu trúc và
 - [ ] So với ảnh chụp đã duyệt: khác chỗ nào, vì sao
 
 ## Chạy công cụ rà
-Đưa vào CI hay không là quyết định của Đính (OP-19). Trước đó chạy tay khi rà, trên máy đã cài:
+Đính chọn chưa đưa vào CI ở Lát 1 (OP-19, 13/11/2026); xem lại ở M6. Chạy tay khi rà, trên máy đã cài:
 
 ```bash
 # Engine đã kiểm SHA-256 theo engine-checksums.txt của skill; telemetry đã tắt
@@ -97,4 +97,4 @@ $B detect http://localhost:3100/admin/sign-in        # quét trang thật, thêm
 | Rà PR web | `web-interface-guidelines`, `impeccable detect` | Bàn phím, focus, form; mẫu AI |
 | Rà PR mobile | `impeccable` (`audit`, bản native) | Trợ năng, Material 3, inset, chữ lớn |
 
-Impeccable tìm `PRODUCT.md` và `DESIGN.md` trong `mobile/` và `web/`. Dự án chưa tạo hai file này vì nội dung đã nằm ở `docs/design/ui/` (OP-21). Khi chạy, cho skill đọc `01`, `02` thay thế.
+Impeccable tìm `PRODUCT.md` và `DESIGN.md` trong `mobile/` và `web/`. Bốn file này chỉ trỏ tới `docs/design/ui/01`, `02`, không chép nội dung (OP-21, 13/11/2026); sửa nội dung ở `docs/design/ui/`.

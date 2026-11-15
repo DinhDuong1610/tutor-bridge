@@ -67,7 +67,24 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
+  }
+  /*
+   * Focus (docs/design/ui/02-nen-thiet-ke.md, NFR12): a solid 2px primary outline 2px away,
+   * 6.67:1 on white. The faded ring-ring/50 of shadcn measured 2.33:1, under the 3:1 of WCAG 1.4.11.
+   */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  html {
+    /* Browser surfaces follow the tokens instead of the browser defaults (02-nen-thiet-ke.md). */
+    caret-color: var(--primary);
+    scrollbar-color: var(--muted-foreground) var(--muted);
+  }
+  ::selection {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;

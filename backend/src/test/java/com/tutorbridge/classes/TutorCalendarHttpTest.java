@@ -12,6 +12,10 @@ import com.tutorbridge.Concurrently;
 import com.tutorbridge.Contract;
 import com.tutorbridge.HttpTest;
 import com.tutorbridge.PostgresTestSupport;
+import com.tutorbridge.classes.OfferFixture.Need;
+import com.tutorbridge.classes.OfferFixture.Tutor;
+import com.tutorbridge.classes.api.AcceptOffer;
+import com.tutorbridge.platform.api.ApiException;
 import com.tutorbridge.platform.api.Actor;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -23,9 +27,11 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * UC07 tutor calendar over HTTP (TB-15): getTutorCalendar, replaceTutorCalendar. Real PostgreSQL,
@@ -327,5 +333,116 @@ class TutorCalendarHttpTest extends HttpTest {
         assertThat(versions(tutor)).isZero();
         assertThat(jdbc.sql("select count(*) from command_receipts where actor_id = ?").param(tutor.accountId())
                 .query(Integer.class).single()).isZero();
+    }
+
+    // ---------------------------------------------------------------- ADR-0007 race with TX05 (Q1 of #15)
+
+    @Autowired
+    AcceptOffer acceptOffer;
+
+    @Autowired
+    TransactionTemplate tx;
+
+    /** The result of TX05 in a race: the class it created, or the code it was refused with. */
+    private record Accepted(UUID classId, String refusedCode) {}
+
+    private CompletableFuture<Accepted> acceptLater(Tutor tutor, UUID offer) {
+        return Concurrently.supply(() -> {
+            try {
+                return new Accepted(acceptOffer.accept(tutor.id(), offer, 1, newKey()).id(), null);
+            } catch (ApiException e) {
+                return new Accepted(null, e.code());
+            }
+        });
+    }
+
+    private CompletableFuture<Integer> replaceLater(Actor tutor, String ifMatch, String json) {
+        return Concurrently.supply(() -> {
+            try {
+                return replace(tutor, newKey(), ifMatch, null, json).andReturn().getResponse().getStatus();
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
+            }
+        });
+    }
+
+    /** Available over the whole horizon, but BLOCKED over the first session the fixture offers. */
+    private static String blockingTheFirstSession(OfferFixture fixture) {
+        return body(window(day(0, 0), day(50, 0), "AVAILABLE"),
+                window(fixture.sessionStart(17, 0).toZonedDateTime(), fixture.sessionStart(20, 0).toZonedDateTime(),
+                        "BLOCKED"));
+    }
+
+    private void awaitAdvisoryWaiters(int count) {
+        await().atMost(Duration.ofSeconds(4)).pollInterval(Duration.ofMillis(20))
+                .until(() -> advisoryWaiters() >= count);
+    }
+
+    @Test
+    void adr_0007_a_replacement_committed_first_is_what_a_waiting_tx05_checks() throws Exception {
+        OfferFixture fixture = new OfferFixture(jdbc, tx);
+        Tutor tutor = fixture.tutor();
+        Need need = fixture.need(fixture.student());
+        UUID offer = fixture.offer(need, tutor);
+        Actor actor = new Actor(tutor.id(), Actor.Role.TUTOR, UUID.randomUUID());
+        CompletableFuture<Integer> replaced;
+        CompletableFuture<Accepted> accepted;
+        try (Connection gate = connect()) {
+            holdTutorLock(gate, actor);
+            // PostgreSQL grants a released advisory lock in queue order: the replacement first, then TX05.
+            replaced = replaceLater(actor, "\"1\"", blockingTheFirstSession(fixture));
+            awaitAdvisoryWaiters(1);
+            accepted = acceptLater(tutor, offer);
+            awaitAdvisoryWaiters(2);
+            assertThat(fixture.count("select count(*) from classes where accepted_offer_id = ?", offer)).isZero();
+            gate.commit();
+        }
+        assertThat(replaced.get(10, TimeUnit.SECONDS)).isEqualTo(200);
+        assertThat(accepted.get(10, TimeUnit.SECONDS).refusedCode()).isEqualTo("SCHEDULE_CONFLICT");
+        assertThat(fixture.count("select count(*) from classes where accepted_offer_id = ?", offer)).isZero();
+        assertThat(fixture.count("select count(*) from class_offers where id = ? and state = 'PENDING'", offer))
+                .isOne();
+        assertThat(fixture.count("""
+                select count(*) from calendars where owner_kind = 'TUTOR' and owner_id = ? and effective
+                  and version = 2
+                """, tutor.id())).isOne();
+    }
+
+    @Test
+    void uc07_a_replacement_after_tx05_committed_keeps_every_booked_session() throws Exception {
+        OfferFixture fixture = new OfferFixture(jdbc, tx);
+        Tutor tutor = fixture.tutor();
+        Need need = fixture.need(fixture.student());
+        UUID offer = fixture.offer(need, tutor);
+        Actor actor = new Actor(tutor.id(), Actor.Role.TUTOR, UUID.randomUUID());
+        CompletableFuture<Accepted> accepted;
+        CompletableFuture<Integer> replaced;
+        try (Connection gate = connect()) {
+            holdTutorLock(gate, actor);
+            // Queue order the other way round: TX05 first, then the replacement that blocks its first session.
+            accepted = acceptLater(tutor, offer);
+            awaitAdvisoryWaiters(1);
+            replaced = replaceLater(actor, "\"1\"", blockingTheFirstSession(fixture));
+            awaitAdvisoryWaiters(2);
+            gate.commit();
+        }
+        UUID classId = accepted.get(10, TimeUnit.SECONDS).classId();
+        assertThat(classId).isNotNull();
+        assertThat(replaced.get(10, TimeUnit.SECONDS)).isEqualTo(200);
+        // Control: the sessions and bookings are exactly what TX05 wrote from the offer, all still in force.
+        assertThat(fixture.count("""
+                select count(*) from lesson_sessions s
+                join offer_sessions o on o.offer_id = ? and o.ordinal = s.ordinal and o.during = s.during
+                where s.class_id = ? and s.state = 'SCHEDULED' and s.revision = 1
+                """, offer, classId)).isEqualTo(4);
+        assertThat(fixture.count("select count(*) from lesson_sessions where class_id = ?", classId)).isEqualTo(4);
+        assertThat(fixture.count("""
+                select count(*) from resource_bookings b join lesson_sessions s on s.id = b.session_id
+                where s.class_id = ? and b.active and b.during = s.during
+                """, classId)).isEqualTo(8);
+        assertThat(fixture.count("""
+                select count(*) from availability_windows w join calendars c on c.id = w.calendar_id
+                where c.owner_kind = 'TUTOR' and c.owner_id = ? and c.effective and w.kind = 'BLOCKED'
+                """, tutor.id())).isOne();
     }
 }

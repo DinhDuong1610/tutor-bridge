@@ -34,7 +34,8 @@ import org.springframework.util.IdGenerator;
  *
  * <p>Transaction, in INV-16 order: receipt, then the resource lock {@code TUTOR:<id>} shared with
  * TX05 (ADR-0007, so an acceptance never checks availability against a calendar being replaced),
- * then the account and the latest version, then the write and the receipt result in the same commit
+ * then the account, then for a new command the date range and the latest version, then the write and
+ * the receipt result in the same commit
  * (INV-21). No outside I/O inside it (INV-18).
  */
 @Service
@@ -86,7 +87,7 @@ public class CalendarService {
     public Calendar replaceTutorCalendar(Actor actor, IdempotencyKey key, WritePrecondition precondition,
             String timezone, List<Window> windows) {
         requireTutorRole(actor);
-        validate(timezone, windows);
+        validateShape(timezone, windows);
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("precondition", precondition instanceof WritePrecondition.Expected expected
                 ? expected.version() : "*");
@@ -105,6 +106,8 @@ public class CalendarService {
                         .map(this::calendar)
                         .orElseThrow(CalendarService::notFound);
             }
+            // Only a new command is held to today's date: a replay after midnight answers what was written (INV-20).
+            requireWithinHorizon(windows);
             Optional<CalendarRepository.Version> latest = calendars.lockLatest(TUTOR, actor.accountId());
             requireMatches(precondition, latest);
             UUID id = ids.generateId();
@@ -130,11 +133,11 @@ public class CalendarService {
     }
 
     /**
-     * AC-UC07-01: a window must end after it starts and lie between the start of today in
-     * Asia/Ho_Chi_Minh and {@link #HORIZON_DAYS} days later. Windows may overlap; BLOCKED wins
-     * where they do, as TX05 and matching read them (Q5 of #15).
+     * AC-UC07-01, the part that does not depend on the date: the timezone, the window count, each kind,
+     * and each window ending after it starts. Windows may overlap; BLOCKED wins where they do, as TX05
+     * and matching read them (Q5 of #15). Checked before the receipt, so a bad body leaves nothing.
      */
-    void validate(String timezone, List<Window> windows) {
+    void validateShape(String timezone, List<Window> windows) {
         List<FieldProblem> problems = new ArrayList<>();
         if (!TIMEZONE.equals(timezone)) {
             problems.add(new FieldProblem("timezone", "Chỉ hỗ trợ múi giờ Asia/Ho_Chi_Minh."));
@@ -142,9 +145,6 @@ public class CalendarService {
         if (windows.size() > MAX_WINDOWS) {
             problems.add(new FieldProblem("windows", "Tối đa 200 khoảng thời gian."));
         }
-        LocalDate today = LocalDate.now(clock.withZone(VIETNAM));
-        Instant earliest = today.atStartOfDay(VIETNAM).toInstant();
-        Instant latest = today.plusDays(HORIZON_DAYS).atStartOfDay(VIETNAM).toInstant();
         for (int i = 0; i < windows.size() && problems.size() < 20; i++) {
             Window w = windows.get(i);
             String path = "windows[" + i + "]";
@@ -153,10 +153,31 @@ public class CalendarService {
             }
             if (!w.end().isAfter(w.start())) {
                 problems.add(new FieldProblem(path + ".end", "Giờ kết thúc phải sau giờ bắt đầu."));
-            } else if (w.start().isBefore(earliest) || w.end().isAfter(latest)) {
-                problems.add(new FieldProblem(path, "Chỉ nhận lịch từ hôm nay đến 57 ngày tới."));
             }
         }
+        refuse(problems);
+    }
+
+    /**
+     * AC-UC07-01, the part that depends on the date: each window lies between the start of today in
+     * Asia/Ho_Chi_Minh and {@link #HORIZON_DAYS} days later. Runs inside the transaction after the
+     * replay check, so it rolls back with the receipt and a stored result is never refused.
+     */
+    void requireWithinHorizon(List<Window> windows) {
+        LocalDate today = LocalDate.now(clock.withZone(VIETNAM));
+        Instant earliest = today.atStartOfDay(VIETNAM).toInstant();
+        Instant latest = today.plusDays(HORIZON_DAYS).atStartOfDay(VIETNAM).toInstant();
+        List<FieldProblem> problems = new ArrayList<>();
+        for (int i = 0; i < windows.size() && problems.size() < 20; i++) {
+            Window w = windows.get(i);
+            if (w.start().isBefore(earliest) || w.end().isAfter(latest)) {
+                problems.add(new FieldProblem("windows[" + i + "]", "Chỉ nhận lịch từ hôm nay đến 57 ngày tới."));
+            }
+        }
+        refuse(problems);
+    }
+
+    private static void refuse(List<FieldProblem> problems) {
         if (!problems.isEmpty()) {
             throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "VALIDATION_FAILED", "Dữ liệu chưa hợp lệ.",
                     problems);

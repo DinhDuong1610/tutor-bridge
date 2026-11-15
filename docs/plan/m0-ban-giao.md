@@ -32,7 +32,7 @@ Phần nền sau M0 cũng merge theo ngoại lệ OP-15 (06/11/2026). Theo OP-14
 
 | Việc | Hiện tại | Người chốt | Hạn |
 |---|---|---|---|
-| ADR-0007 khóa tài nguyên bằng khóa tư vấn | Đề xuất | Đính | Trước TB-15 |
+| ADR-0007 khóa tài nguyên bằng khóa tư vấn | Đã chọn 13/11/2026 sau khi Huy rà (#15): thêm thay lịch rảnh, lock_timeout 5 giây, lấy khóa theo giá trị băm | Đính | Xong |
 | Danh mục mã lỗi | Mã tự đặt trong `platform` và `classes`, xem dưới. Mã của tài khoản đã chốt 08/11/2026 trên #39 (Huy đề xuất, Đính đồng ý) | Đính, Huy | Xong cho TB-08; mã của chức năng sau chốt theo từng Issue |
 | Thiếu `Idempotency-Key` | Đã chốt theo CR-014: trả 400 `IDEMPOTENCY_KEY_REQUIRED`; khóa sai độ dài vẫn 422 `IDEMPOTENCY_KEY_INVALID`; lệnh xác thực công khai không dùng khóa | Đính, Huy | Xong |
 | Quyền trên bảng chỉ thêm như `audit_events` | `tutorbridge_app` ghi đồng đều | Đính | Trước TB-23 |

@@ -39,7 +39,7 @@ Tài liệu mới hơn không tự động thắng. Khi các nguồn đã xác n
 | [process/](process/git-workflow.md) | Quy trình Git, review, CI, thiết lập GitHub |
 | [plan/](plan/lat-1-ke-hoach.md) | Kế hoạch Lát 1: mốc, Issue, ước lượng; [bàn giao sau M0](plan/m0-ban-giao.md) |
 | [design/](design/README.md) | Kiến trúc, đường mở rộng, F01–F06, API, dữ liệu, UX-UI ([design/ui/](design/ui/README.md)) |
-| [decisions/adr/](decisions/adr/) | Quyết định kiến trúc ADR-0001 đến ADR-0011. Trạng thái từng ADR ghi ở đầu file; ADR-0007 và ADR-0011 đang đề xuất |
+| [decisions/adr/](decisions/adr/) | Quyết định kiến trúc ADR-0001 đến ADR-0011. Trạng thái từng ADR ghi ở đầu file; ADR-0011 đang đề xuất |
 | [appendix/g3_ky_thuat_v0_1/](appendix/g3_ky_thuat_v0_1/) | OpenAPI, từ điển dữ liệu, ERD, SQL, truy vết FR. Giữ nguyên bản, không sửa tay |
 | [evidence/](evidence/) | Kết quả kiểm chứng thực tế |
 | [source-docx/](source-docx/) | 8 tài liệu Word gốc, chỉ để đối chiếu |

@@ -70,12 +70,27 @@ public class PasswordRecovery {
      * auth_epoch, revokes every session, spends the account's other reset links and clears its login
      * failures by email (UC01, AC-UC01-02, AC-UC01-03, Q4 of TB-9). The status does not change.
      */
-    public void resetPassword(String token, String newPassword) {
+    public void resetPassword(String token, String newPassword, String source) {
         if (!PasswordHasher.acceptableLength(newPassword)) {
             throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "VALIDATION_FAILED", "Dữ liệu chưa hợp lệ.",
                     List.of(new FieldProblem("newPassword", "Mật khẩu cần từ 15 đến 128 ký tự.")));
         }
+        // A reset is the second step of recovery, so it counts against the recovery limit per source
+        // (Huy, 13/11/2026, Issue #140). There is no email to key a per-account counter on.
+        limiter.hit(List.of(new Check(Action.RECOVERY, Scope.SOURCE, secrets.sourceDigest(source),
+                properties.limits().recoveryPerSource())));
         String digest = AccountSecrets.linkTokenDigest(token);
+        // Argon2id costs about 19 MiB and real CPU (ADR-0008): only hash for a token that can still be
+        // used (Issue #140). The consume below checks it again atomically, so a token used meanwhile
+        // is still refused.
+        transactions.executeWithoutResult(status -> {
+            if (accounts.findChallenge(digest)
+                    .filter(c -> AccountRepository.RESET_PASSWORD.equals(c.purpose()))
+                    .filter(c -> c.consumedAt() == null && c.expiresAt().isAfter(clock.instant()))
+                    .isEmpty()) {
+                throw LinkCodes.rejection(accounts, digest, AccountRepository.RESET_PASSWORD);
+            }
+        });
         String newHash = hasher.hash(newPassword);
         transactions.executeWithoutResult(status -> {
             Instant now = clock.instant();

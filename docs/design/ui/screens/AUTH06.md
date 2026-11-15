@@ -1,6 +1,6 @@
 # AUTH06 Bảo mật và quản lý phiên
 
-- **Trạng thái thiết kế:** Đã duyệt v1 (Đính, 10/11/2026); khung TBD chưa duyệt
+- **Trạng thái thiết kế:** Đã duyệt v1 (Đính, 10/11/2026); khung TBD chưa duyệt; câu đổi mật khẩu sửa 13/11/2026 (#143)
 - **Version Figma:** `Lát 1 v1 2026-11-10` (named version lưu tay trong Figma)
 - **Node:** section [12:1287](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=12-1287)
 - **Kênh:** Android
@@ -42,7 +42,7 @@ Nguyên văn trong Figma; câu chung lấy từ [04](../04-trang-thai-cau-chu.md
 | Nhãn | Thiết bị này; hành động "Đăng xuất" dưới tên thiết bị |
 | Bảng xác nhận | Đăng xuất thiết bị này? Phiên trên "{thiết bị}" sẽ bị đăng xuất ngay. Thiết bị đó phải đăng nhập lại. Nút: Đăng xuất thiết bị / Quay lại |
 | Đã đăng xuất | Đã đăng xuất {thiết bị}. |
-| Đổi mật khẩu | Để bảo vệ tài khoản, nhập mật khẩu hiện tại trước khi đổi. / Sau khi đổi, mọi thiết bị khác sẽ bị đăng xuất. / Đã đổi mật khẩu. Các thiết bị khác đã bị đăng xuất. |
+| Đổi mật khẩu | Để bảo vệ tài khoản, nhập mật khẩu hiện tại trước khi đổi. / Sau khi đổi, mọi thiết bị, kể cả máy này, sẽ bị đăng xuất. / Đã đổi mật khẩu. Mọi thiết bị đã bị đăng xuất. Hãy đăng nhập lại bằng mật khẩu mới. (Đính duyệt 13/11/2026, #143) |
 | Nút cuối | Đổi mật khẩu / Đăng xuất tài khoản |
 
 ## Hành vi
@@ -63,6 +63,7 @@ Nguyên văn trong Figma; câu chung lấy từ [04](../04-trang-thai-cau-chu.md
 
 ## Khác so với đặc tả và câu hỏi còn mở
 
+- Đã chốt 13/11/2026 (#143): đổi mật khẩu đăng xuất mọi thiết bị, kể cả máy đang dùng (UC01, AC-UC01-03). Frame "Đổi mật khẩu" và "Đã đổi mật khẩu" trong version Figma `Lát 1 v1 2026-11-10` còn câu cũ "mọi thiết bị khác"; câu trong bảng trên thắng.
 - TBD: `listOwnSessions` có trả tên thiết bị và trình duyệt không; nếu không, hiện "Thiết bị Android" và thời điểm đăng nhập.
 - OP-22 đã chốt 12/11/2026: riêng nhãn tab giới hạn phóng chữ khoảng 1,3 lần (`maxFontSizeMultiplier`); icon tab giữ `accessibilityLabel` đầy đủ.
 - TBD: frame "Đổi mật khẩu" còn ô "Nhập lại mật khẩu mới". Quyết định Q9 của TB-10 (#91) bỏ ô nhập lại ở AUTH05; có áp dụng cho đổi mật khẩu ở AUTH06 không: Đính.

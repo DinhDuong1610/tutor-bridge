@@ -184,7 +184,7 @@ class PasswordRecoveryHttpTest extends IntegrationTest {
         List<CompletableFuture<String>> attempts = IntStream.range(0, 2)
                 .mapToObj(i -> Concurrently.supply(() -> {
                     try {
-                        recovery.resetPassword(token, NEW + "-" + i);
+                        recovery.resetPassword(token, NEW + "-" + i, randomIp());
                         return "OK";
                     } catch (ApiException e) {
                         return e.code();

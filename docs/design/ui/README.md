@@ -67,4 +67,4 @@ Cập nhật khi đổi trạng thái. **Chưa vẽ** → **Nháp** → **Đã d
 Số Issue lấy từ [kế hoạch Lát 1](../../plan/lat-1-ke-hoach.md). WEB01, WEB02 không thuộc 26 màn hình của Lát 1 ([r0a-scope](../../context/r0a-scope.md)), hiện là trang chờ; thiết kế khi đưa vào phạm vi.
 
 ## Câu hỏi còn mở
-Theo dõi ở [sổ quyết định](../../decisions/decision-register.md), mục OP-16 đến OP-21: file logo, link file Figma, giới hạn MCP của gói Education, rà tự động trên CI, giá không có trần trong hợp đồng, có tạo `PRODUCT.md` và `DESIGN.md` cho Impeccable không.
+Theo dõi ở [sổ quyết định](../../decisions/decision-register.md), mục OP-16 đến OP-21. OP-17 đến OP-22 đã đóng; còn OP-16 (file logo).

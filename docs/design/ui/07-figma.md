@@ -10,9 +10,9 @@ Một file Figma cho cả mobile và web, Đính là chủ file. Link file ghi �
 | Gói | Figma Education (Đính, 07/11/2026) |
 
 ## Giới hạn của gói và cách bù
-Gói Education tương đương Professional về tính năng. Theo tài liệu và diễn đàn Figma tháng 11/2026 (cần kiểm lại trên trang chính thức, OP-18):
-- **Code Connect không có** (cần Organization hoặc Enterprise). Bù bằng **cùng tên component và variant** giữa Figma và code ([03](03-thanh-phan.md)), và bảng ánh xạ trong `screens/<mã>.md`.
-- **Figma MCP có giới hạn số lần đọc** mỗi ngày và mỗi phút; seat View/Collab gần như không dùng được. Bù bằng: repo tự đủ (đặc tả và ảnh chụp trong `screens/`), agent chỉ gọi MCP cho node của màn hình đang làm, không quét cả file.
+Gói Education tương đương Professional về tính năng. Số dưới đây tra trên trang chính thức của Figma ngày 13/11/2026 (OP-18, #146):
+- **Figma MCP:** gói Education có cùng giới hạn với ghế Full và Dev của gói Professional, tối đa **200 lần gọi mỗi ngày và 10 lần mỗi phút**. Ghế View và Collab chỉ **20 lần mỗi tháng**. Công cụ ghi vào file (`add_code_connect_map`, `create_new_file`, `generate_figma_design`) và `whoami` không bị tính ([Rate limits & access](https://developers.figma.com/docs/figma-mcp-server/rate-limits-access/)). Bù bằng: repo tự đủ (đặc tả và ảnh chụp trong `screens/`), agent chỉ gọi MCP cho node của màn hình đang làm, không quét cả file.
+- **Code Connect:** trang [Code Connect](https://help.figma.com/hc/en-us/articles/23920389749655-Code-Connect) liệt kê gói Education, cần ghế Full hoặc Dev. Trang Guide to Dev Mode của Figma chưa liệt kê Education, nên Đính mở thử trong Figma để xác nhận. Trước khi xác nhận, vẫn bù bằng **cùng tên component và variant** giữa Figma và code ([03](03-thanh-phan.md)), và bảng ánh xạ trong `screens/<mã>.md`.
 - **Không có branching.** Dùng **named version** và trạng thái trên section thay cho nhánh.
 
 ## Trang trong file

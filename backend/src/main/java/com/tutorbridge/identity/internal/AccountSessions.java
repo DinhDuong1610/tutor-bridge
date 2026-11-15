@@ -53,15 +53,17 @@ public class AccountSessions {
     public Credential login(String rawEmail, String password, String source, String userAgent) {
         String emailDigest = secrets.emailDigest(AccountSecrets.normalizeEmail(rawEmail));
         String sourceDigest = secrets.sourceDigest(source);
-        throttle.refuseWhileDelayed(emailDigest, sourceDigest);
+        // Counted as a failure before the password check, so concurrent tries cannot pass the limit (#141).
+        LoginThrottle.Attempt attempt = throttle.begin(emailDigest, sourceDigest);
 
         Optional<SessionRepository.Login> found = sessions.findLogin(emailDigest);
         boolean passwordMatches = hasher.matches(password, found.map(SessionRepository.Login::passwordHash).orElse(null));
         SessionRepository.Login login = found.orElse(null);
         if (!passwordMatches || "ADMIN".equals(login.role()) || "DELETED".equals(login.status())) {
-            throttle.recordFailure(emailDigest, sourceDigest);
+            throttle.failed(attempt);
             throw authenticationFailed();
         }
+        throttle.passed(attempt);
         // Only after a correct password, so these never reveal that an email has an account (Q5).
         switch (login.status()) {
             case "UNVERIFIED" -> throw new ApiException(HttpStatus.FORBIDDEN, "ACCOUNT_UNVERIFIED",

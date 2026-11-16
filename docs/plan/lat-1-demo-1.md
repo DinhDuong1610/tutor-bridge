@@ -2,6 +2,9 @@
 
 Issue #112. Viết ngày 11/11/2026, sau khi TB-8 và TB-9 đã merge vào `dev` (#92, #39, #109, #110). Đây là **đề xuất của Đính**. Các dòng ghi `TBD` cần Huy đồng ý. Ngày ở đây là mục tiêu để sắp thứ tự, không phải cam kết (OP-01 chưa chốt).
 
+## Cập nhật ngày 15/11/2026
+Đã merge từ 11/11: TB-11 (#113, #114), #67 (#119, #138), #81 (#124), #89 (#125), #96 (#129), Q17 (#139), câu chữ AUTH06 (#144), đóng OP-18, OP-19, OP-21 (#147), rà sau merge TB-8, TB-9 (#141, #140 qua #153, #154), #85 (#155), #83 (#133, #156), phần web của #95 (#151), ADR-0007 (#148), `Parties.isOwnStudent` (#149). Đang mở: TB-15 phần 1 (#152, Ready), hướng dẫn cache Jest (#150, Refs #123). Chưa bắt đầu: phần mobile của #95, TB-12, TB-14, #98. Chưa diễn tập Demo 1. Bảng tuần dưới đây giữ nguyên như đã viết ngày 11/11.
+
 ## Hiện trạng `dev` ngày 11/11/2026
 | Phần | Đã có | Chưa có |
 |---|---|---|
@@ -61,7 +64,7 @@ TB-16 và #68 đến sau, theo bảng trong [kế hoạch Lát 1](lat-1-ke-hoach
 2. **TB-11 chỉ thêm file mới** trong `identity`, ví dụ dịch vụ, repository và `web/StudentController.java`. Tránh sửa file dùng chung như `IdentityConfig.java`, `PartiesRepository.java`, `api/Parties.java`. Phải sửa thì ghi rõ trong PR để Huy rebase TB-12 trước khi bắt đầu.
 3. **Hợp đồng đi từng PR một.** Không mở hai PR cùng sửa `contracts/openapi.yaml`. Thứ tự: #96 → Q17 → #98. Mỗi PR merge xong thì người đang làm nhánh khác rebase và chạy `npm run generate:api`. Không gộp tay code sinh ra.
 4. **Số migration do Đính cấp, ghi trong Issue.** V10 đã cấp cho TB-11 (`students.created_at`, `student_goal_versions`, Đính chốt 11/11/2026). Số kế tiếp là V11, dự kiến cho #96 nếu cần cột lý do, rồi #98 nếu cần.
-5. **Sổ quyết định và CR là chỗ dễ xung đột nhất.** #94 phải merge trước mọi PR khác có thêm dòng vào `decision-register.md` hoặc `change-requests.md`. Trước khi chuyển PR sang Ready: `git fetch && git rebase origin/dev` rồi kiểm lại số OP, CR không trùng. `TBD` (Huy, vì Huy giữ quy trình PR): có nên giữ trước số OP, CR trong Issue như số migration không?
+5. **Sổ quyết định và CR là chỗ dễ xung đột nhất.** #94 phải merge trước mọi PR khác có thêm dòng vào `decision-register.md` hoặc `change-requests.md`. Trước khi chuyển PR sang Ready: `git fetch && git rebase origin/dev` rồi kiểm lại số OP, CR không trùng. Huy chốt ngày 12/11/2026 (#112): giữ trước số OP, CR trong Issue như số migration, ghi số vào Issue trước khi mở PR.
 6. **`mobile/src/shared/` và phần dùng chung của web: một người tại một thời điểm.** #95, #81, #89 làm cùng một người, xong trước khi #67 và TB-14 dựng màn hình.
 7. **Route mobile của phụ huynh đổi theo thứ tự** TB-10 (`parent/security`, `parent/change-password`) → #67 (hồ sơ con) → TB-14 (`parent/index`, trang chủ PH01).
 8. **Không xếp chồng dài.** Chuỗi TB-10 có 6 PR xếp chồng, mỗi lần sửa phải rebase cả chuỗi. Từ TB-11 trở đi, mỗi nhánh tách từ `dev` mới nhất và sống 2–3 ngày. Cần chia thì merge phần trước rồi mới tách phần sau.
@@ -87,10 +90,10 @@ Không có trong Demo 1: web quản trị, hồ sơ gia sư và xác minh, lịc
 | Điều kiện | Hiện trạng | Ai |
 |---|---|---|
 | TB-10 merge | Đã merge (#78, #88, #90, #91, #93, #99) | Đính, Huy |
-| TB-11 và #67 merge | TB-11 đã merge (#113, #114). #67 chia hai PR (Huy, 12/11/2026): danh sách và thêm hồ sơ ở PR nháp #119; sửa hồ sơ làm sau khi #119 merge | Đính, Huy |
-| Lối vào AUTH06 và PH02 từ khu phụ huynh | Huy chọn ngày 12/11/2026: liên kết tạm "Hồ sơ các con" và "Bảo mật" trên `parent/index`, làm trong #119. TB-14 thay bằng PH01 và thanh tab | Huy |
+| TB-11 và #67 merge | Đã merge: TB-11 (#113, #114), #67 (#119 danh sách và thêm, #138 sửa hồ sơ) | Đính, Huy |
+| Lối vào AUTH06 và PH02 từ khu phụ huynh | Đã có: liên kết tạm "Hồ sơ các con" và "Bảo mật" trên `parent/index`, merge qua #119. TB-14 thay bằng PH01 và thanh tab | Huy |
 | Chạy được trên điện thoại thật | Handoff TB-10 ghi chưa chạy được trên emulator, chưa chạy trên điện thoại thật | Huy, Đính diễn tập |
-| Mở liên kết trong email | Backend local gửi liên kết `tutorbridge://`. Expo Go chỉ mở `exp://<máy>:8081/--/...`, `tutorbridge://` cần bản dev build. `TBD` (Đính, Huy): đổi `link-base` khi demo, hay thêm dev build (thêm gói thì cần duyệt theo ADR-0009) | Đính chốt |
+| Mở liên kết trong email | Backend local gửi liên kết `tutorbridge://`. Expo Go chỉ mở `exp://<máy>:8081/--/...`, `tutorbridge://` cần bản dev build. Đính chốt ngày 12/11/2026: đổi `link-base` bằng `TUTORBRIDGE_IDENTITY_MAIL_LINK_BASE`, không dùng dev build. Cách chạy ở [demo-1-chay-local.md](demo-1-chay-local.md) | Xong |
 | Phiên bản điều khoản | Dùng bản thử `ban-thu-chua-hieu-luc` ở cả backend local và `EXPO_PUBLIC_TERMS_VERSION`. Văn bản thật vẫn là việc của Đính (TB-8 Q8) | Đính |
 | Máy chạy backend | `.env` có `TB_EMAIL_DIGEST_KEY`, `TB_EMAIL_ENCRYPTION_KEY` và các khóa ghi trong handoff TB-10. Điện thoại dùng IP LAN của máy trong `EXPO_PUBLIC_API_URL` | Người chạy demo |
 
@@ -100,8 +103,8 @@ Hai người cùng chạy kịch bản trên một điện thoại, ghi lại l�
 ## Câu hỏi còn mở
 | # | Câu hỏi | Ai |
 |---|---|---|
-| 1 | Huy nhận #95, #81, #89 trong tuần 2? | Huy |
-| 2 | Lối vào AUTH06 và PH02 cho Demo 1: lối vào tạm trong #67, hay làm trước khung PH01? Huy trả lời ngày 12/11/2026: lối vào tạm trong #67 (PR #119). Chờ Đính duyệt qua PR | Huy, Đính duyệt |
-| 3 | Mở liên kết email khi demo: đổi `link-base` hay dùng dev build? | Đính chốt, Huy góp ý |
-| 4 | Giữ trước số OP, CR trong Issue như số migration? | Huy |
-| 5 | Rà ADR-0007 trước tuần 3 để TB-15 bắt đầu được | Huy |
+| 1 | Huy nhận #95, #81, #89 trong tuần 2? Xong: Huy nhận cả ba ngày 12/11/2026 trên #112, thứ tự #81, #89 rồi #95. Đã merge #81 (#124), #89 (#125) và phần web của #95 (#151); phần mobile của #95 chưa có PR | Huy |
+| 2 | Lối vào AUTH06 và PH02 cho Demo 1: lối vào tạm trong #67, hay làm trước khung PH01? Huy trả lời ngày 12/11/2026: lối vào tạm trong #67 (PR #119). Xong: #119 đã merge | Huy, Đính duyệt |
+| 3 | Mở liên kết email khi demo: đổi `link-base` hay dùng dev build? Xong: đổi `link-base` (Đính, 12/11/2026) | Đính chốt, Huy góp ý |
+| 4 | Giữ trước số OP, CR trong Issue như số migration? Xong: Huy chốt ngày 12/11/2026 trên #112: có, ai cần OP hoặc CR mới thì ghi số vào Issue trước khi mở PR | Huy |
+| 5 | Rà ADR-0007 trước tuần 3 để TB-15 bắt đầu được. Xong: Huy rà ngày 12/11/2026, ADR-0007 chốt ở #148 | Huy |

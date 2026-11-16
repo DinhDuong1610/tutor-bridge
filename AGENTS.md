@@ -45,7 +45,7 @@ docker compose --env-file .env -f infra/compose.yaml down
 ```
 
 ```bash
-# Backend, cần Docker cho Testcontainers. Lần đầu Gradle tự tải JDK 25
+# Backend, cần Docker cho Testcontainers và một JDK đã cài (JAVA_HOME) để chạy Gradle. Lần đầu Gradle tự tải JDK 25 để biên dịch
 cd backend && ./gradlew test
 
 # Chạy local: migration bằng tài khoản migrator, ứng dụng bằng tutorbridge_app

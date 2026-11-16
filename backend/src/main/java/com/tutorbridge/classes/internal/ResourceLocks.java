@@ -1,0 +1,69 @@
+package com.tutorbridge.classes.internal;
+
+import com.tutorbridge.platform.api.ApiException;
+import java.sql.SQLException;
+import java.util.Arrays;
+import org.springframework.dao.DataAccessException;
+import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Resource locks of ADR-0007: one transaction-scoped advisory lock per {@code TUTOR:<id>} or
+ * {@code STUDENT:<id>}, taken in ascending hash order so two transactions never wait on each other
+ * in opposite order, even when two resources share a hash. Every transaction that books, moves or
+ * cancels a session, or replaces a calendar, takes them at the "resources by stable key" step of
+ * INV-16. A wait longer than {@link #LOCK_TIMEOUT} answers 503 SERVICE_BUSY, which the client
+ * treats as an unknown outcome and resends with the same key (#83).
+ */
+@Component
+@Transactional(propagation = Propagation.MANDATORY)
+class ResourceLocks {
+
+    static final String LOCK_TIMEOUT = "5s";
+    private static final String LOCK_NOT_AVAILABLE = "55P03";
+
+    private final JdbcClient jdbc;
+
+    ResourceLocks(JdbcClient jdbc) {
+        this.jdbc = jdbc;
+    }
+
+    static String tutor(Object id) {
+        return "TUTOR:" + id;
+    }
+
+    static String student(Object id) {
+        return "STUDENT:" + id;
+    }
+
+    void lock(String... resources) {
+        jdbc.sql("set local lock_timeout = '" + LOCK_TIMEOUT + "'").update();
+        long[] keys = Arrays.stream(resources).distinct()
+                .mapToLong(resource -> jdbc.sql("select hashtextextended(?, 0)").param(resource)
+                        .query(Long.class).single())
+                .sorted().distinct().toArray();
+        try {
+            for (long key : keys) {
+                jdbc.sql("select pg_advisory_xact_lock(?)").param(key).query((rs, row) -> 1).single();
+            }
+        } catch (DataAccessException e) {
+            if (LOCK_NOT_AVAILABLE.equals(sqlState(e))) {
+                throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "SERVICE_BUSY",
+                        "Hệ thống đang bận. Vui lòng gửi lại cùng thao tác.");
+            }
+            throw e;
+        }
+    }
+
+    private static String sqlState(DataAccessException e) {
+        for (Throwable cause = e; cause != null; cause = cause.getCause()) {
+            if (cause instanceof SQLException sql && sql.getSQLState() != null) {
+                return sql.getSQLState();
+            }
+        }
+        return null;
+    }
+}

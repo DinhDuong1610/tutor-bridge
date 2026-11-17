@@ -38,7 +38,7 @@ class WebFoundationTest {
     @RestController
     static class Probe {
 
-        record Body(String name, int count) {}
+        record Body(String name, int count, Long total) {}
 
         @PostMapping("/probe/command")
         Map<String, String> command(IdempotencyKey key) {
@@ -178,6 +178,9 @@ class WebFoundationTest {
             // An integer field takes no fraction: 1.5 is refused, not cut to 1 (#168).
             "{\"name\":\"a\",\"count\":1.5}",
             "{\"name\":\"a\",\"count\":-0.5}",
+            "{\"name\":\"a\",\"count\":1,\"total\":5.5}",
+            "{\"name\":\"a\",\"count\":1e-1}",
+            "{\"name\":\"a\",\"count\":3e9}",
         }) {
             mvc.perform(post("/probe/body").contentType(MediaType.APPLICATION_JSON).content(json))
                     .andExpect(status().isUnprocessableContent())
@@ -185,6 +188,18 @@ class WebFoundationTest {
         }
         mvc.perform(post("/probe/body").contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"a\",\"count\":1}"))
                 .andExpect(status().isOk());
+    }
+
+    /** JSON Schema's integer is any number whose fraction is zero (§6.1.1), so 8.0 and 8e0 are 8 (#168). */
+    @Test
+    void a_whole_number_written_with_a_fraction_or_an_exponent_is_an_integer() throws Exception {
+        for (String count : new String[] {"8.0", "8e0", "0.8e1", "-8.00"}) {
+            mvc.perform(post("/probe/body").contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"name\":\"a\",\"count\":" + count + ",\"total\":5.0}"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.count").value(count.startsWith("-") ? -8 : 8))
+                    .andExpect(jsonPath("$.total").value(5));
+        }
     }
 
     @Test

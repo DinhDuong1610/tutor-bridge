@@ -126,8 +126,12 @@ public class CalendarService {
             String timezone, List<Window> windows) {
         validateShape(timezone, windows);
         Map<String, Object> payload = new LinkedHashMap<>();
-        // The owner is part of the payload: one key reused for another student is 409, not a replay.
-        payload.put("owner", owner.id().toString());
+        // A child's calendar names the child, so one key reused for a sibling is 409, not a replay. The
+        // tutor's payload stays as #152 wrote it (the tutor is already the actor): receipts live at least
+        // 7 days, and a changed fingerprint would turn an honest resend after a deploy into 409 (INV-20).
+        if (STUDENT.equals(owner.kind())) {
+            payload.put("owner", owner.id().toString());
+        }
         payload.put("precondition", precondition instanceof WritePrecondition.Expected expected
                 ? expected.version() : "*");
         payload.put("timezone", timezone);

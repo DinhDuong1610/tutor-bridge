@@ -17,12 +17,15 @@ import com.tutorbridge.classes.OfferFixture.Tutor;
 import com.tutorbridge.classes.api.AcceptOffer;
 import com.tutorbridge.platform.api.ApiException;
 import com.tutorbridge.platform.api.Actor;
+import com.tutorbridge.platform.api.CanonicalJson;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -234,6 +237,27 @@ class TutorCalendarHttpTest extends HttpTest {
         replace(tutor, key, null, "*", body(window(day(2, 8), day(2, 9), "AVAILABLE")))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("IDEMPOTENCY_KEY_REUSED"));
+        assertThat(versions(tutor)).isEqualTo(1);
+    }
+
+    @Test
+    void inv_20_a_receipt_written_before_the_child_calendar_still_replays() throws Exception {
+        // Review of #164: the tutor's fingerprint is the one #152 shipped, {precondition, timezone, windows}.
+        // A receipt written by that code must replay after this one is deployed, not answer 409.
+        Actor tutor = newActor(Actor.Role.TUTOR);
+        String key = newKey();
+        String first = replace(tutor, key, null, "*", body()).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        String shipped = CanonicalJson.sha256(Map.of("precondition", "*", "timezone", "Asia/Ho_Chi_Minh",
+                "windows", List.of()));
+        assertThat(jdbc.sql("""
+                select payload_sha256 from command_receipts
+                where actor_id = ? and command_type = 'REPLACE_TUTOR_CALENDAR' and idempotency_key = ?""")
+                .params(tutor.accountId(), key).query(String.class).single()).isEqualTo(shipped);
+
+        replace(tutor, key, null, "*", body()).andExpect(status().isOk())
+                .andExpect(header().string("ETag", "\"1\""))
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString()).isEqualTo(first));
         assertThat(versions(tutor)).isEqualTo(1);
     }
 

@@ -38,7 +38,8 @@ export function ChangePasswordScreen({ onCancel }: Props) {
       <Text accessibilityRole="header" style={styles.title}>
         Đổi mật khẩu
       </Text>
-      <Text style={styles.body}>Sau khi đổi, mọi phiên đăng nhập, kể cả trên máy này, sẽ bị đăng xuất.</Text>
+      <Text style={styles.body}>Để bảo vệ tài khoản, nhập mật khẩu hiện tại trước khi đổi.</Text>
+      <Text style={styles.body}>Sau khi đổi, mọi thiết bị, kể cả máy này, sẽ bị đăng xuất.</Text>
       <AccountTextField
         control={form.control}
         name="currentPassword"
@@ -51,7 +52,7 @@ export function ChangePasswordScreen({ onCancel }: Props) {
         control={form.control}
         name="newPassword"
         label="Mật khẩu mới"
-        hint={`Từ ${PASSWORD_MIN} đến ${PASSWORD_MAX} ký tự. Có thể dùng một câu dễ nhớ.`}
+        hint={`${PASSWORD_MIN}–${PASSWORD_MAX} ký tự.`}
         secureTextEntry
         autoCapitalize="none"
         autoComplete="new-password"
@@ -76,7 +77,7 @@ function PasswordChanged({ onSignIn }: { onSignIn: () => void }) {
       <Text accessibilityRole="header" style={styles.title}>
         Đã đổi mật khẩu
       </Text>
-      <Notice tone="success" message="Mọi phiên đăng nhập đã bị đăng xuất. Hãy đăng nhập lại bằng mật khẩu mới." />
+      <Notice tone="success" message="Đã đổi mật khẩu. Mọi thiết bị đã bị đăng xuất. Hãy đăng nhập lại bằng mật khẩu mới." />
       <Button title="Đăng nhập lại" onPress={onSignIn} />
     </View>
   );

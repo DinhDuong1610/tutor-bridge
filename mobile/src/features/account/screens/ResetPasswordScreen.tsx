@@ -41,13 +41,18 @@ export function ResetPasswordScreen({ token, onGoToSignIn, onRequestNewLink }: P
     return reset.retry();
   }
 
+  const linkGone =
+    reset.state === "failed" &&
+    !retriedAfterUnknown &&
+    (reset.error?.code === "LINK_EXPIRED" || reset.error?.code === "LINK_USED");
+
   if (reset.state === "confirmed") {
     return (
       <View style={styles.container}>
         <Text accessibilityRole="header" style={styles.title}>
           Đã đặt lại mật khẩu
         </Text>
-        <Notice tone="success" message="Mọi phiên đăng nhập cũ đã bị đăng xuất. Hãy đăng nhập bằng mật khẩu mới." />
+        <Notice tone="success" message="Đã đổi mật khẩu. Mọi phiên đăng nhập cũ đã bị đăng xuất. Hãy đăng nhập lại bằng mật khẩu mới." />
         <Button title="Đăng nhập" onPress={onGoToSignIn} />
       </View>
     );
@@ -60,28 +65,35 @@ export function ResetPasswordScreen({ token, onGoToSignIn, onRequestNewLink }: P
       </Text>
       {validToken ? (
         <>
+          <Text style={styles.body}>Đặt mật khẩu mới cho tài khoản của bạn.</Text>
           <AccountTextField
             control={form.control}
             name="newPassword"
             label="Mật khẩu mới"
-            hint={`Từ ${PASSWORD_MIN} đến ${PASSWORD_MAX} ký tự. Có thể dùng một câu dễ nhớ.`}
+            hint={`${PASSWORD_MIN}–${PASSWORD_MAX} ký tự.`}
             secureTextEntry
             autoCapitalize="none"
             autoComplete="new-password"
           />
+          <Text style={styles.body}>Sau khi đổi, mọi thiết bị đang đăng nhập sẽ bị đăng xuất.</Text>
           {otherErrors.map((message) => (
             <Notice key={message} tone="danger" message={message} />
           ))}
-          <CommandStatus command={{ ...reset, retry: retryReset }} confirmedMessage="" />
+          {linkGone ? (
+            // AUTH05 shows one state for an expired and a used link.
+            <Notice
+              tone="danger"
+              message="Liên kết không còn dùng được. Liên kết đặt lại mật khẩu chỉ dùng một lần và có hạn 15 phút. Hãy yêu cầu liên kết mới."
+            />
+          ) : (
+            <CommandStatus command={{ ...reset, retry: retryReset }} confirmedMessage="" />
+          )}
           {reset.state === "failed" && retriedAfterUnknown ? (
             // The first attempt may have changed the password before the connection dropped.
             <Text style={styles.body}>Lần gửi trước có thể đã đổi mật khẩu. Hãy thử đăng nhập bằng mật khẩu mới trước.</Text>
-          ) : reset.state === "failed" && reset.error?.code === "LINK_USED" ? (
-            // LINK_USED and LINK_EXPIRED differ (TB-8 error codes): a used link usually means the password was changed.
-            <Text style={styles.body}>Liên kết này đã được dùng. Nếu bạn vừa đặt lại mật khẩu, hãy đăng nhập bằng mật khẩu mới.</Text>
           ) : null}
           <Button
-            title="Đặt lại mật khẩu"
+            title="Đặt mật khẩu mới"
             busy={reset.state === "sending"}
             onPress={form.handleSubmit((values) => reset.submit(values))}
           />

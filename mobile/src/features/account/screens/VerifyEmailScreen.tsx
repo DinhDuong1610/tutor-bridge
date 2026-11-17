@@ -3,7 +3,6 @@ import { useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { Button } from "@/shared/ui/Button";
 import { CommandStatus } from "@/shared/ui/CommandStatus";
-import { Notice } from "@/shared/ui/Notice";
 import { colors, spacing, typography } from "@/shared/ui/theme";
 import { useResendVerification, useVerifyEmail } from "../api";
 import { EmailRequestForm } from "../components/EmailRequestForm";
@@ -20,11 +19,38 @@ type Props = {
  * never spends the single-use token by itself. Expired or used links show the server's message
  * and offer a new link.
  */
+// AUTH02 wording. "Sai mục đích" is not used: the server answers LINK_INVALID for any bad link, and
+// "không dùng để xác minh email" would be untrue for a broken one (#142).
+const LINK_STATES = {
+  expired: {
+    heading: "Liên kết đã hết hạn",
+    body: "Liên kết xác minh chỉ dùng được trong 30 phút. Gửi liên kết mới tới email của bạn.",
+  },
+  used: {
+    heading: "Liên kết này đã được dùng",
+    body: "Mỗi liên kết chỉ dùng một lần. Nếu email đã được xác minh, hãy đăng nhập.",
+  },
+  invalid: {
+    heading: "Liên kết không hợp lệ",
+    body: "Hãy mở đúng liên kết trong email, hoặc gửi lại liên kết mới.",
+  },
+} as const;
+
+const LINK_CODES: Record<string, keyof typeof LINK_STATES> = {
+  LINK_EXPIRED: "expired",
+  LINK_USED: "used",
+  LINK_INVALID: "invalid",
+};
+
 export function VerifyEmailScreen({ token, onGoToSignIn }: Props) {
   const validToken = isLinkToken(token) ? token : null;
   const verify = useVerifyEmail(validToken ?? "");
   const resend = useResendVerification();
   const [retriedAfterUnknown, setRetriedAfterUnknown] = useState(false);
+
+  // After an unknown outcome the retry may find its own link used; that case has its own sentence below.
+  const linkState =
+    verify.state === "failed" && !retriedAfterUnknown ? LINK_CODES[verify.error?.code ?? ""] : undefined;
 
   function retryVerify() {
     setRetriedAfterUnknown(true);
@@ -35,9 +61,9 @@ export function VerifyEmailScreen({ token, onGoToSignIn }: Props) {
     return (
       <View style={styles.container}>
         <Text accessibilityRole="header" style={styles.title}>
-          Email đã được xác minh
+          Đã xác minh email
         </Text>
-        <Notice tone="success" message="Tài khoản của bạn đã được kích hoạt. Bạn có thể đăng nhập." />
+        <Text style={styles.body}>Bạn có thể đăng nhập bằng email và mật khẩu đã tạo.</Text>
         <Button title="Đăng nhập" onPress={onGoToSignIn} />
       </View>
     );
@@ -50,28 +76,43 @@ export function VerifyEmailScreen({ token, onGoToSignIn }: Props) {
       </Text>
       {validToken ? (
         <>
-          <Text style={styles.body}>Nhấn nút bên dưới để xác minh email của bạn.</Text>
-          <CommandStatus command={{ ...verify, retry: retryVerify }} confirmedMessage="" />
+          {linkState ? (
+            // AUTH02 frames: a heading and one sentence per link state (TB-8 error codes).
+            <>
+              <Text accessibilityRole="header" style={styles.subtitle}>
+                {LINK_STATES[linkState].heading}
+              </Text>
+              <Text style={styles.body}>{LINK_STATES[linkState].body}</Text>
+            </>
+          ) : verify.state === "sending" ? (
+            <Text style={styles.body}>Đang xác minh email…</Text>
+          ) : (
+            <>
+              <Text style={styles.body}>Nhấn nút bên dưới để xác minh email của bạn.</Text>
+              <CommandStatus command={{ ...verify, retry: retryVerify }} confirmedMessage="" />
+            </>
+          )}
           {verify.state === "failed" && retriedAfterUnknown ? (
             // The first attempt may have worked before the connection dropped, then the retry finds the link used.
             <Text style={styles.body}>Lần gửi trước có thể đã xác minh email của bạn. Hãy thử đăng nhập trước.</Text>
-          ) : verify.state === "failed" && verify.error?.code === "LINK_USED" ? (
-            // LINK_USED and LINK_EXPIRED differ (TB-8 error codes): a used link usually means the email is verified.
-            <Text style={styles.body}>Liên kết này đã được dùng. Nếu email của bạn đã được xác minh, hãy đăng nhập.</Text>
           ) : null}
-          <Button title="Xác minh email" busy={verify.state === "sending"} onPress={() => void verify.submit(undefined)} />
+          {linkState ? null : (
+            <Button title="Xác minh email" busy={verify.state === "sending"} onPress={() => void verify.submit(undefined)} />
+          )}
         </>
       ) : token === undefined ? (
         // Opened from sign-in or registration to ask for a new link, not from an email link.
         <Text style={styles.body}>Nhập email đã đăng ký để nhận liên kết xác minh mới.</Text>
       ) : (
-        <Notice tone="danger" message="Liên kết xác minh không hợp lệ. Hãy mở đúng liên kết trong email, hoặc gửi lại liên kết mới." />
+        <>
+          <Text accessibilityRole="header" style={styles.subtitle}>
+            {LINK_STATES.invalid.heading}
+          </Text>
+          <Text style={styles.body}>{LINK_STATES.invalid.body}</Text>
+        </>
       )}
       {validToken === null || verify.state === "failed" ? (
         <View style={styles.section}>
-          <Text accessibilityRole="header" style={styles.subtitle}>
-            Gửi lại liên kết xác minh
-          </Text>
           <Text style={styles.body}>Liên kết mới có hạn 30 phút.</Text>
           <EmailRequestForm command={resend} submitTitle="Gửi lại liên kết" />
         </View>

@@ -1,4 +1,4 @@
-import { act, fireEvent, screen, waitFor } from "@testing-library/react-native";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react-native";
 import { Text } from "react-native";
 import { useSession } from "@/shared/session/SessionProvider";
 import { json, mockApi, problem } from "@/shared/test/mockApi";
@@ -68,7 +68,7 @@ describe("AUTH03 SignInScreen", () => {
 
     await signIn();
 
-    expect(await screen.findByText("Email hoặc mật khẩu không đúng.")).toBeOnTheScreen();
+    expect(await screen.findByText("Email hoặc mật khẩu chưa đúng.")).toBeOnTheScreen();
     expect(screen.queryByText(/Không có tài khoản/)).toBeNull();
     expect(screen.getByText("signed out")).toBeOnTheScreen();
     expect(screen.getByLabelText("Email")).toHaveDisplayValue("phu.huynh@example.test");
@@ -77,14 +77,19 @@ describe("AUTH03 SignInScreen", () => {
 
   it("UC01_an_unverified_account_is_sent_to_ask_for_a_new_verification_link", async () => {
     server = mockApi({
-      "POST /auth/login": () => problem(403, "ACCOUNT_UNVERIFIED", "Email của bạn chưa được xác minh."),
+      "POST /auth/login": () =>
+        problem(403, "ACCOUNT_UNVERIFIED", "Email chưa được xác minh. Mở liên kết trong email, hoặc gửi lại liên kết."),
     });
 
     const onResendVerification = await signIn();
 
-    expect(await screen.findByText("Email của bạn chưa được xác minh.")).toBeOnTheScreen();
+    // AUTH03: the button sits inside the notice that says why.
+    const message = await screen.findByText("Email chưa được xác minh. Mở liên kết trong email, hoặc gửi lại liên kết.");
+    let notice = message.parent;
+    while (notice && notice.type !== "View") notice = notice.parent;
+    expect(within(notice!).getByRole("button", { name: "Gửi lại liên kết" })).toBeOnTheScreen();
     expect(screen.getByText("signed out")).toBeOnTheScreen();
-    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Gửi lại liên kết xác minh" })));
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Gửi lại liên kết" })));
     expect(onResendVerification).toHaveBeenCalledTimes(1);
   });
 
@@ -96,7 +101,7 @@ describe("AUTH03 SignInScreen", () => {
     await signIn();
 
     expect(await screen.findByText("Tài khoản đang bị khóa.")).toBeOnTheScreen();
-    expect(screen.queryByRole("button", { name: "Gửi lại liên kết xác minh" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Gửi lại liên kết" })).toBeNull();
   });
 
   it("UC01_shows_the_delay_after_repeated_failures", async () => {
@@ -112,12 +117,12 @@ describe("AUTH03 SignInScreen", () => {
 
   it("TB8_Q14_an_admin_gets_the_wrong_credentials_message_and_no_session", async () => {
     server = mockApi({
-      "POST /auth/login": () => problem(401, "AUTHENTICATION_FAILED", "Email hoặc mật khẩu không đúng."),
+      "POST /auth/login": () => problem(401, "AUTHENTICATION_FAILED", "Email hoặc mật khẩu chưa đúng."),
     });
 
     await signIn();
 
-    expect(await screen.findByText("Email hoặc mật khẩu không đúng.")).toBeOnTheScreen();
+    expect(await screen.findByText("Email hoặc mật khẩu chưa đúng.")).toBeOnTheScreen();
     expect(screen.queryByText(/quản trị/)).toBeNull();
     expect(screen.getByText("signed out")).toBeOnTheScreen();
     expect(storedSession()).toBeUndefined();
@@ -131,7 +136,7 @@ describe("AUTH03 SignInScreen", () => {
 
     await signIn();
 
-    expect(await screen.findByText("Email hoặc mật khẩu không đúng.")).toBeOnTheScreen();
+    expect(await screen.findByText("Email hoặc mật khẩu chưa đúng.")).toBeOnTheScreen();
     expect(screen.queryByText(/quản trị/)).toBeNull();
     expect(screen.getByText("signed out")).toBeOnTheScreen();
     expect(storedSession()).toBeUndefined();
@@ -141,7 +146,7 @@ describe("AUTH03 SignInScreen", () => {
     server = mockApi({});
     await renderScreen(<SignInScreen onGoToRegister={jest.fn()} onForgotPassword={jest.fn()} onResendVerification={jest.fn()} />);
 
-    expect(screen.queryByText("Phiên đăng nhập đã kết thúc. Vui lòng đăng nhập lại.")).toBeNull();
+    expect(screen.queryByText("Phiên đăng nhập đã hết. Vui lòng đăng nhập lại. Bản nháp đã lưu vẫn còn.")).toBeNull();
     expect(screen.queryByText("Bạn đã đăng xuất.")).toBeNull();
   });
 

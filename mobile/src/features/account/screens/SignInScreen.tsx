@@ -22,11 +22,11 @@ type Props = {
 };
 
 // Fixed text, so the screen never says whether the email has an account.
-const WRONG_CREDENTIALS = "Email hoặc mật khẩu không đúng.";
+const WRONG_CREDENTIALS = "Email hoặc mật khẩu chưa đúng.";
 const NOT_SAVED = "Không lưu được phiên đăng nhập trên máy. Vui lòng thử lại.";
-// Why the user is back here. Wording to be checked against the approved AUTH03 design (#94).
+// Why the user is back here. Wording from the approved AUTH03 (#142).
 const ENDED_BY = {
-  expired: "Phiên đăng nhập đã kết thúc. Vui lòng đăng nhập lại.",
+  expired: "Phiên đăng nhập đã hết. Vui lòng đăng nhập lại. Bản nháp đã lưu vẫn còn.",
   signedOut: "Bạn đã đăng xuất.",
 } as const;
 
@@ -69,6 +69,7 @@ export function SignInScreen({ onGoToRegister, onForgotPassword, onResendVerific
       <Text accessibilityRole="header" style={styles.title}>
         Đăng nhập
       </Text>
+      <Text style={styles.body}>Dành cho phụ huynh và gia sư.</Text>
       <AccountTextField
         control={form.control}
         name="email"
@@ -94,6 +95,13 @@ export function SignInScreen({ onGoToRegister, onForgotPassword, onResendVerific
         <Notice tone="danger" message={problem} />
       ) : wrongCredentials ? (
         <Notice tone="danger" message={WRONG_CREDENTIALS} />
+      ) : unverified ? (
+        // The server's title is the approved AUTH03 text; the button sits inside the notice (#142).
+        <Notice
+          tone="danger"
+          message={signIn.error?.problem.title ?? ""}
+          action={<Button variant="secondary" title="Gửi lại liên kết" onPress={onResendVerification} />}
+        />
       ) : signIn.state === "unknown" ? (
         // Not CommandStatus: its retry would skip keeping the session. Signing in again is safe;
         // at worst the server holds one unused session that expires.
@@ -101,12 +109,9 @@ export function SignInScreen({ onGoToRegister, onForgotPassword, onResendVerific
       ) : signIn.state === "confirmed" ? null : (
         <CommandStatus command={signIn} confirmedMessage="" />
       )}
-      {unverified ? (
-        <Button variant="secondary" title="Gửi lại liên kết xác minh" onPress={onResendVerification} />
-      ) : null}
       <Button title="Đăng nhập" busy={signIn.state === "sending"} onPress={form.handleSubmit(submit)} />
       <Button variant="secondary" title="Quên mật khẩu?" onPress={onForgotPassword} />
-      <Button variant="secondary" title="Chưa có tài khoản? Đăng ký" onPress={onGoToRegister} />
+      <Button variant="secondary" title="Tạo tài khoản" onPress={onGoToRegister} />
     </ScrollView>
   );
 }
@@ -114,4 +119,5 @@ export function SignInScreen({ onGoToRegister, onForgotPassword, onResendVerific
 const styles = StyleSheet.create({
   container: { flexGrow: 1, gap: spacing.md, padding: spacing.md, backgroundColor: colors.background },
   title: { ...typography.title, color: colors.text },
+  body: { ...typography.body, color: colors.text },
 });

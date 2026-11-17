@@ -37,13 +37,13 @@ describe("AUTH02 VerifyEmailScreen", () => {
 
     await press("Xác minh email");
 
-    expect(await screen.findByRole("header", { name: "Email đã được xác minh" })).toBeOnTheScreen();
+    expect(await screen.findByRole("header", { name: "Đã xác minh email" })).toBeOnTheScreen();
     expect(server.requests).toHaveLength(1);
     expect(await server.requests[0].json()).toEqual({ token: TOKEN });
     expect(server.unexpected).toEqual([]);
   });
 
-  it("AC_UC01_02_expired_link_shows_the_server_message_and_offers_a_new_link", async () => {
+  it("AC_UC01_02_expired_link_says_so_and_offers_a_new_link", async () => {
     server = mockApi({
       "POST /auth/verify": () => problem(400, "LINK_EXPIRED", "Liên kết đã hết hạn."),
     });
@@ -51,9 +51,13 @@ describe("AUTH02 VerifyEmailScreen", () => {
 
     await press("Xác minh email");
 
-    expect(await screen.findByText("Liên kết đã hết hạn.")).toBeOnTheScreen();
-    expect(screen.queryByRole("header", { name: "Email đã được xác minh" })).toBeNull();
-    expect(screen.getByRole("header", { name: "Gửi lại liên kết xác minh" })).toBeOnTheScreen();
+    expect(await screen.findByRole("header", { name: "Liên kết đã hết hạn" })).toBeOnTheScreen();
+    expect(
+      screen.getByText("Liên kết xác minh chỉ dùng được trong 30 phút. Gửi liên kết mới tới email của bạn."),
+    ).toBeOnTheScreen();
+    expect(screen.queryByRole("header", { name: "Đã xác minh email" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Gửi lại liên kết" })).toBeOnTheScreen();
+    expect(screen.queryByRole("button", { name: "Xác minh email" })).toBeNull();
     expect(screen.queryByText(/đã được dùng/)).toBeNull();
     // Only after a retry of an unknown outcome may the first attempt have worked.
     expect(screen.queryByText(/Lần gửi trước có thể đã xác minh/)).toBeNull();
@@ -67,9 +71,10 @@ describe("AUTH02 VerifyEmailScreen", () => {
 
     await press("Xác minh email");
 
-    expect(await screen.findByText("Liên kết đã được dùng.")).toBeOnTheScreen();
-    expect(screen.getByText("Liên kết này đã được dùng. Nếu email của bạn đã được xác minh, hãy đăng nhập.")).toBeOnTheScreen();
-    expect(screen.getByRole("header", { name: "Gửi lại liên kết xác minh" })).toBeOnTheScreen();
+    expect(await screen.findByRole("header", { name: "Liên kết này đã được dùng" })).toBeOnTheScreen();
+    expect(screen.getByText("Mỗi liên kết chỉ dùng một lần. Nếu email đã được xác minh, hãy đăng nhập.")).toBeOnTheScreen();
+    expect(screen.queryByRole("header", { name: "Liên kết đã hết hạn" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Gửi lại liên kết" })).toBeOnTheScreen();
   });
 
   it("opened without a token only asks for the email, without an error", async () => {
@@ -77,7 +82,7 @@ describe("AUTH02 VerifyEmailScreen", () => {
     await show(undefined);
 
     expect(screen.getByText("Nhập email đã đăng ký để nhận liên kết xác minh mới.")).toBeOnTheScreen();
-    expect(screen.queryByText(/Liên kết xác minh không hợp lệ/)).toBeNull();
+    expect(screen.queryByRole("header", { name: "Liên kết không hợp lệ" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Xác minh email" })).toBeNull();
     expect(screen.getByRole("button", { name: "Gửi lại liên kết" })).toBeOnTheScreen();
     expect(server.requests).toHaveLength(0);
@@ -87,7 +92,7 @@ describe("AUTH02 VerifyEmailScreen", () => {
     server = mockApi({});
     await show(token);
 
-    expect(screen.getByText(/Liên kết xác minh không hợp lệ/)).toBeOnTheScreen();
+    expect(screen.getByRole("header", { name: "Liên kết không hợp lệ" })).toBeOnTheScreen();
     expect(screen.queryByRole("button", { name: "Xác minh email" })).toBeNull();
     expect(screen.getByRole("button", { name: "Gửi lại liên kết" })).toBeOnTheScreen();
     expect(server.requests).toHaveLength(0);
@@ -106,7 +111,7 @@ describe("AUTH02 VerifyEmailScreen", () => {
 
     await press("Xác minh email");
     expect(await screen.findByText(/Chưa rõ kết quả/)).toBeOnTheScreen();
-    expect(screen.queryByRole("header", { name: "Email đã được xác minh" })).toBeNull();
+    expect(screen.queryByRole("header", { name: "Đã xác minh email" })).toBeNull();
 
     await press("Thử lại");
 
@@ -143,7 +148,7 @@ describe("AUTH02 VerifyEmailScreen", () => {
     try {
       await show(TOKEN);
       await press("Xác minh email");
-      await screen.findByRole("header", { name: "Email đã được xác minh" });
+      await screen.findByRole("header", { name: "Đã xác minh email" });
 
       const logged = spies.flatMap((spy) => spy.mock.calls).map((args) => args.map(String).join(" "));
       expect(logged.filter((line) => line.includes(TOKEN))).toEqual([]);

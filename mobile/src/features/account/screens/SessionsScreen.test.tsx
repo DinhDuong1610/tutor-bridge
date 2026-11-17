@@ -36,12 +36,12 @@ describe("AUTH06 SessionsScreen", () => {
     server = mockApi({ "GET /me/sessions": () => page([CURRENT, OTHER, REVOKED]) });
     await show();
 
-    expect(await screen.findByText("Máy này (phiên hiện tại)")).toBeOnTheScreen();
+    expect(await screen.findByText("Thiết bị này")).toBeOnTheScreen();
     expect(screen.getByText("Máy tính bảng")).toBeOnTheScreen();
     expect(within(screen.getByLabelText("Máy tính bảng")).getByText("Hoạt động gần nhất: 09:00 07/11/2026")).toBeOnTheScreen();
     const revoked = screen.getByLabelText("Máy cũ");
     expect(within(revoked).getByText("Đã thu hồi")).toBeOnTheScreen();
-    expect(within(revoked).queryByRole("button", { name: "Thu hồi phiên" })).toBeNull();
+    expect(within(revoked).queryByRole("button", { name: "Đăng xuất" })).toBeNull();
     expect(new URL(server.requests[0].url).searchParams.get("limit")).toBe("50");
     expect(server.unexpected).toEqual([]);
   });
@@ -53,8 +53,8 @@ describe("AUTH06 SessionsScreen", () => {
 
     const card = await screen.findByLabelText("Thiết bị không rõ");
     expect(within(card).getByText("Thiết bị không rõ")).toBeOnTheScreen();
-    await act(async () => fireEvent.press(within(card).getByRole("button", { name: "Thu hồi phiên" })));
-    expect(screen.getByText('Thu hồi phiên trên "Thiết bị không rõ"? Máy đó sẽ phải đăng nhập lại.')).toBeOnTheScreen();
+    await act(async () => fireEvent.press(within(card).getByRole("button", { name: "Đăng xuất" })));
+    expect(screen.getByText('Đăng xuất thiết bị này? Phiên trên "Thiết bị không rõ" sẽ bị đăng xuất ngay. Thiết bị đó phải đăng nhập lại.')).toBeOnTheScreen();
   });
 
   it("loads the next page with the server's cursor", async () => {
@@ -63,7 +63,7 @@ describe("AUTH06 SessionsScreen", () => {
         new URL(request.url).searchParams.get("cursor") === "next-page" ? page([OTHER]) : page([CURRENT], "next-page"),
     });
     await show();
-    await screen.findByText("Máy này (phiên hiện tại)");
+    await screen.findByText("Thiết bị này");
 
     await press("Xem thêm phiên");
 
@@ -76,12 +76,12 @@ describe("AUTH06 SessionsScreen", () => {
     await show();
     await screen.findByText("Máy tính bảng");
 
-    await press("Thu hồi phiên");
-    expect(screen.getByText(/Máy đó sẽ phải đăng nhập lại/)).toBeOnTheScreen();
-    await press("Hủy");
+    await press("Đăng xuất");
+    expect(screen.getByText(/Thiết bị đó phải đăng nhập lại/)).toBeOnTheScreen();
+    await press("Quay lại");
 
     expect(server.requests.filter((request) => request.method === "DELETE")).toHaveLength(0);
-    expect(screen.getByRole("button", { name: "Thu hồi phiên" })).toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: "Đăng xuất" })).toBeOnTheScreen();
   });
 
   it("revokes another session after confirmation, then reloads the list", async () => {
@@ -96,10 +96,10 @@ describe("AUTH06 SessionsScreen", () => {
     await show();
     await screen.findByText("Máy tính bảng");
 
-    await press("Thu hồi phiên");
-    await press("Xác nhận thu hồi");
+    await press("Đăng xuất");
+    await press("Đăng xuất thiết bị");
 
-    expect(await screen.findByText("Đã thu hồi phiên.")).toBeOnTheScreen();
+    expect(await screen.findByText("Đã đăng xuất Máy tính bảng.")).toBeOnTheScreen();
     const deletes = server.requests.filter((request) => request.method === "DELETE");
     expect(deletes).toHaveLength(1);
     expect(new URL(deletes[0].url).pathname).toBe(`/api/v1/me/sessions/${OTHER.id}`);
@@ -115,11 +115,11 @@ describe("AUTH06 SessionsScreen", () => {
     await show();
     await screen.findByText("Máy tính bảng");
 
-    await press("Thu hồi phiên");
-    await press("Xác nhận thu hồi");
+    await press("Đăng xuất");
+    await press("Đăng xuất thiết bị");
 
     expect(await screen.findByText("Không tìm thấy phiên này.")).toBeOnTheScreen();
-    expect(screen.queryByText("Đã thu hồi phiên.")).toBeNull();
+    expect(screen.queryByText("Đã đăng xuất Máy tính bảng.")).toBeNull();
   });
 
   it("AC_UC01_03_signs_out_on_this_device_only_after_the_server_confirms_logout", async () => {
@@ -128,10 +128,10 @@ describe("AUTH06 SessionsScreen", () => {
       "POST /auth/logout": () => new Response(null, { status: 204 }),
     });
     await show();
-    await screen.findByText("Máy này (phiên hiện tại)");
+    await screen.findByText("Thiết bị này");
     expect(storedSession()).toBeDefined();
 
-    await press("Đăng xuất");
+    await press("Đăng xuất tài khoản");
 
     await waitFor(() => expect(storedSession()).toBeUndefined());
     expect(server.requests.filter((request) => request.method === "POST")).toHaveLength(1);
@@ -148,9 +148,9 @@ describe("AUTH06 SessionsScreen", () => {
       },
     });
     await show();
-    await screen.findByText("Máy này (phiên hiện tại)");
+    await screen.findByText("Thiết bị này");
 
-    await press("Đăng xuất");
+    await press("Đăng xuất tài khoản");
     expect(await screen.findByText(/Chưa rõ kết quả/)).toBeOnTheScreen();
     expect(storedSession()).toBeDefined();
 
@@ -168,10 +168,10 @@ describe("AUTH06 SessionsScreen", () => {
       },
     });
     await show();
-    await screen.findByText("Máy này (phiên hiện tại)");
+    await screen.findByText("Thiết bị này");
     expect(screen.queryByRole("button", { name: "Đăng xuất khỏi máy này" })).toBeNull();
 
-    await press("Đăng xuất");
+    await press("Đăng xuất tài khoản");
     expect(await screen.findByText(/Phiên trên máy chủ sẽ tự hết hạn/)).toBeOnTheScreen();
     expect(storedSession()).toBeDefined();
 
@@ -185,6 +185,6 @@ describe("AUTH06 SessionsScreen", () => {
     await show();
 
     expect(await screen.findByRole("button", { name: "Thử lại" }, { timeout: 5000 })).toBeOnTheScreen();
-    expect(screen.queryByText("Máy này (phiên hiện tại)")).toBeNull();
+    expect(screen.queryByText("Thiết bị này")).toBeNull();
   });
 });

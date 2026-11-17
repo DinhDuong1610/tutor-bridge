@@ -6555,12 +6555,12 @@ paths:
       tags:
       - UC03
       x-authorization: 'Verified TUTOR own data only. New draft starts from profile
-        GET/ETag or If-None-Match: *. Evidence limit 5MiB and up to10 per submission
-        is proposed, pending D07-04.'
+        GET/ETag or If-None-Match: *. Evidence: PDF/JPEG/PNG, at most 5 MiB per file
+        and 10 files per submission (G3-D07-04).'
       x-transaction: UC03
-      description: 'Verified TUTOR own data only. New draft starts from profile GET/ETag
-        or If-None-Match: *. Evidence limit 5MiB and up to10 per submission is proposed,
-        pending D07-04.'
+      description: 'Verified TUTOR own data only. New draft starts from profile
+        GET/ETag or If-None-Match: *. Evidence: PDF/JPEG/PNG, at most 5 MiB per file
+        and 10 files per submission (G3-D07-04).'
       parameters: []
       responses:
         '400':
@@ -8022,12 +8022,12 @@ paths:
       tags:
       - UC03
       x-authorization: 'Verified TUTOR own data only. New draft starts from profile
-        GET/ETag or If-None-Match: *. Evidence limit 5MiB and up to10 per submission
-        is proposed, pending D07-04.'
+        GET/ETag or If-None-Match: *. Evidence: PDF/JPEG/PNG, at most 5 MiB per file
+        and 10 files per submission (G3-D07-04).'
       x-transaction: UC03
-      description: 'Verified TUTOR own data only. New draft starts from profile GET/ETag
-        or If-None-Match: *. Evidence limit 5MiB and up to10 per submission is proposed,
-        pending D07-04.'
+      description: 'Verified TUTOR own data only. New draft starts from profile
+        GET/ETag or If-None-Match: *. Evidence: PDF/JPEG/PNG, at most 5 MiB per file
+        and 10 files per submission (G3-D07-04).'
       parameters:
       - $ref: '#/components/parameters/IdempotencyKey'
       responses:
@@ -8197,9 +8197,12 @@ paths:
         scan in quarantine. Only READY evidence may attach to a submitted immutable
         profile version; never return public evidence URL.
       x-transaction: UC03
-      description: TUTOR owner only; verify actual object bytes/hash/MIME and scan
+      description: 'TUTOR owner only; verify actual object bytes/hash/MIME and scan
         in quarantine. Only READY evidence may attach to a submitted immutable profile
-        version; never return public evidence URL.
+        version; never return public evidence URL. R0 checks structure only: magic
+        bytes, real MIME, size and SHA-256 against CompleteEvidenceInput, then
+        QUARANTINED -> READY through EvidenceScanner. TBD (OP-07): a real malware
+        scanner before any real evidence is accepted.'
       parameters:
       - name: uploadId
         in: path
@@ -8253,6 +8256,77 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CompleteEvidenceInput'
+  /me/tutor-profile/evidence-uploads/{uploadId}/content:
+    put:
+      operationId: uploadEvidenceContent
+      summary: uploadEvidenceContent
+      tags:
+      - UC03
+      x-authorization: TUTOR owner only; another account's upload is 404.
+      x-transaction: UC03
+      description: 'Receives the file bytes for an upload created by createEvidenceUpload
+        (EvidenceUploadTicket.uploadUrl points here in R0). Only while the upload
+        is UPLOADING and before expiresAt; bytes go to private storage, never a
+        public URL. Content-Type must equal the declared mediaType and the body length
+        the declared sizeBytes (at most 5 MiB), else 422. Magic bytes and SHA-256
+        are checked by completeEvidenceUpload. Expired: 409 EVIDENCE_UPLOAD_EXPIRED.
+        No longer UPLOADING: 409 EVIDENCE_UPLOAD_CLOSED. The receipt payload is
+        the SHA-256 of the body: same key and bytes replays, same key and other
+        bytes 409 (INV-20). A new key while still UPLOADING replaces the bytes.'
+      parameters:
+      - name: uploadId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+        '200':
+          description: Bytes stored; the upload stays UPLOADING until completeEvidenceUpload
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                const: private, no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TutorEvidenceRecord'
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/pdf:
+            schema:
+              type: string
+              format: binary
+          image/jpeg:
+            schema:
+              type: string
+              format: binary
+          image/png:
+            schema:
+              type: string
+              format: binary
   /auth/verification-resend:
     post:
       operationId: resendVerification
@@ -12298,6 +12372,10 @@ components:
           type: string
           maxLength: 2000
           format: uri
+          description: Absolute URL to PUT the file bytes to before expiresAt. In R0
+            it is uploadEvidenceContent on this API (same authentication and
+            Idempotency-Key); a later object store may return another URL without a
+            client change.
         expiresAt: *id001
       required:
       - uploadId

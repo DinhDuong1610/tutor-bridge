@@ -173,6 +173,20 @@ class TutorProfilesHttpTest extends HttpTest {
     }
 
     @Test
+    void AC_UC03_01_a_price_or_an_experience_with_a_fraction_is_refused_not_cut() throws Exception {
+        Actor tutor = newActor(Actor.Role.TUTOR);
+
+        // Found by Codex on #167: Jackson used to store 150000.9 as 150000 and -0.5 as 0 (#168).
+        create(tutor, body(DESCRIPTION, 12, "150000.9", "MATH8_ALGEBRA"))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+        create(tutor, body(DESCRIPTION, "-0.5", 150_000, "MATH8_ALGEBRA"))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+        assertThat(versions(tutor)).isZero();
+    }
+
+    @Test
     void AC_UC03_01_negative_or_too_long_experience_and_a_price_not_positive_are_refused() throws Exception {
         Actor tutor = newActor(Actor.Role.TUTOR);
 

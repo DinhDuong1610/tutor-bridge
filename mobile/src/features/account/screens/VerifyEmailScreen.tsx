@@ -60,10 +60,13 @@ export function VerifyEmailScreen({ token, onGoToSignIn }: Props) {
   if (verify.state === "confirmed") {
     return (
       <View style={styles.container}>
-        <Text accessibilityRole="header" style={styles.title}>
-          Đã xác minh email
-        </Text>
-        <Text style={styles.body}>Bạn có thể đăng nhập bằng email và mật khẩu đã tạo.</Text>
+        {/* Announced when it appears, as the Notice it replaced was (TalkBack). */}
+        <View accessibilityLiveRegion="polite" style={styles.section}>
+          <Text accessibilityRole="header" style={styles.title}>
+            Đã xác minh email
+          </Text>
+          <Text style={styles.body}>Bạn có thể đăng nhập bằng email và mật khẩu đã tạo.</Text>
+        </View>
         <Button title="Đăng nhập" onPress={onGoToSignIn} />
       </View>
     );
@@ -78,14 +81,17 @@ export function VerifyEmailScreen({ token, onGoToSignIn }: Props) {
         <>
           {linkState ? (
             // AUTH02 frames: a heading and one sentence per link state (TB-8 error codes).
-            <>
+            // A live region, so the result of pressing the button is read out like a Notice.
+            <View accessibilityLiveRegion="polite" style={styles.section}>
               <Text accessibilityRole="header" style={styles.subtitle}>
                 {LINK_STATES[linkState].heading}
               </Text>
               <Text style={styles.body}>{LINK_STATES[linkState].body}</Text>
-            </>
+            </View>
           ) : verify.state === "sending" ? (
-            <Text style={styles.body}>Đang xác minh email…</Text>
+            <View accessibilityLiveRegion="polite">
+              <Text style={styles.body}>Đang xác minh email…</Text>
+            </View>
           ) : (
             <>
               <Text style={styles.body}>Nhấn nút bên dưới để xác minh email của bạn.</Text>
@@ -104,12 +110,12 @@ export function VerifyEmailScreen({ token, onGoToSignIn }: Props) {
         // Opened from sign-in or registration to ask for a new link, not from an email link.
         <Text style={styles.body}>Nhập email đã đăng ký để nhận liên kết xác minh mới.</Text>
       ) : (
-        <>
+        <View accessibilityLiveRegion="polite" style={styles.section}>
           <Text accessibilityRole="header" style={styles.subtitle}>
             {LINK_STATES.invalid.heading}
           </Text>
           <Text style={styles.body}>{LINK_STATES.invalid.body}</Text>
-        </>
+        </View>
       )}
       {validToken === null || verify.state === "failed" ? (
         <View style={styles.section}>

@@ -15,6 +15,16 @@ async function show(token: unknown) {
   await renderScreen(<VerifyEmailScreen token={token} onGoToSignIn={jest.fn()} />);
 }
 
+type Element = ReturnType<typeof screen.getByText>;
+
+/** Whether TalkBack reads this text when it appears: it sits in a polite live region (#179 review). */
+function announced(element: Element) {
+  for (let node: Element | null = element; node; node = node.parent) {
+    if (node.props.accessibilityLiveRegion === "polite") return true;
+  }
+  return false;
+}
+
 async function press(name: string) {
   await act(async () => fireEvent.press(screen.getByRole("button", { name })));
 }
@@ -37,7 +47,9 @@ describe("AUTH02 VerifyEmailScreen", () => {
 
     await press("Xác minh email");
 
-    expect(await screen.findByRole("header", { name: "Đã xác minh email" })).toBeOnTheScreen();
+    const verified = await screen.findByRole("header", { name: "Đã xác minh email" });
+    expect(announced(verified)).toBe(true);
+    expect(announced(screen.getByText("Bạn có thể đăng nhập bằng email và mật khẩu đã tạo."))).toBe(true);
     expect(server.requests).toHaveLength(1);
     expect(await server.requests[0].json()).toEqual({ token: TOKEN });
     expect(server.unexpected).toEqual([]);
@@ -51,10 +63,10 @@ describe("AUTH02 VerifyEmailScreen", () => {
 
     await press("Xác minh email");
 
-    expect(await screen.findByRole("header", { name: "Liên kết đã hết hạn" })).toBeOnTheScreen();
+    expect(announced(await screen.findByRole("header", { name: "Liên kết đã hết hạn" }))).toBe(true);
     expect(
-      screen.getByText("Liên kết xác minh chỉ dùng được trong 30 phút. Gửi liên kết mới tới email của bạn."),
-    ).toBeOnTheScreen();
+      announced(screen.getByText("Liên kết xác minh chỉ dùng được trong 30 phút. Gửi liên kết mới tới email của bạn.")),
+    ).toBe(true);
     expect(screen.queryByRole("header", { name: "Đã xác minh email" })).toBeNull();
     expect(screen.getByRole("button", { name: "Gửi lại liên kết" })).toBeOnTheScreen();
     expect(screen.queryByRole("button", { name: "Xác minh email" })).toBeNull();
@@ -71,9 +83,23 @@ describe("AUTH02 VerifyEmailScreen", () => {
 
     await press("Xác minh email");
 
-    expect(await screen.findByRole("header", { name: "Liên kết này đã được dùng" })).toBeOnTheScreen();
-    expect(screen.getByText("Mỗi liên kết chỉ dùng một lần. Nếu email đã được xác minh, hãy đăng nhập.")).toBeOnTheScreen();
+    expect(announced(await screen.findByRole("header", { name: "Liên kết này đã được dùng" }))).toBe(true);
+    expect(announced(screen.getByText("Mỗi liên kết chỉ dùng một lần. Nếu email đã được xác minh, hãy đăng nhập."))).toBe(true);
     expect(screen.queryByRole("header", { name: "Liên kết đã hết hạn" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Gửi lại liên kết" })).toBeOnTheScreen();
+  });
+
+  it("AC_UC01_02_a_link_the_server_refuses_as_invalid_is_read_out_and_offers_a_new_link", async () => {
+    server = mockApi({
+      "POST /auth/verify": () => problem(400, "LINK_INVALID", "Liên kết không hợp lệ."),
+    });
+    await show(TOKEN);
+
+    await press("Xác minh email");
+
+    expect(announced(await screen.findByRole("header", { name: "Liên kết không hợp lệ" }))).toBe(true);
+    expect(announced(screen.getByText("Hãy mở đúng liên kết trong email, hoặc gửi lại liên kết mới."))).toBe(true);
+    expect(screen.queryByRole("button", { name: "Xác minh email" })).toBeNull();
     expect(screen.getByRole("button", { name: "Gửi lại liên kết" })).toBeOnTheScreen();
   });
 

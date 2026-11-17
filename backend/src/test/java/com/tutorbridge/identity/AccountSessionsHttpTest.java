@@ -108,14 +108,17 @@ class AccountSessionsHttpTest extends IntegrationTest {
         Account unverified = account("PARENT", "UNVERIFIED");
         login(unverified.email(), PASSWORD, randomIp())
                 .andExpect(status().isForbidden()).andExpect(Contract.matches())
-                .andExpect(jsonPath("$.code").value("ACCOUNT_UNVERIFIED"));
+                .andExpect(jsonPath("$.code").value("ACCOUNT_UNVERIFIED"))
+                // Wording approved in AUTH03 (#142); the app shows this title as is.
+                .andExpect(jsonPath("$.title").value("Email chưa được xác minh. Mở liên kết trong email, hoặc gửi lại liên kết."));
         login(unverified.email(), "sai-mat-khau-hoan-toan", randomIp())
                 .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("AUTHENTICATION_FAILED"));
 
         Account locked = account("TUTOR", "LOCKED");
         login(locked.email(), PASSWORD, randomIp())
                 .andExpect(status().isForbidden()).andExpect(Contract.matches())
-                .andExpect(jsonPath("$.code").value("ACCOUNT_LOCKED"));
+                .andExpect(jsonPath("$.code").value("ACCOUNT_LOCKED"))
+                .andExpect(jsonPath("$.title").value("Tài khoản đang bị tạm khóa nên chưa đăng nhập được."));
         assertThat(sessionCount(unverified.id()) + sessionCount(locked.id())).isZero();
     }
 
@@ -129,6 +132,7 @@ class AccountSessionsHttpTest extends IntegrationTest {
                 .andExpect(status().isTooManyRequests())
                 .andExpect(Contract.matches())
                 .andExpect(jsonPath("$.code").value("LOGIN_DELAYED"))
+                .andExpect(jsonPath("$.title").value("Bạn đã nhập sai nhiều lần. Vui lòng thử lại sau 15 phút."))
                 .andExpect(header().string("Retry-After", org.hamcrest.Matchers.matchesPattern("(8[5-9]\\d|900)")));
         assertThat(sessionCount(account.id())).isZero();
     }

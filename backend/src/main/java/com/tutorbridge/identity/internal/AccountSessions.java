@@ -74,9 +74,9 @@ public class AccountSessions {
         // Only after a correct password, so these never reveal that an email has an account (Q5).
         switch (login.status()) {
             case "UNVERIFIED" -> throw new ApiException(HttpStatus.FORBIDDEN, "ACCOUNT_UNVERIFIED",
-                    "Email chưa được xác minh. Vui lòng mở liên kết trong email hoặc gửi lại liên kết.");
+                    "Email chưa được xác minh. Mở liên kết trong email, hoặc gửi lại liên kết.");
             case "LOCKED" -> throw new ApiException(HttpStatus.FORBIDDEN, "ACCOUNT_LOCKED",
-                    "Tài khoản đang bị khóa. Vui lòng liên hệ hỗ trợ.");
+                    "Tài khoản đang bị tạm khóa nên chưa đăng nhập được.");
             default -> { }
         }
 

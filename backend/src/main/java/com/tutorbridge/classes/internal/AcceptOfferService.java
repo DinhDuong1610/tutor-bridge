@@ -67,12 +67,16 @@ class AcceptOfferService implements AcceptOffer {
                 if (UNIQUE_VIOLATION.equals(sqlState)) {
                     throw scopeChanged();
                 }
+                // A row lock after the resource locks waited past lock_timeout (ADR-0007). Not retried:
+                // waiting again would exceed the bound; the client resends with the same key.
+                if (ResourceLocks.timedOut(e)) {
+                    throw ResourceLocks.busy();
+                }
                 if (!DEADLOCK.equals(sqlState) && !SERIALIZATION_FAILURE.equals(sqlState)) {
                     throw e;
                 }
                 if (attempt == MAX_ATTEMPTS) {
-                    throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "SERVICE_BUSY",
-                            "Hệ thống đang bận. Vui lòng gửi lại cùng thao tác.");
+                    throw ResourceLocks.busy();
                 }
             }
         }

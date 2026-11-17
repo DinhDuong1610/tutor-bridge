@@ -50,15 +50,29 @@ class ResourceLocks {
                 jdbc.sql("select pg_advisory_xact_lock(?)").param(key).query((rs, row) -> 1).single();
             }
         } catch (DataAccessException e) {
-            if (LOCK_NOT_AVAILABLE.equals(sqlState(e))) {
-                throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "SERVICE_BUSY",
-                        "Hệ thống đang bận. Vui lòng gửi lại cùng thao tác.");
+            if (timedOut(e)) {
+                throw busy();
             }
             throw e;
         }
     }
 
-    private static String sqlState(DataAccessException e) {
+    /**
+     * Whether a statement gave up waiting for a lock. The timeout set by {@link #lock} lasts until the
+     * transaction ends, so a row lock taken after the resource locks can time out as well (#160); the
+     * caller answers {@link #busy()} for it too, as ADR-0007 says.
+     */
+    static boolean timedOut(Throwable e) {
+        return LOCK_NOT_AVAILABLE.equals(sqlState(e));
+    }
+
+    /** 503 SERVICE_BUSY: the client treats it as an unknown outcome and resends with the same key (#83). */
+    static ApiException busy() {
+        return new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "SERVICE_BUSY",
+                "Hệ thống đang bận. Vui lòng gửi lại cùng thao tác.");
+    }
+
+    private static String sqlState(Throwable e) {
         for (Throwable cause = e; cause != null; cause = cause.getCause()) {
             if (cause instanceof SQLException sql && sql.getSQLState() != null) {
                 return sql.getSQLState();

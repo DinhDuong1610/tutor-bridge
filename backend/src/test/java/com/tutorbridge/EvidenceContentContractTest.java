@@ -85,6 +85,14 @@ class EvidenceContentContractTest {
     }
 
     @Test
+    void the_receipt_fingerprint_names_the_upload_and_the_bytes() throws IOException {
+        // Review of #163: the same file sent to two uploads with one key must not replay the first upload.
+        String description = ((String) operation().get("description")).replaceAll("\s+", " ");
+        assertThat(description).contains("the receipt payload is {uploadId, bodySha256}")
+                .contains("same key with another uploadId or other bytes is 409");
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     void only_pdf_jpeg_and_png_bytes_are_accepted() throws IOException {
         var body = (Map<String, Object>) operation().get("requestBody");

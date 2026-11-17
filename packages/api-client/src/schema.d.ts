@@ -2166,7 +2166,7 @@ export interface paths {
         get?: never;
         /**
          * uploadEvidenceContent
-         * @description Receives the file bytes for an upload created by createEvidenceUpload (EvidenceUploadTicket.uploadUrl points here in R0). Only while the upload is UPLOADING and before expiresAt; bytes go to private storage, never a public URL. Content-Type must equal the declared mediaType and the body length the declared sizeBytes (at most 5 MiB), else 422. Magic bytes and SHA-256 are checked by completeEvidenceUpload. Expired: 409 EVIDENCE_UPLOAD_EXPIRED. No longer UPLOADING: 409 EVIDENCE_UPLOAD_CLOSED. The receipt payload is the SHA-256 of the body: same key and bytes replays, same key and other bytes 409 (INV-20). A new key while still UPLOADING replaces the bytes.
+         * @description Receives the file bytes for an upload created by createEvidenceUpload (EvidenceUploadTicket.uploadUrl points here in R0). Only while the upload is UPLOADING and before expiresAt; bytes go to private storage, never a public URL. Content-Type must equal the declared mediaType and the body length the declared sizeBytes (at most 5 MiB), else 422. Magic bytes and SHA-256 are checked by completeEvidenceUpload. Expired: 409 EVIDENCE_UPLOAD_EXPIRED. No longer UPLOADING: 409 EVIDENCE_UPLOAD_CLOSED. Idempotency (INV-20): the receipt payload is {uploadId, bodySha256}. Content-Type and length are not in it, since they must equal what the upload declared. Same key, same uploadId and same bytes replays the record of that upload after the owner is checked again; same key with another uploadId or other bytes is 409. A new key while still UPLOADING replaces the bytes.
          */
         put: operations["uploadEvidenceContent"];
         post?: never;

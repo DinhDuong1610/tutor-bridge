@@ -175,6 +175,9 @@ class WebFoundationTest {
             "{\"name\":\"a\",\"count\":1,\"role\":\"ADMIN\"}",
             "{\"name\":\"a\",\"count\":null}",
             "{\"name\":\"a\",\"count\":1} {}",
+            // An integer field takes no fraction: 1.5 is refused, not cut to 1 (#168).
+            "{\"name\":\"a\",\"count\":1.5}",
+            "{\"name\":\"a\",\"count\":-0.5}",
         }) {
             mvc.perform(post("/probe/body").contentType(MediaType.APPLICATION_JSON).content(json))
                     .andExpect(status().isUnprocessableContent())

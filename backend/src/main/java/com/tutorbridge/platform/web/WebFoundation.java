@@ -34,13 +34,17 @@ class WebFoundation implements WebMvcConfigurer {
                         request.getHeader(HttpHeaders.IF_MATCH), request.getHeader(HttpHeaders.IF_NONE_MATCH))));
     }
 
-    /** Strict input: a property outside the contract is a 422, not silently dropped. */
+    /**
+     * Strict input: a property outside the contract is a 422, not silently dropped, and a number with
+     * a fraction sent to an integer field is a 422, not cut to its integer part (#168).
+     */
     @Bean
     JsonMapperBuilderCustomizer strictJson() {
         return builder -> builder
                 .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
                         DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES,
                         DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
+                .disable(DeserializationFeature.ACCEPT_FLOAT_AS_INT)
                 .disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS);
     }
 

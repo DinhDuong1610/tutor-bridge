@@ -61,6 +61,16 @@ class EvidenceUploadRepository {
                 .param(id).query(Row.class).optional();
     }
 
+    /** Moves a locked upload from one state to the next; anything else is a bug in the caller. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    void moveState(UUID id, String from, String to) {
+        int updated = jdbc.sql("update tutor_evidence_uploads set state = ? where id = ? and state = ?")
+                .params(to, id, from).update();
+        if (updated != 1) {
+            throw new IllegalStateException("Upload " + id + " is not " + from);
+        }
+    }
+
     private static OffsetDateTime at(Instant instant) {
         return OffsetDateTime.ofInstant(instant, ZoneOffset.UTC);
     }

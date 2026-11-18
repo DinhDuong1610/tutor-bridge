@@ -28,7 +28,8 @@ import org.springframework.transaction.support.TransactionOperations;
 import org.springframework.util.IdGenerator;
 
 /**
- * UC03 evidence for the tutor, TB-12b1: createEvidenceUpload and uploadEvidenceContent.
+ * UC03 evidence for the tutor: createEvidenceUpload, uploadEvidenceContent (TB-12b1) and
+ * completeEvidenceUpload (TB-12b2).
  *
  * <p>The owner comes from the session (INV-03); another tutor's upload is the same 404 as an unknown id
  * (INV-06). An upload belongs to no profile version yet: TB-12c links READY evidence to a submitted
@@ -52,20 +53,23 @@ public class EvidenceUploads {
     static final Duration TICKET_LIFETIME = Duration.ofMinutes(15);
     static final String CREATE = "CREATE_EVIDENCE_UPLOAD";
     static final String PUT_CONTENT = "UPLOAD_EVIDENCE_CONTENT";
+    static final String COMPLETE = "COMPLETE_EVIDENCE_UPLOAD";
     private static final String RESULT_TYPE = "EVIDENCE_UPLOAD";
     private static final Pattern SHA256 = Pattern.compile("[0-9a-f]{64}");
 
     private final EvidenceUploadRepository uploads;
     private final ObjectStore store;
+    private final EvidenceScanner scanner;
     private final CommandReceipts receipts;
     private final TransactionOperations transactions;
     private final Clock clock;
     private final IdGenerator ids;
 
-    EvidenceUploads(EvidenceUploadRepository uploads, ObjectStore store, CommandReceipts receipts,
-            TransactionOperations transactions, Clock clock, IdGenerator ids) {
+    EvidenceUploads(EvidenceUploadRepository uploads, ObjectStore store, EvidenceScanner scanner,
+            CommandReceipts receipts, TransactionOperations transactions, Clock clock, IdGenerator ids) {
         this.uploads = uploads;
         this.store = store;
+        this.scanner = scanner;
         this.receipts = receipts;
         this.transactions = transactions;
         this.clock = clock;
@@ -167,6 +171,118 @@ public class EvidenceUploads {
         });
     }
 
+    /**
+     * completeEvidenceUpload (Huy, TB-12b2 plan, 18/11/2026). Reading the bytes is storage I/O, so it
+     * sits between two transactions (INV-18):
+     * <ol>
+     *   <li>Without locks: owner (404), active tutor (403), input equal to what was declared (422). An
+     *       upload still UPLOADING must be in time (409 expired) and have its bytes (409 missing).
+     *   <li>Transaction 1, no receipt: account {@code FOR SHARE}, upload {@code FOR UPDATE}, UPLOADING in
+     *       time becomes QUARANTINED. A QUARANTINED upload stays so and is checked again: that is how a
+     *       call that died after this step goes on.
+     *   <li>Outside any transaction, a QUARANTINED upload is scanned; bytes that are gone are FAILED.
+     *   <li>Transaction 2: account {@code FOR SHARE}, receipt (a replay answers the record as it is now),
+     *       upload {@code FOR UPDATE}; still QUARANTINED becomes READY or FAILED with the receipt.
+     *       Anything else means another command finished it: 409 closed.
+     * </ol>
+     * The command's result, READY or FAILED, commits with its receipt (INV-21). QUARANTINED alone is the
+     * intermediate step that INV-18 needs; Đính confirms this reading when reviewing.
+     */
+    public Evidence complete(Actor actor, UUID uploadId, IdempotencyKey key, int sizeBytes, String sha256) {
+        requireTutorRole(actor);
+        EvidenceUploadRepository.Row seen = owned(actor, uploadId);
+        if (!uploads.isActiveTutor(actor.accountId())) {
+            throw accessUnavailable();
+        }
+        requireDeclared(seen, sizeBytes, sha256);
+        if (seen.state().equals("UPLOADING")) {
+            if (!clock.instant().isBefore(seen.expiresAt())) {
+                throw expired();
+            }
+            if (!exists(seen.objectKey())) {
+                throw contentMissing();
+            }
+        }
+
+        String state = transactions.execute(status -> {
+            if (!uploads.lockActiveTutor(actor.accountId())) {
+                throw accessUnavailable();
+            }
+            EvidenceUploadRepository.Row row = lockOwned(actor, uploadId);
+            if (!row.state().equals("UPLOADING")) {
+                return row.state();
+            }
+            if (!clock.instant().isBefore(row.expiresAt())) {
+                throw expired();
+            }
+            uploads.moveState(uploadId, "UPLOADING", "QUARANTINED");
+            return "QUARANTINED";
+        });
+
+        EvidenceScanner.Verdict verdict = state.equals("QUARANTINED") ? scan(seen) : null;
+
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("uploadId", uploadId);
+        payload.put("sizeBytes", sizeBytes);
+        payload.put("sha256", sha256);
+        return transactions.execute(status -> {
+            if (!uploads.lockActiveTutor(actor.accountId())) {
+                throw accessUnavailable();
+            }
+            Receipt receipt = receipts.begin(actor.accountId(), COMPLETE, key.value(), payload);
+            if (receipt.replay()) {
+                return evidence(owned(actor, receipt.resultId()));
+            }
+            EvidenceUploadRepository.Row row = lockOwned(actor, uploadId);
+            if (verdict == null || !row.state().equals("QUARANTINED")) {
+                throw closed();
+            }
+            uploads.moveState(uploadId, "QUARANTINED", verdict.name());
+            receipts.succeed(receipt.id(), RESULT_TYPE, uploadId);
+            return new Evidence(row.id(), verdict.name(), row.expiresAt());
+        });
+    }
+
+    private boolean exists(String objectKey) {
+        try {
+            return store.exists(objectKey);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    /** Bytes that are gone count as not the declared bytes. Any other I/O error is a 500, retried later. */
+    private EvidenceScanner.Verdict scan(EvidenceUploadRepository.Row row) {
+        try (InputStream bytes = store.open(row.objectKey())) {
+            return scanner.scan(bytes, row.mediaType(), row.sizeBytes(), row.sha256());
+        } catch (java.nio.file.NoSuchFileException gone) {
+            return EvidenceScanner.Verdict.FAILED;
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    /** CompleteEvidenceInput must repeat what createEvidenceUpload declared; checked before any receipt. */
+    private static void requireDeclared(EvidenceUploadRepository.Row row, int sizeBytes, String sha256) {
+        List<FieldProblem> problems = new ArrayList<>();
+        if (sizeBytes != row.sizeBytes()) {
+            problems.add(new FieldProblem("sizeBytes", "Kích thước không khớp với kích thước đã khai."));
+        }
+        if (!sha256.equals(row.sha256())) {
+            problems.add(new FieldProblem("sha256", "Mã SHA-256 không khớp với mã đã khai."));
+        }
+        if (!problems.isEmpty()) {
+            throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "VALIDATION_FAILED", "Dữ liệu chưa hợp lệ.",
+                    problems);
+        }
+    }
+
+    private EvidenceUploadRepository.Row lockOwned(Actor actor, UUID uploadId) {
+        return uploads.lock(uploadId)
+                .filter(row -> row.ownerId().equals(actor.accountId()))
+                .orElseThrow(EvidenceUploads::notFound);
+    }
+
     private EvidenceUploadRepository.Row owned(Actor actor, UUID uploadId) {
         return uploads.find(uploadId)
                 .filter(row -> row.ownerId().equals(actor.accountId()))
@@ -218,6 +334,11 @@ public class EvidenceUploads {
 
     private static ApiException notFound() {
         return new ApiException(HttpStatus.NOT_FOUND, "EVIDENCE_UPLOAD_NOT_FOUND", "Không tìm thấy lượt tải lên.");
+    }
+
+    private static ApiException contentMissing() {
+        return new ApiException(HttpStatus.CONFLICT, "EVIDENCE_CONTENT_MISSING",
+                "Chưa nhận được tệp của lượt tải lên này. Hãy tải tệp lên rồi thử lại.");
     }
 
     private static ApiException expired() {

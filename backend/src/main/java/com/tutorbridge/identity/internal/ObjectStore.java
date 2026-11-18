@@ -16,6 +16,12 @@ interface ObjectStore {
      */
     Staged stage(InputStream body, long limit) throws IOException;
 
+    /** Whether bytes were ever committed to {@code objectKey}. */
+    boolean exists(String objectKey) throws IOException;
+
+    /** The committed bytes; {@link java.nio.file.NoSuchFileException} when there are none. */
+    InputStream open(String objectKey) throws IOException;
+
     /** Bytes in the staging area. Closing it removes them unless {@link #commit} moved them first. */
     interface Staged extends AutoCloseable {
 

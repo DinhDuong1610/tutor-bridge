@@ -58,6 +58,13 @@ class LocalObjectStoreTest {
         }
         assertThat(Files.readAllBytes(dir.resolve("objects").resolve(key))).containsExactly(2);
         assertThat(staged()).isZero();
+        assertThat(store.exists(key)).isTrue();
+        try (var bytes = store.open(key)) {
+            assertThat(bytes.readAllBytes()).containsExactly(2);
+        }
+        String never = UUID.randomUUID().toString();
+        assertThat(store.exists(never)).isFalse();
+        assertThatThrownBy(() -> store.open(never)).isInstanceOf(java.nio.file.NoSuchFileException.class);
     }
 
     @Test
@@ -68,6 +75,8 @@ class LocalObjectStoreTest {
             try (ObjectStore.Staged staged = store.stage(new ByteArrayInputStream(new byte[] {1}), 1)) {
                 assertThatThrownBy(() -> staged.commit(key)).isInstanceOf(IllegalArgumentException.class);
             }
+            assertThatThrownBy(() -> store.open(key)).isInstanceOf(IllegalArgumentException.class);
+            assertThatThrownBy(() -> store.exists(key)).isInstanceOf(IllegalArgumentException.class);
         }
         try (var files = Files.list(dir.resolve("objects"))) {
             assertThat(files).isEmpty();

@@ -62,6 +62,24 @@ class LocalObjectStore implements ObjectStore {
         return new LocalStaged(file, size, HexFormat.of().formatHex(digest.digest()));
     }
 
+    @Override
+    public boolean exists(String objectKey) {
+        return Files.isRegularFile(object(objectKey));
+    }
+
+    @Override
+    public InputStream open(String objectKey) throws IOException {
+        return Files.newInputStream(object(objectKey));
+    }
+
+    /** Only keys minted by this service, so no key can name a file outside {@code objects}. */
+    private Path object(String objectKey) {
+        if (!KEY.matcher(objectKey).matches()) {
+            throw new IllegalArgumentException("not an object key minted by this service");
+        }
+        return objects.resolve(objectKey);
+    }
+
     private final class LocalStaged implements Staged {
 
         private final Path file;
@@ -86,10 +104,7 @@ class LocalObjectStore implements ObjectStore {
 
         @Override
         public void commit(String objectKey) throws IOException {
-            if (!KEY.matcher(objectKey).matches()) {
-                throw new IllegalArgumentException("not an object key minted by this service");
-            }
-            Files.move(file, objects.resolve(objectKey), StandardCopyOption.ATOMIC_MOVE,
+            Files.move(file, object(objectKey), StandardCopyOption.ATOMIC_MOVE,
                     StandardCopyOption.REPLACE_EXISTING);
         }
 

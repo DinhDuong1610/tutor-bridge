@@ -34,14 +34,21 @@ class WebFoundation implements WebMvcConfigurer {
                         request.getHeader(HttpHeaders.IF_MATCH), request.getHeader(HttpHeaders.IF_NONE_MATCH))));
     }
 
-    /** Strict input: a property outside the contract is a 422, not silently dropped. */
+    /**
+     * Strict input: a property outside the contract is a 422, not silently dropped, and a number with
+     * a fraction sent to an integer field is a 422, not cut to its integer part (#168). A whole number
+     * written as {@code 8.0} or {@code 8e0} is still an integer, as JSON Schema says ({@link WholeNumbers}
+     * for int and long; other integer types refuse any float token).
+     */
     @Bean
     JsonMapperBuilderCustomizer strictJson() {
         return builder -> builder
                 .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
                         DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES,
                         DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
-                .disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS);
+                .disable(DeserializationFeature.ACCEPT_FLOAT_AS_INT)
+                .disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
+                .addModule(WholeNumbers.module());
     }
 
     private record HeaderResolver(Class<?> type, java.util.function.Function<NativeWebRequest, Object> read)

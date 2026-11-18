@@ -46,6 +46,9 @@ describe("AUTH01 RegisterScreen", () => {
 
     expect(await screen.findByRole("header", { name: "Kiểm tra email của bạn" })).toBeOnTheScreen();
     expect(screen.getByText(ACK.message)).toBeOnTheScreen();
+    expect(screen.getByText("Liên kết có hạn 30 phút.")).toBeOnTheScreen();
+    // AUTH01 "Đã tạo" has no Spam sentence; that one belongs to AUTH04 (Đính's review of #179).
+    expect(screen.queryByText(/Spam/)).toBeNull();
     expect(server.requests).toHaveLength(1);
     expect(await server.requests[0].json()).toEqual({
       email: "phu.huynh@example.test",

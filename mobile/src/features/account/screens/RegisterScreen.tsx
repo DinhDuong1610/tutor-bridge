@@ -49,9 +49,6 @@ export function RegisterScreen({ termsVersion, onGoToSignIn, onResendVerificatio
         </Text>
         <Notice tone="success" message={register.result.message} />
         <Text style={styles.body}>Liên kết có hạn 30 phút.</Text>
-        <Text style={styles.body}>
-          Chưa xác minh email thì chưa đăng nhập được. Không thấy email? Xem thư mục Spam rồi gửi lại.
-        </Text>
         <Button title="Gửi lại email xác minh" onPress={onResendVerification} />
         <Button variant="secondary" title="Đến trang đăng nhập" onPress={onGoToSignIn} />
       </View>

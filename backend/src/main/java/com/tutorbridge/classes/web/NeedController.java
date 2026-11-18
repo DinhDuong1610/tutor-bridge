@@ -9,6 +9,8 @@ import com.tutorbridge.platform.api.IdempotencyKey;
 import com.tutorbridge.platform.api.Page;
 import com.tutorbridge.platform.api.WritePrecondition;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import java.util.List;
@@ -25,7 +27,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** listNeeds, createNeedDraft, getNeed, updateNeedDraft (UC04, TB-16 part 1). The service checks the owner. */
+/** listNeeds, createNeedDraft, getNeed, updateNeedDraft, confirmNeed (UC04, TB-16). The service checks the owner. */
 @RestController
 class NeedController {
 
@@ -98,6 +100,15 @@ class NeedController {
             IdempotencyKey key, WritePrecondition.Expected expected, @Valid @RequestBody DraftInput input) {
         return withEtag(HttpStatus.OK,
                 needs.update(actor, needId, key, expected, input.draft(), input.hasWindows()));
+    }
+
+    /** ConfirmNeedInput: {@code confirmed} is the constant true, so the parent states the confirmation. */
+    record ConfirmInput(@NotNull @AssertTrue Boolean confirmed) {}
+
+    @PostMapping("/api/v1/needs/{needId}/confirm")
+    ResponseEntity<NeedService.Need> confirm(@AuthenticationPrincipal Actor actor, @PathVariable UUID needId,
+            IdempotencyKey key, WritePrecondition.Expected expected, @Valid @RequestBody ConfirmInput input) {
+        return withEtag(HttpStatus.OK, needs.confirm(actor, needId, key, expected));
     }
 
     private static ResponseEntity<NeedService.Need> withEtag(HttpStatus status, NeedService.Need need) {

@@ -286,6 +286,16 @@ class EvidenceUploadsHttpTest extends HttpTest {
     }
 
     @Test
+    void UC03_content_type_compares_type_and_subtype_only() throws Exception {
+        Actor tutor = newActor(Actor.Role.TUTOR);
+        byte[] content = bytes(100);
+        UUID id = createdFor(tutor, content);
+
+        upload(tutor, id, key(), "Application/PDF; name=minh-chung.pdf", content).andExpect(status().isOk());
+        assertThat(Files.readAllBytes(stored(id))).isEqualTo(content);
+    }
+
+    @Test
     void UC03_a_full_5_mib_file_is_stored() throws Exception {
         Actor tutor = newActor(Actor.Role.TUTOR);
         byte[] content = bytes(FIVE_MIB);

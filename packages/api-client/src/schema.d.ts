@@ -43,7 +43,7 @@ export interface paths {
         put?: never;
         /**
          * Create a need draft
-         * @description Create a need draft
+         * @description Create a need draft for the owning parent's child. A child has at most one need that is not CLOSED: another one is 409 NEED_ALREADY_OPEN (#16 Q4). The draft fields are the whole draft; the schedule is the child's calendar (getStudentCalendar), not windows in the body (#16 Q1).
          */
         post: operations["createNeedDraft"];
         delete?: never;
@@ -71,7 +71,7 @@ export interface paths {
         head?: never;
         /**
          * Save a new draft revision
-         * @description Save a new draft revision
+         * @description The body replaces the whole draft; an absent field is empty (#16 Q3). A DRAFT need keeps one unconfirmed version, updated in place with revision + 1 (#16 Q2). A CONFIRMED need gets a new unconfirmed version that becomes current and the need is DRAFT again; confirmed versions never change (UC04). Pending offers of the old version stay as they are and acceptOffer refuses them with 409 SCOPE_CHANGED (UC06, #16 Q6). CLOSED: 409.
          */
         patch: operations["updateNeedDraft"];
         trace?: never;
@@ -87,7 +87,7 @@ export interface paths {
         put?: never;
         /**
          * Confirm current need revision
-         * @description Validate nonempty complete hard filters, 20–2000 goal, start in local today..today+28, valid 28-day future schedule. Editing requires a new draft.
+         * @description Validate nonempty complete hard filters, 20–2000 goal, start in local today..today+28, valid 28-day future schedule. Editing requires a new draft. The schedule is the child's effective calendar, whose version id is stored as studentCalendarId (#16 Q1). Valid means: each of the 4 blocks of 7 days from cycleStartDate holds at least frequencyPer7Days future slots of durationMinutes that do not overlap, inside AVAILABLE or PREFERRED windows and outside BLOCKED ones; otherwise 422 naming the short blocks (#16 Q5). No calendar: 422.
          */
         post: operations["confirmNeed"];
         delete?: never;
@@ -2350,7 +2350,15 @@ export interface components {
             frequencyPer7Days?: 1 | 2 | 3;
             /** Format: date */
             cycleStartDate?: string;
+            /**
+             * @deprecated
+             * @description Not used. The schedule is the child's calendar (getStudentCalendar, replaceStudentCalendar); a non-empty array is 422 (#16 Q1). Never returned.
+             */
             availableWindows?: components["schemas"]["Window"][];
+            /**
+             * @deprecated
+             * @description Not used. The schedule is the child's calendar (getStudentCalendar, replaceStudentCalendar); a non-empty array is 422 (#16 Q1). Never returned.
+             */
             preferredWindows?: components["schemas"]["Window"][];
         };
         Need: {
@@ -2365,6 +2373,11 @@ export interface components {
             /** @enum {string} */
             status: "DRAFT" | "CONFIRMED" | "CLOSED";
             draft: components["schemas"]["NeedDraftInput"];
+            /**
+             * Format: uuid
+             * @description Id of the child's calendar version this need version was confirmed with (EffectiveCalendar.id); null until confirmed (#16 Q1).
+             */
+            studentCalendarId: string | null;
         };
         NeedPage: {
             items: components["schemas"]["Need"][];

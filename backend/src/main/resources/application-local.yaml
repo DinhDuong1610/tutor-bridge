@@ -14,6 +14,9 @@ tutorbridge:
   identity:
     # Trial terms with no legal effect, until Đính provides the text (Q8 of TB-8).
     terms-versions: ${TB_TERMS_VERSIONS:ban-thu-chua-hieu-luc}
+    # Under build/, which git ignores; ./gradlew clean empties it.
+    evidence:
+      dir: ${TB_EVIDENCE_DIR:build/local-evidence}
     mail:
       from: no-reply@tutorbridge.invalid
       # Opens the app on a developer phone. Release builds use an https domain (Q7 of TB-10).

@@ -4,5 +4,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Configuration;
 
 @Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties({IdentityProperties.class, VerificationMailProperties.class})
+@EnableConfigurationProperties({IdentityProperties.class, VerificationMailProperties.class,
+        EvidenceStoreProperties.class})
 class IdentityConfig {}

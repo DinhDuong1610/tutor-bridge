@@ -291,9 +291,9 @@ class NeedsHttpTest extends HttpTest {
                     .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
                     .andExpect(jsonPath("$.fields[0].path").value(entry.getValue()));
         }
-        // A fraction in an integer field (budgetVndSession 1.5) is refused by the shared JSON setup of #168
-        // (PR #169), not here; it has its own test in WebFoundationTest.
-        for (String json : List.of("{\"goal\":null}", "{\"cycleStartDate\":\"01/12/2026\"}", "{\"studentId\":\"x\"}")) {
+        // A fraction in an integer field is refused, not cut (#168).
+        for (String json : List.of("{\"goal\":null}", "{\"cycleStartDate\":\"01/12/2026\"}", "{\"studentId\":\"x\"}",
+                "{\"budgetVndSession\":1.5}")) {
             create(parent, student, json).andExpect(status().isUnprocessableContent())
                     .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
         }

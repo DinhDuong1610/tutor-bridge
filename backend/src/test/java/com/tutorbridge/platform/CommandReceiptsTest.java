@@ -219,4 +219,27 @@ class CommandReceiptsTest extends IntegrationTest {
             throw new IllegalStateException(e);
         }
     }
+
+    /** Codex review of #183: a command may need to know its key before it writes anything. */
+    @Test
+    void peek_reads_a_receipt_without_writing_one_and_refuses_another_payload() {
+        UUID actor = newAccount();
+        String key = key();
+        UUID result = UUID.randomUUID();
+
+        assertThat(receipts.peek(actor, COMMAND, key, PAYLOAD)).isEmpty();
+        assertThat(jdbc.sql("select count(*) from command_receipts where actor_id = ?").param(actor)
+                .query(Integer.class).single()).isZero();
+
+        tx.executeWithoutResult(s -> receipts.succeed(receipts.begin(actor, COMMAND, key, PAYLOAD).id(), "CLASS",
+                result));
+
+        Receipt seen = receipts.peek(actor, COMMAND, key, Map.of("revision", 3, "offerId", "o-1")).orElseThrow();
+        assertThat(seen.replay()).isTrue();
+        assertThat(seen.state()).isEqualTo(State.SUCCEEDED);
+        assertThat(seen.resultId()).isEqualTo(result);
+        assertThatThrownBy(() -> receipts.peek(actor, COMMAND, key, Map.of("offerId", "o-2", "revision", 3)))
+                .isInstanceOfSatisfying(ApiException.class,
+                        e -> assertThat(e.code()).isEqualTo("IDEMPOTENCY_KEY_REUSED"));
+    }
 }

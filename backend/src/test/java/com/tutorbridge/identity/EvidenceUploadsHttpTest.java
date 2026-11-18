@@ -761,7 +761,30 @@ class EvidenceUploadsHttpTest extends HttpTest {
 
         assertThat(again).isEqualTo(first);
         assertThat(JSON.readTree(first).get("state").asString()).isEqualTo("READY");
-        assertThat(state(second)).isEqualTo("QUARANTINED");
+        assertThat(state(second)).isEqualTo("UPLOADING");
+    }
+
+    /**
+     * Codex review of #183: a key reused on another upload used to move that upload to QUARANTINED before
+     * the receipt refused it, and a valid PUT to it was then 409 closed. The key is now checked first.
+     */
+    @Test
+    void INV_20_a_key_reused_on_another_upload_changes_nothing_there() throws Exception {
+        Actor tutor = newActor(Actor.Role.TUTOR);
+        byte[] content = file("pdf", 300);
+        UUID first = uploaded(tutor, PDF, content);
+        UUID second = uploaded(tutor, PDF, content);
+        String key = key();
+        complete(tutor, first, key, completionFor(content)).andExpect(jsonPath("$.state").value("READY"));
+        int receipts = receiptsOf(tutor);
+
+        complete(tutor, second, key, completionFor(content)).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("IDEMPOTENCY_KEY_REUSED"));
+
+        assertThat(state(second)).isEqualTo("UPLOADING");
+        assertThat(receiptsOf(tutor)).isEqualTo(receipts);
+        upload(tutor, second, key(), PDF, content).andExpect(status().isOk());
+        complete(tutor, second, key(), completionFor(content)).andExpect(jsonPath("$.state").value("READY"));
     }
 
     @Test

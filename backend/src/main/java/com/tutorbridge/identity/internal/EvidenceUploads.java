@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -175,8 +176,10 @@ public class EvidenceUploads {
      * completeEvidenceUpload (Huy, TB-12b2 plan, 18/11/2026). Reading the bytes is storage I/O, so it
      * sits between two transactions (INV-18):
      * <ol>
-     *   <li>Without locks: owner (404), active tutor (403), input equal to what was declared (422). An
-     *       upload still UPLOADING must be in time (409 expired) and have its bytes (409 missing).
+     *   <li>Without locks: owner (404), active tutor (403), input equal to what was declared (422), then
+     *       the key ({@link CommandReceipts#peek}): used for other input is 409, a finished command with
+     *       it is replayed. An upload still UPLOADING must be in time (409 expired) and have its bytes
+     *       (409 missing).
      *   <li>Transaction 1, no receipt: account {@code FOR SHARE}, upload {@code FOR UPDATE}, UPLOADING in
      *       time becomes QUARANTINED. A QUARANTINED upload stays so and is checked again: that is how a
      *       call that died after this step goes on.
@@ -195,6 +198,16 @@ public class EvidenceUploads {
             throw accessUnavailable();
         }
         requireDeclared(seen, sizeBytes, sha256);
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("uploadId", uploadId);
+        payload.put("sizeBytes", sizeBytes);
+        payload.put("sha256", sha256);
+        // Codex review of #183: the key is checked before transaction 1 changes anything. A key used for
+        // other input is 409 here; a finished command with this key is answered as it is now (INV-22).
+        Optional<Receipt> earlier = receipts.peek(actor.accountId(), COMPLETE, key.value(), payload);
+        if (earlier.isPresent() && earlier.get().state() == CommandReceipts.State.SUCCEEDED) {
+            return evidence(owned(actor, earlier.get().resultId()));
+        }
         if (seen.state().equals("UPLOADING")) {
             if (!clock.instant().isBefore(seen.expiresAt())) {
                 throw expired();
@@ -221,10 +234,6 @@ public class EvidenceUploads {
 
         EvidenceScanner.Verdict verdict = state.equals("QUARANTINED") ? scan(seen) : null;
 
-        Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("uploadId", uploadId);
-        payload.put("sizeBytes", sizeBytes);
-        payload.put("sha256", sha256);
         return transactions.execute(status -> {
             if (!uploads.lockActiveTutor(actor.accountId())) {
                 throw accessUnavailable();

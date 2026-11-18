@@ -413,6 +413,53 @@ class NeedsHttpTest extends HttpTest {
                 .andExpect(jsonPath("$.draft.goal").value(GOAL));
     }
 
+    /**
+     * Review of #184 (Codex): an edit that waits on the need row while another edit of the CONFIRMED need
+     * makes a new current version must answer 412, not 404. A JOIN locked in one statement re-reads only
+     * the locked row after the wait and loses the new version, so the version is read after the lock.
+     */
+    @Test
+    void INV_23_an_edit_that_waited_for_another_edit_of_a_confirmed_need_is_412_not_404() throws Exception {
+        Actor parent = newActor(Actor.Role.PARENT);
+        UUID student = studentOf(parent);
+        UUID need = idOf(create(parent, student, FULL));
+        confirm(need, student);
+        CompletableFuture<Integer> second;
+        try (Connection gate = DriverManager.getConnection(
+                PostgresTestSupport.jdbcUrl(), "tutorbridge_app", PostgresTestSupport.APP_PASSWORD)) {
+            gate.setAutoCommit(false);
+            // The first edit, as updateNeedDraft writes it, held open: version 2 becomes current, revision 3.
+            UUID newVersion = UUID.randomUUID();
+            try (var lock = gate.prepareStatement("select 1 from learning_needs where id = ? for update")) {
+                lock.setObject(1, need);
+                lock.execute();
+            }
+            try (var insert = gate.prepareStatement(
+                    "insert into need_versions(id, need_id, version) values (?, ?, 2)")) {
+                insert.setObject(1, newVersion);
+                insert.setObject(2, need);
+                insert.execute();
+            }
+            try (var update = gate.prepareStatement("""
+                    update learning_needs set status = 'DRAFT', current_version_id = ?, revision = 3 where id = ?
+                    """)) {
+                update.setObject(1, newVersion);
+                update.setObject(2, need);
+                update.execute();
+            }
+            second = Concurrently.supply(() -> statusOf(() -> update(parent, need, newKey(), "\"2\"", "{}")));
+            await().atMost(Duration.ofSeconds(4)).pollInterval(Duration.ofMillis(20)).until(() -> jdbc.sql("""
+                    select count(*) from pg_stat_activity
+                    where wait_event_type = 'Lock' and query like '%learning_needs%for update%'
+                    """).query(Integer.class).single() == 1);
+            gate.commit();
+        }
+
+        assertThat(second.get(30, TimeUnit.SECONDS)).isEqualTo(412);
+        read(parent, need).andExpect(header().string("ETag", "\"3\""));
+        assertThat(versions(need)).isEqualTo(2);
+    }
+
     // ---------------------------------------------------------------- list
 
     @Test

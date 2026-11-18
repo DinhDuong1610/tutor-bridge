@@ -49,13 +49,17 @@ class NeedRepository {
     }
 
     /**
-     * The need row under FOR UPDATE, the "business entity" step of INV-16 that TX05 takes too. The
-     * current version is read in the same statement; it only changes under this lock.
+     * The need row under FOR UPDATE, the "business entity" step of INV-16 that TX05 takes too, then the
+     * need with its current version read by a second statement. Not one statement: after waiting for the
+     * lock, PostgreSQL re-reads only the locked row and keeps the joined version from the old snapshot, so
+     * a wait on an edit that made a new version current would find no row (review of #184). The second
+     * statement sees what that edit committed, and the version only changes under this lock.
      */
     @Transactional(propagation = Propagation.MANDATORY)
     Optional<Row> lock(UUID needId) {
-        return jdbc.sql(SELECT + " where n.id = ? for update of n").param(needId).query(NeedRepository::row)
-                .optional();
+        boolean exists = jdbc.sql("select 1 from learning_needs where id = ? for update").param(needId)
+                .query((rs, n) -> 1).optional().isPresent();
+        return exists ? find(needId) : Optional.empty();
     }
 
     /** Q4 of #16: at most one need per child that is not CLOSED. Read under the child's resource lock. */

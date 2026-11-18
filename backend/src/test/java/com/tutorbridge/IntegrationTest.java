@@ -51,6 +51,16 @@ public abstract class IntegrationTest {
         } catch (java.io.IOException e) {
             throw new java.io.UncheckedIOException(e);
         }
+        // Each run stores a few 5 MiB files; without this, build/ grows by them until the next clean.
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> deleteTree(EVIDENCE_DIR)));
+    }
+
+    private static void deleteTree(java.nio.file.Path root) {
+        try (var paths = java.nio.file.Files.walk(root)) {
+            paths.sorted(java.util.Comparator.reverseOrder()).forEach(path -> path.toFile().delete());
+        } catch (java.io.IOException | java.io.UncheckedIOException ignored) {
+            // Best effort at exit: whatever is left goes with the next ./gradlew clean.
+        }
     }
 
     /** The only terms version tests may register with. */

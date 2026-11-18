@@ -52,6 +52,10 @@ tutorbridge:
       recovery-per-source:
         attempts: 10
         window: 1h
+    # Local ObjectStore for tutor evidence (#12 Q1). Required: a directory every API instance shares,
+    # outside any public web root. S3 replaces it later.
+    evidence:
+      dir: ${TB_EVIDENCE_DIR:}
     # Read by the worker role only. SMTP itself is spring.mail.* (SPRING_MAIL_HOST, SPRING_MAIL_PORT, ...).
     mail:
       from: ${TB_MAIL_FROM:}

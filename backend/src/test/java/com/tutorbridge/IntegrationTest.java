@@ -29,7 +29,23 @@ public abstract class IntegrationTest {
                 "tutorbridge.identity.keys.email-digest", TEST_KEYS[0],
                 "tutorbridge.identity.keys.email-encryption", TEST_KEYS[1],
                 "tutorbridge.identity.keys.link-token", TEST_KEYS[2],
-                "tutorbridge.identity.terms-versions", TERMS_VERSION);
+                "tutorbridge.identity.terms-versions", TERMS_VERSION,
+                "tutorbridge.identity.evidence.dir", EVIDENCE_DIR.toString());
+    }
+
+    /** Root of the local ObjectStore in tests: a fresh temporary directory per test run. */
+    protected static java.nio.file.Path evidenceDir() {
+        return EVIDENCE_DIR;
+    }
+
+    private static final java.nio.file.Path EVIDENCE_DIR;
+
+    static {
+        try {
+            EVIDENCE_DIR = java.nio.file.Files.createTempDirectory("tutorbridge-evidence-");
+        } catch (java.io.IOException e) {
+            throw new java.io.UncheckedIOException(e);
+        }
     }
 
     /** The only terms version tests may register with. */

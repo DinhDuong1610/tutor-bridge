@@ -38,7 +38,7 @@ class WebFoundationTest {
     @RestController
     static class Probe {
 
-        record Body(String name, int count, Long total) {}
+        record Body(String name, int count, Long total, Short small) {}
 
         @PostMapping("/probe/command")
         Map<String, String> command(IdempotencyKey key) {
@@ -181,6 +181,8 @@ class WebFoundationTest {
             "{\"name\":\"a\",\"count\":1,\"total\":5.5}",
             "{\"name\":\"a\",\"count\":1e-1}",
             "{\"name\":\"a\",\"count\":3e9}",
+            // Short, byte and BigInteger skip WholeNumbers; ACCEPT_FLOAT_AS_INT off keeps 1.5 out of them.
+            "{\"name\":\"a\",\"count\":1,\"small\":1.5}",
         }) {
             mvc.perform(post("/probe/body").contentType(MediaType.APPLICATION_JSON).content(json))
                     .andExpect(status().isUnprocessableContent())
@@ -188,6 +190,10 @@ class WebFoundationTest {
         }
         mvc.perform(post("/probe/body").contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"a\",\"count\":1}"))
                 .andExpect(status().isOk());
+        mvc.perform(post("/probe/body").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"a\",\"count\":1,\"small\":2}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.small").value(2));
     }
 
     /** JSON Schema's integer is any number whose fraction is zero (§6.1.1), so 8.0 and 8e0 are 8 (#168). */

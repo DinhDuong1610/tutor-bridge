@@ -348,6 +348,44 @@ class TutorProfilesHttpTest extends HttpTest {
         update(tutor, 3, VALID).andExpect(status().isPreconditionFailed());
     }
 
+    /**
+     * Two devices holding the ETag of the approved version save at once. The second waits on FOR UPDATE of
+     * version 1 and still reads version 1 after the first commits (version 2 is not in its snapshot), so the
+     * revision check passes; the unique (tutor_id, version) key is what turns it into 412 (Đính's review of #167).
+     */
+    @Test
+    void INV_23_two_edits_of_an_approved_profile_at_once_create_one_new_version_and_the_other_is_412()
+            throws Exception {
+        Actor tutor = newActor(Actor.Role.TUTOR);
+        UUID approved = storedVersion(tutor, 1, 3, "APPROVED", true);
+        String before = row(approved);
+        CompletableFuture<Integer> first;
+        CompletableFuture<Integer> second;
+        try (Connection gate = DriverManager.getConnection(
+                PostgresTestSupport.jdbcUrl(), "tutorbridge_app", PostgresTestSupport.APP_PASSWORD)) {
+            gate.setAutoCommit(false);
+            try (var hold = gate.prepareStatement("select id from tutor_profiles where id = ? for update")) {
+                hold.setObject(1, approved);
+                hold.execute();
+            }
+            first = Concurrently.supply(() -> statusOf(() -> update(tutor, 3, VALID)));
+            second = Concurrently.supply(() -> statusOf(() -> update(tutor, 3, body(OTHER_DESCRIPTION, 1, 1))));
+            await().atMost(Duration.ofSeconds(10)).pollInterval(Duration.ofMillis(20)).until(() -> jdbc.sql("""
+                    select count(*) from pg_stat_activity
+                    where wait_event_type = 'Lock' and query like '%order by version desc limit 1 for update'
+                    """).query(Integer.class).single() == 2);
+            gate.commit();
+        }
+
+        assertThat(List.of(first.get(30, TimeUnit.SECONDS), second.get(30, TimeUnit.SECONDS)))
+                .containsExactlyInAnyOrder(200, 412);
+        assertThat(versions(tutor)).isEqualTo(2);
+        assertThat(row(approved)).isEqualTo(before);
+        assertThat(jdbc.sql("select count(*) from command_receipts where actor_id = ?").param(tutor.accountId())
+                .query(Integer.class).single()).isEqualTo(1);
+        read(tutor).andExpect(header().string("ETag", "\"4\"")).andExpect(jsonPath("$.version").value(2));
+    }
+
     @Test
     void OP_24_a_rejected_profile_is_edited_into_a_new_version() throws Exception {
         Actor tutor = newActor(Actor.Role.TUTOR);

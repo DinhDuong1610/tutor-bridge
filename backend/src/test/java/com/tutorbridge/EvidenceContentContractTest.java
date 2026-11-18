@@ -93,6 +93,31 @@ class EvidenceContentContractTest {
     }
 
     @Test
+    void the_body_must_hash_to_the_declared_sha256() throws IOException {
+        // Huy's review of #163: a PUT racing completeEvidenceUpload must not swap checked bytes for unchecked ones.
+        String description = ((String) operation().get("description")).replaceAll("\s+", " ");
+        assertThat(description)
+                .contains("the SHA-256 of the body must equal the sha256 declared by createEvidenceUpload,"
+                        + " else 422 VALIDATION_FAILED");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void the_session_goes_only_to_an_upload_url_on_the_api_origin() throws IOException {
+        // Huy's review of #163: a presigned URL on another store must never receive the tutor's bearer token.
+        var yaml = (Map<String, Object>) new Load(LoadSettings.builder().setMaxAliasesForCollections(1000).build())
+                .loadFromString(Files.readString(Contract.FILE, StandardCharsets.UTF_8));
+        var schemas = (Map<String, Object>) ((Map<String, Object>) yaml.get("components")).get("schemas");
+        var ticket = (Map<String, Object>) schemas.get("EvidenceUploadTicket");
+        var uploadUrl = (Map<String, Object>) ((Map<String, Object>) ticket.get("properties")).get("uploadUrl");
+        String description = ((String) uploadUrl.get("description")).replaceAll("\s+", " ");
+        assertThat(description)
+                .contains("only when uploadUrl has the same origin as the API")
+                .contains("must never receive the session credentials")
+                .doesNotContain("without a client change");
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     void only_pdf_jpeg_and_png_bytes_are_accepted() throws IOException {
         var body = (Map<String, Object>) operation().get("requestBody");

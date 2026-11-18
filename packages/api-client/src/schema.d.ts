@@ -2166,7 +2166,7 @@ export interface paths {
         get?: never;
         /**
          * uploadEvidenceContent
-         * @description Receives the file bytes for an upload created by createEvidenceUpload (EvidenceUploadTicket.uploadUrl points here in R0). Only while the upload is UPLOADING and before expiresAt; bytes go to private storage, never a public URL. Content-Type must equal the declared mediaType and the body length the declared sizeBytes (at most 5 MiB), else 422. Magic bytes and SHA-256 are checked by completeEvidenceUpload. Expired: 409 EVIDENCE_UPLOAD_EXPIRED. No longer UPLOADING: 409 EVIDENCE_UPLOAD_CLOSED. Idempotency (INV-20): the receipt payload is {uploadId, bodySha256}. Content-Type and length are not in it, since they must equal what the upload declared. Same key, same uploadId and same bytes replays the record of that upload after the owner is checked again; same key with another uploadId or other bytes is 409. A new key while still UPLOADING replaces the bytes.
+         * @description Receives the file bytes for an upload created by createEvidenceUpload (EvidenceUploadTicket.uploadUrl points here in R0). Only while the upload is UPLOADING and before expiresAt; bytes go to private storage, never a public URL. Content-Type must equal the declared mediaType and the body length the declared sizeBytes (at most 5 MiB), and the SHA-256 of the body must equal the sha256 declared by createEvidenceUpload, else 422 VALIDATION_FAILED. Magic bytes are checked by completeEvidenceUpload. Expired: 409 EVIDENCE_UPLOAD_EXPIRED. No longer UPLOADING: 409 EVIDENCE_UPLOAD_CLOSED. Idempotency (INV-20): the receipt payload is {uploadId, bodySha256}. Content-Type and length are not in it, since they must equal what the upload declared. Same key, same uploadId and same bytes replays the record of that upload after the owner is checked again; same key with another uploadId or other bytes is 409. A new key while still UPLOADING stores the bytes again; since every accepted body has the declared SHA-256, the stored bytes never differ from the ones completeEvidenceUpload checks.
          */
         put: operations["uploadEvidenceContent"];
         post?: never;
@@ -3543,7 +3543,7 @@ export interface components {
             uploadId: string;
             /**
              * Format: uri
-             * @description Absolute URL to PUT the file bytes to before expiresAt. In R0 it is uploadEvidenceContent on this API (same authentication and Idempotency-Key); a later object store may return another URL without a client change.
+             * @description Absolute URL to PUT the file bytes to before expiresAt. In R0 it is uploadEvidenceContent on this API. The client sends its session credentials and an Idempotency-Key only when uploadUrl has the same origin as the API; a URL on another origin carries its own access and must never receive the session credentials. Pointing uploadUrl at another store is a later contract change, since the client then needs other headers.
              */
             uploadUrl: string;
             /** Format: date-time */

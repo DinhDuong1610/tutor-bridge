@@ -830,21 +830,127 @@ class EvidenceUploadsHttpTest extends HttpTest {
         Actor tutor = newActor(Actor.Role.TUTOR);
         byte[] content = file("pdf", 64 * 1024);
         UUID id = uploaded(tutor, PDF, content);
-        int receipts = receiptsOf(tutor);
+        String firstKey = key();
+        String secondKey = key();
         CompletableFuture<Integer> first;
         CompletableFuture<Integer> second;
         try (Connection gate = gate()) {
             lockRow(gate, id);
-            first = Concurrently.supply(() -> statusOf(() -> complete(tutor, id, key(), completionFor(content))));
-            second = Concurrently.supply(() -> statusOf(() -> complete(tutor, id, key(), completionFor(content))));
+            first = Concurrently.supply(() -> statusOf(() -> complete(tutor, id, firstKey, completionFor(content))));
+            second = Concurrently.supply(() -> statusOf(() -> complete(tutor, id, secondKey, completionFor(content))));
             awaitWaitingOnTheUpload(2);
             gate.commit();
         }
 
-        assertThat(List.of(first.get(30, TimeUnit.SECONDS), second.get(30, TimeUnit.SECONDS)))
-                .containsExactlyInAnyOrder(200, 409);
+        int firstStatus = first.get(30, TimeUnit.SECONDS);
+        int secondStatus = second.get(30, TimeUnit.SECONDS);
+        assertThat(List.of(firstStatus, secondStatus)).containsExactlyInAnyOrder(200, 409);
         assertThat(state(id)).isEqualTo("READY");
-        assertThat(receiptsOf(tutor)).isEqualTo(receipts + 1);
+        assertThat(receiptStates(tutor)).containsExactlyInAnyOrder("SUCCEEDED", "FAILED");
+        // Each key answers again what it answered (INV-20).
+        complete(tutor, id, firstKey, completionFor(content)).andExpect(status().is(firstStatus));
+        complete(tutor, id, secondKey, completionFor(content)).andExpect(status().is(secondStatus));
+    }
+
+    /** States of the tutor's complete receipts; create and PUT receipts are left out. */
+    private List<String> receiptStates(Actor tutor) {
+        return jdbc.sql("""
+                select state from command_receipts where actor_id = ? and command_type = 'COMPLETE_EVIDENCE_UPLOAD'
+                """).param(tutor.accountId()).query(String.class).list();
+    }
+
+    /** Waits until a command is blocked on another transaction's uncommitted receipt with the same key. */
+    private void awaitWaitingOnTheReceipt() {
+        await().atMost(Duration.ofSeconds(10)).pollInterval(Duration.ofMillis(20)).until(() -> jdbc.sql("""
+                select count(*) from pg_stat_activity
+                where wait_event_type = 'Lock' and query like 'insert into command_receipts%'
+                """).query(Integer.class).single() == 1);
+    }
+
+    /**
+     * Codex review of #183 at 0210c87: one key sent at once for two uploads. The receipt is now written in
+     * transaction 1, so the second command waits on the key and is refused before it changes its upload.
+     */
+    @Test
+    void one_key_sent_at_once_for_two_uploads_changes_only_the_first() throws Exception {
+        Actor tutor = newActor(Actor.Role.TUTOR);
+        byte[] content = file("png", 300);
+        UUID first = uploaded(tutor, "image/png", content);
+        UUID second = uploaded(tutor, "image/png", content);
+        String key = key();
+        CompletableFuture<Integer> holding;
+        CompletableFuture<Integer> waiting;
+        try (Connection gate = gate()) {
+            // The first command takes the key, then waits on its upload; the second then waits on the key.
+            lockRow(gate, first);
+            holding = Concurrently.supply(() -> statusOf(() -> complete(tutor, first, key, completionFor(content))));
+            awaitWaitingOnTheUpload(1);
+            waiting = Concurrently.supply(() -> statusOf(() -> complete(tutor, second, key, completionFor(content))));
+            awaitWaitingOnTheReceipt();
+            gate.commit();
+        }
+
+        assertThat(holding.get(30, TimeUnit.SECONDS)).isEqualTo(200);
+        assertThat(waiting.get(30, TimeUnit.SECONDS)).isEqualTo(409);
+        assertThat(state(first)).isEqualTo("READY");
+        assertThat(state(second)).isEqualTo("UPLOADING");
+        upload(tutor, second, key(), "image/png", content).andExpect(status().isOk());
+    }
+
+    /** The same request sent twice at once: the second waits on the key, then goes on and answers the same. */
+    @Test
+    void the_same_complete_sent_twice_at_once_answers_the_same_once() throws Exception {
+        Actor tutor = newActor(Actor.Role.TUTOR);
+        byte[] content = file("jpeg", 300);
+        UUID id = uploaded(tutor, "image/jpeg", content);
+        String key = key();
+        CompletableFuture<String> holding;
+        CompletableFuture<String> waiting;
+        try (Connection gate = gate()) {
+            lockRow(gate, id);
+            holding = Concurrently.supply(() -> bodyOf(() -> complete(tutor, id, key, completionFor(content))));
+            awaitWaitingOnTheUpload(1);
+            waiting = Concurrently.supply(() -> bodyOf(() -> complete(tutor, id, key, completionFor(content))));
+            awaitWaitingOnTheReceipt();
+            gate.commit();
+        }
+
+        String answer = holding.get(30, TimeUnit.SECONDS);
+        assertThat(waiting.get(30, TimeUnit.SECONDS)).isEqualTo(answer);
+        assertThat(JSON.readTree(answer).get("state").asString()).isEqualTo("READY");
+        assertThat(receiptStates(tutor)).containsExactly("SUCCEEDED");
+    }
+
+    /** A crash after transaction 1 leaves a PROCESSING receipt; the same key then goes on to the end. */
+    @Test
+    void the_same_key_after_a_crash_between_the_transactions_goes_on() throws Exception {
+        Actor tutor = newActor(Actor.Role.TUTOR);
+        byte[] content = file("pdf", 300);
+        UUID id = uploaded(tutor, PDF, content);
+        String key = key();
+        // The rows exactly as a call that committed transaction 1 and then stopped leaves them: the upload
+        // QUARANTINED and its receipt PROCESSING, with the payload complete fingerprints.
+        moveTo(id, "QUARANTINED");
+        jdbc.sql("""
+                insert into command_receipts(id, actor_id, command_type, idempotency_key, payload_sha256, state,
+                                             expires_at)
+                values (?, ?, 'COMPLETE_EVIDENCE_UPLOAD', ?, ?, 'PROCESSING', now() + interval '7 days')
+                """).params(UUID.randomUUID(), tutor.accountId(), key,
+                        com.tutorbridge.platform.api.CanonicalJson.sha256(java.util.Map.of(
+                                "uploadId", id, "sizeBytes", content.length, "sha256", sha256(content))))
+                .update();
+
+        complete(tutor, id, key, completionFor(content)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.state").value("READY"));
+        assertThat(receiptStates(tutor)).containsExactly("SUCCEEDED");
+    }
+
+    private static String bodyOf(Call call) {
+        try {
+            return call.run().andReturn().getResponse().getContentAsString();
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     @Test

@@ -1,6 +1,5 @@
 package com.tutorbridge.platform.api;
 
-import java.util.Optional;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -56,28 +55,6 @@ public class CommandReceipts {
                 where actor_id = ? and command_type = ? and idempotency_key = ?
                 for update
                 """).params(actorId, commandType, idempotencyKey).query(StoredReceipt.class).single();
-        return replay(stored, payloadSha256);
-    }
-
-    /**
-     * The receipt of this key as it is now, without writing or locking anything. For a command that
-     * must change state before {@link #begin} can run, such as one split around storage I/O (INV-18):
-     * the same key with another payload is refused before anything changes. {@link #begin} stays the
-     * decision; a key can still be taken between the two calls.
-     */
-    @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
-    public Optional<Receipt> peek(UUID actorId, String commandType, String idempotencyKey, Object payload) {
-        IdempotencyKey.check(idempotencyKey);
-        String payloadSha256 = CanonicalJson.sha256(payload);
-        return jdbc.sql("""
-                select id, payload_sha256, state, result_type, result_id, error_code
-                from command_receipts
-                where actor_id = ? and command_type = ? and idempotency_key = ?
-                """).params(actorId, commandType, idempotencyKey).query(StoredReceipt.class).optional()
-                .map(stored -> replay(stored, payloadSha256));
-    }
-
-    private static Receipt replay(StoredReceipt stored, String payloadSha256) {
         if (!stored.payloadSha256().equals(payloadSha256)) {
             throw new ApiException(HttpStatus.CONFLICT, "IDEMPOTENCY_KEY_REUSED",
                     "Khóa gửi lại này đã dùng cho một nội dung khác.");

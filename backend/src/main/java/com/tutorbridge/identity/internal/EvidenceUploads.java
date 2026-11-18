@@ -55,6 +55,7 @@ public class EvidenceUploads {
     static final String CREATE = "CREATE_EVIDENCE_UPLOAD";
     static final String PUT_CONTENT = "UPLOAD_EVIDENCE_CONTENT";
     static final String COMPLETE = "COMPLETE_EVIDENCE_UPLOAD";
+    private static final String CLOSED = "EVIDENCE_UPLOAD_CLOSED";
     private static final String RESULT_TYPE = "EVIDENCE_UPLOAD";
     private static final Pattern SHA256 = Pattern.compile("[0-9a-f]{64}");
 
@@ -173,23 +174,24 @@ public class EvidenceUploads {
     }
 
     /**
-     * completeEvidenceUpload (Huy, TB-12b2 plan, 18/11/2026). Reading the bytes is storage I/O, so it
-     * sits between two transactions (INV-18):
+     * completeEvidenceUpload (Huy, TB-12b2 plan, 18/11/2026; receipt in transaction 1 since 19/11/2026,
+     * after Codex found that a key checked only in transaction 2 let a reused key change an upload).
+     * Reading the bytes is storage I/O, so it sits between two transactions (INV-18):
      * <ol>
-     *   <li>Without locks: owner (404), active tutor (403), input equal to what was declared (422), then
-     *       the key ({@link CommandReceipts#peek}): used for other input is 409, a finished command with
-     *       it is replayed. An upload still UPLOADING must be in time (409 expired) and have its bytes
-     *       (409 missing).
-     *   <li>Transaction 1, no receipt: account {@code FOR SHARE}, upload {@code FOR UPDATE}, UPLOADING in
-     *       time becomes QUARANTINED. A QUARANTINED upload stays so and is checked again: that is how a
-     *       call that died after this step goes on.
-     *   <li>Outside any transaction, a QUARANTINED upload is scanned; bytes that are gone are FAILED.
-     *   <li>Transaction 2: account {@code FOR SHARE}, receipt (a replay answers the record as it is now),
-     *       upload {@code FOR UPDATE}; still QUARANTINED becomes READY or FAILED with the receipt.
-     *       Anything else means another command finished it: 409 closed.
+     *   <li>Without locks: owner (404), active tutor (403), input equal to what was declared (422). An
+     *       upload still UPLOADING must be in time (409 expired) and have its bytes (409 missing).
+     *   <li>Transaction 1: account {@code FOR SHARE}, receipt, upload {@code FOR UPDATE}. The receipt's
+     *       unique key holds the Idempotency-Key from here on: the same key for another upload waits,
+     *       then is 409, before it changes anything. UPLOADING in time becomes QUARANTINED; QUARANTINED
+     *       stays so; anything else is 409 closed. The PROCESSING receipt commits with the state.
+     *   <li>Outside any transaction, the stored bytes are scanned; bytes that are gone are FAILED.
+     *   <li>Transaction 2: account {@code FOR SHARE}, the same receipt again under its row lock, upload
+     *       {@code FOR UPDATE}. Still QUARANTINED becomes READY or FAILED and the receipt succeeds.
+     *       If another command finished the upload first, the receipt fails with 409 closed.
      * </ol>
-     * The command's result, READY or FAILED, commits with its receipt (INV-21). QUARANTINED alone is the
-     * intermediate step that INV-18 needs; Đính confirms this reading when reviewing.
+     * A replay of a finished command answers what it answered (INV-22: the owner and account are checked
+     * again). A replay of a PROCESSING one, after a crash or alongside the same request, goes on from
+     * step 3, so nothing stays stuck.
      */
     public Evidence complete(Actor actor, UUID uploadId, IdempotencyKey key, int sizeBytes, String sha256) {
         requireTutorRole(actor);
@@ -198,16 +200,6 @@ public class EvidenceUploads {
             throw accessUnavailable();
         }
         requireDeclared(seen, sizeBytes, sha256);
-        Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("uploadId", uploadId);
-        payload.put("sizeBytes", sizeBytes);
-        payload.put("sha256", sha256);
-        // Codex review of #183: the key is checked before transaction 1 changes anything. A key used for
-        // other input is 409 here; a finished command with this key is answered as it is now (INV-22).
-        Optional<Receipt> earlier = receipts.peek(actor.accountId(), COMPLETE, key.value(), payload);
-        if (earlier.isPresent() && earlier.get().state() == CommandReceipts.State.SUCCEEDED) {
-            return evidence(owned(actor, earlier.get().resultId()));
-        }
         if (seen.state().equals("UPLOADING")) {
             if (!clock.instant().isBefore(seen.expiresAt())) {
                 throw expired();
@@ -216,40 +208,72 @@ public class EvidenceUploads {
                 throw contentMissing();
             }
         }
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("uploadId", uploadId);
+        payload.put("sizeBytes", sizeBytes);
+        payload.put("sha256", sha256);
 
-        String state = transactions.execute(status -> {
-            if (!uploads.lockActiveTutor(actor.accountId())) {
-                throw accessUnavailable();
-            }
-            EvidenceUploadRepository.Row row = lockOwned(actor, uploadId);
-            if (!row.state().equals("UPLOADING")) {
-                return row.state();
-            }
-            if (!clock.instant().isBefore(row.expiresAt())) {
-                throw expired();
-            }
-            uploads.moveState(uploadId, "UPLOADING", "QUARANTINED");
-            return "QUARANTINED";
-        });
-
-        EvidenceScanner.Verdict verdict = state.equals("QUARANTINED") ? scan(seen) : null;
-
-        return transactions.execute(status -> {
+        Optional<Evidence> finished = transactions.execute(status -> {
             if (!uploads.lockActiveTutor(actor.accountId())) {
                 throw accessUnavailable();
             }
             Receipt receipt = receipts.begin(actor.accountId(), COMPLETE, key.value(), payload);
-            if (receipt.replay()) {
-                return evidence(owned(actor, receipt.resultId()));
+            if (receipt.replay() && receipt.state() != CommandReceipts.State.PROCESSING) {
+                return Optional.of(replayed(actor, receipt));
             }
             EvidenceUploadRepository.Row row = lockOwned(actor, uploadId);
-            if (verdict == null || !row.state().equals("QUARANTINED")) {
+            if (row.state().equals("UPLOADING")) {
+                if (!clock.instant().isBefore(row.expiresAt())) {
+                    throw expired();
+                }
+                uploads.moveState(uploadId, "UPLOADING", "QUARANTINED");
+            } else if (!row.state().equals("QUARANTINED") && !receipt.replay()) {
                 throw closed();
+            }
+            return Optional.empty();
+        });
+        if (finished.isPresent()) {
+            return finished.get();
+        }
+
+        EvidenceScanner.Verdict verdict = scan(seen);
+
+        Evidence result = transactions.execute(status -> {
+            if (!uploads.lockActiveTutor(actor.accountId())) {
+                throw accessUnavailable();
+            }
+            Receipt receipt = receipts.begin(actor.accountId(), COMPLETE, key.value(), payload);
+            if (receipt.state() != CommandReceipts.State.PROCESSING) {
+                return null;
+            }
+            EvidenceUploadRepository.Row row = lockOwned(actor, uploadId);
+            if (!row.state().equals("QUARANTINED")) {
+                receipts.fail(receipt.id(), CLOSED);
+                return null;
             }
             uploads.moveState(uploadId, "QUARANTINED", verdict.name());
             receipts.succeed(receipt.id(), RESULT_TYPE, uploadId);
             return new Evidence(row.id(), verdict.name(), row.expiresAt());
         });
+        if (result != null) {
+            return result;
+        }
+        // The same request finished it meanwhile, or another key did and this receipt failed: read what
+        // the receipt now says, in its own transaction so the failure above is committed first.
+        return transactions.execute(status -> {
+            if (!uploads.lockActiveTutor(actor.accountId())) {
+                throw accessUnavailable();
+            }
+            return replayed(actor, receipts.begin(actor.accountId(), COMPLETE, key.value(), payload));
+        });
+    }
+
+    /** A finished receipt: the record as it is now (INV-22), or the error it ended with. */
+    private Evidence replayed(Actor actor, Receipt receipt) {
+        if (receipt.state() == CommandReceipts.State.FAILED) {
+            throw closed();
+        }
+        return evidence(owned(actor, receipt.resultId()));
     }
 
     private boolean exists(String objectKey) {
@@ -356,7 +380,7 @@ public class EvidenceUploads {
     }
 
     private static ApiException closed() {
-        return new ApiException(HttpStatus.CONFLICT, "EVIDENCE_UPLOAD_CLOSED",
+        return new ApiException(HttpStatus.CONFLICT, CLOSED,
                 "Lượt tải lên này đã đóng, không nhận thêm tệp.");
     }
 

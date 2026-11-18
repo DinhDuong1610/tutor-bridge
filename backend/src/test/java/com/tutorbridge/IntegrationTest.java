@@ -33,7 +33,10 @@ public abstract class IntegrationTest {
                 "tutorbridge.identity.evidence.dir", EVIDENCE_DIR.toString());
     }
 
-    /** Root of the local ObjectStore in tests: a fresh temporary directory per test run. */
+    /**
+     * Root of the local ObjectStore in tests: a fresh directory per test run under {@code build/}, which
+     * {@code ./gradlew clean} empties, never in the system temp directory (Đính's review of #181).
+     */
     protected static java.nio.file.Path evidenceDir() {
         return EVIDENCE_DIR;
     }
@@ -42,7 +45,9 @@ public abstract class IntegrationTest {
 
     static {
         try {
-            EVIDENCE_DIR = java.nio.file.Files.createTempDirectory("tutorbridge-evidence-");
+            java.nio.file.Path runs = java.nio.file.Files.createDirectories(
+                    java.nio.file.Path.of("build", "test-evidence"));
+            EVIDENCE_DIR = java.nio.file.Files.createTempDirectory(runs, "run-").toAbsolutePath();
         } catch (java.io.IOException e) {
             throw new java.io.UncheckedIOException(e);
         }

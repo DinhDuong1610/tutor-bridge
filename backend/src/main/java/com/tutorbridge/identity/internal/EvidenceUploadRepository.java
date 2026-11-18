@@ -7,6 +7,8 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 /** {@code tutor_evidence_uploads} (V5), owned by identity (module-map). */
 @Repository
@@ -24,6 +26,7 @@ class EvidenceUploadRepository {
     }
 
     /** Verified tutors only: an UNVERIFIED account has no session, a LOCKED one is refused here. */
+    @Transactional(propagation = Propagation.MANDATORY)
     boolean lockActiveTutor(UUID accountId) {
         return jdbc.sql("select 1 from accounts where id = ? and role = 'TUTOR' and status = 'ACTIVE' for share")
                 .param(accountId).query((rs, n) -> 1).optional().isPresent();
@@ -35,6 +38,7 @@ class EvidenceUploadRepository {
                 .param(accountId).query((rs, n) -> 1).optional().isPresent();
     }
 
+    @Transactional(propagation = Propagation.MANDATORY)
     void insert(UUID id, UUID ownerId, String objectKey, String mediaType, int sizeBytes, String sha256,
             Instant createdAt, Instant expiresAt) {
         jdbc.sql("""
@@ -51,6 +55,7 @@ class EvidenceUploadRepository {
                 .param(id).query(Row.class).optional();
     }
 
+    @Transactional(propagation = Propagation.MANDATORY)
     Optional<Row> lock(UUID id) {
         return jdbc.sql("select " + COLUMNS + " from tutor_evidence_uploads where id = ? for update")
                 .param(id).query(Row.class).optional();

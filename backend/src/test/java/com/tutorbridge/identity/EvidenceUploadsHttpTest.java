@@ -205,6 +205,8 @@ class EvidenceUploadsHttpTest extends HttpTest {
             input(PDF, 1, sha.substring(1)),
             input(PDF, 1, sha + "0"),
             "{\"mediaType\":\"application/pdf\",\"sizeBytes\":1}",
+            // A fraction is refused, not cut to 1 (#169, Đính's review of #181).
+            "{\"mediaType\":\"application/pdf\",\"sizeBytes\":1.5,\"sha256\":\"" + sha + "\"}",
         }) {
             create(tutor, key(), json)
                     .andExpect(status().isUnprocessableContent())

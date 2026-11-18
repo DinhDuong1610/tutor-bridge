@@ -122,6 +122,52 @@ class NeedRepository {
                 .params(versionId, revision, needId).update();
     }
 
+    /** A finite free interval [start, end). */
+    record Interval(Instant start, Instant end) {}
+
+    /** The child's effective calendar version (TB-15). Read under the child's resource lock. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    Optional<UUID> effectiveStudentCalendar(UUID studentId) {
+        return jdbc.sql("select id from calendars where owner_kind = 'STUDENT' and owner_id = ? and effective")
+                .param(studentId).query(UUID.class).optional();
+    }
+
+    /**
+     * Free time of a calendar inside [from, to): the union of AVAILABLE and PREFERRED windows minus every
+     * BLOCKED one, as TX05 reads a calendar (BLOCKED wins where windows overlap, Q5 of #15). The
+     * intervals are disjoint and ordered. A calendar holds at most 200 windows (CalendarInput).
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    List<Interval> freeTime(UUID calendarId, Instant from, Instant to) {
+        return jdbc.sql("""
+                with free as (
+                    select coalesce(range_agg(during) filter (where kind <> 'BLOCKED'), '{}'::tstzmultirange)
+                         - coalesce(range_agg(during) filter (where kind = 'BLOCKED'), '{}'::tstzmultirange) as m
+                    from availability_windows where calendar_id = ?
+                )
+                select lower(r) as start_at, upper(r) as end_at
+                from free, unnest(free.m * tstzmultirange(tstzrange(?, ?))) as r
+                order by 1
+                """).params(calendarId, at(from), at(to))
+                .query((rs, n) -> new Interval(rs.getObject("start_at", OffsetDateTime.class).toInstant(),
+                        rs.getObject("end_at", OffsetDateTime.class).toInstant()))
+                .list();
+    }
+
+    /** Confirms the unconfirmed current version with the calendar it was checked against (Q1). */
+    @Transactional(propagation = Propagation.MANDATORY)
+    void confirm(UUID needId, UUID versionId, UUID calendarId, Instant confirmedAt, long revision) {
+        int updated = jdbc.sql("""
+                update need_versions set confirmed_at = ?, student_calendar_id = ?
+                where id = ? and need_id = ? and confirmed_at is null
+                """).params(at(confirmedAt), calendarId, versionId, needId).update();
+        if (updated != 1) {
+            throw new IllegalStateException("Only the unconfirmed current version of a locked DRAFT need is confirmed");
+        }
+        jdbc.sql("update learning_needs set status = 'CONFIRMED', revision = ? where id = ?")
+                .params(revision, needId).update();
+    }
+
     private static Row row(ResultSet rs, int n) throws SQLException {
         Draft draft = new Draft(rs.getString("goal"), rs.getObject("budget_vnd_session", Integer.class),
                 rs.getObject("duration_minutes", Integer.class), rs.getObject("frequency", Integer.class),

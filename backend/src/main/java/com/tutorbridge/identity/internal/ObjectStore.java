@@ -31,7 +31,11 @@ interface ObjectStore {
         /** Lowercase hex SHA-256 of the bytes read. */
         String sha256();
 
-        /** Moves the bytes to {@code objectKey} atomically, replacing what was there. */
+        /**
+         * Moves the bytes to {@code objectKey} atomically, replacing what was there. When the file system
+         * will not replace it (Windows, while another commit or a reader holds it) and it already holds
+         * these exact bytes, they are kept and the staged copy is dropped.
+         */
         void commit(String objectKey) throws IOException;
 
         @Override

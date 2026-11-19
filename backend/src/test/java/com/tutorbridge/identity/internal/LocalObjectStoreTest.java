@@ -67,6 +67,45 @@ class LocalObjectStoreTest {
         assertThatThrownBy(() -> store.open(never)).isInstanceOf(java.nio.file.NoSuchFileException.class);
     }
 
+    /**
+     * A java.io stream opens without FILE_SHARE_DELETE, so on Windows the target cannot be replaced while
+     * it is held: the same AccessDeniedException two concurrent PUTs of one upload ran into. Elsewhere
+     * the move just replaces the file, and the outcome checked here is the same.
+     */
+    @Test
+    void a_commit_onto_a_held_object_with_the_same_bytes_keeps_it_and_drops_the_staged_copy() throws Exception {
+        LocalObjectStore store = store();
+        String key = UUID.randomUUID().toString();
+        try (ObjectStore.Staged staged = store.stage(new ByteArrayInputStream(new byte[] {7, 7}), 2)) {
+            staged.commit(key);
+        }
+        try (var held = new java.io.FileInputStream(dir.resolve("objects").resolve(key).toFile());
+                ObjectStore.Staged again = store.stage(new ByteArrayInputStream(new byte[] {7, 7}), 2)) {
+            assertThat(held.read()).isEqualTo(7);
+            again.commit(key);
+            assertThat(staged()).isZero();
+        }
+        assertThat(Files.readAllBytes(dir.resolve("objects").resolve(key))).containsExactly(7, 7);
+    }
+
+    @Test
+    void a_commit_onto_a_held_object_with_other_bytes_still_fails_on_windows() throws Exception {
+        org.junit.jupiter.api.Assumptions.assumeTrue(System.getProperty("os.name").startsWith("Windows"));
+        LocalObjectStore store = store();
+        String key = UUID.randomUUID().toString();
+        try (ObjectStore.Staged staged = store.stage(new ByteArrayInputStream(new byte[] {1}), 1)) {
+            staged.commit(key);
+        }
+        try (var held = new java.io.FileInputStream(dir.resolve("objects").resolve(key).toFile())) {
+            assertThat(held.read()).isEqualTo(1);
+            try (ObjectStore.Staged other = store.stage(new ByteArrayInputStream(new byte[] {2}), 1)) {
+                assertThatThrownBy(() -> other.commit(key)).isInstanceOf(java.nio.file.FileSystemException.class);
+            }
+            assertThat(staged()).isZero();
+        }
+        assertThat(Files.readAllBytes(dir.resolve("objects").resolve(key))).containsExactly(1);
+    }
+
     @Test
     void a_key_this_service_did_not_mint_is_refused() throws Exception {
         LocalObjectStore store = store();

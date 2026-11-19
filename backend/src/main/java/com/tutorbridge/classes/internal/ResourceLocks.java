@@ -39,6 +39,13 @@ class ResourceLocks {
         return "STUDENT:" + id;
     }
 
+    /**
+     * Takes the locks, with {@link #LOCK_TIMEOUT} for the rest of the transaction. A statement after this
+     * that locks a row another module may hold (as TX05 does with {@code students} and {@code accounts})
+     * can time out too: the caller then answers {@link #busy()} for {@link #timedOut}, as
+     * {@code AcceptOfferService} does (#160). Rows only locked under the same resource lock, such as a
+     * calendar version or a need, cannot make it wait.
+     */
     void lock(String... resources) {
         jdbc.sql("set local lock_timeout = '" + LOCK_TIMEOUT + "'").update();
         long[] keys = Arrays.stream(resources).distinct()

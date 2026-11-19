@@ -3337,7 +3337,9 @@ export interface components {
             reason: string | null;
             /** Format: date-time */
             decidedAt: string | null;
-        } & (unknown & unknown);
+            /** @description Version number of the tutor's current approved profile version, the one parents see while a newer version waits or is refused (OP-24 (1)); null when the tutor has no approved version. When state is VERIFIED it is profileVersion. Lets GS01 tell a first submission from an edit of a profile that stays public (#166). */
+            approvedVersion: number | null;
+        } & (unknown & unknown & unknown);
         VerificationDecisionInput: {
             /** Format: uuid */
             profileVersionId: string;

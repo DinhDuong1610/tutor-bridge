@@ -11837,6 +11837,16 @@ components:
           - string
           - 'null'
           format: date-time
+        approvedVersion:
+          type:
+          - integer
+          - 'null'
+          minimum: 1
+          description: Version number of the tutor's current approved profile version,
+            the one parents see while a newer version waits or is refused (OP-24 (1)); null
+            when the tutor has no approved version. When state is VERIFIED it is
+            profileVersion. Lets GS01 tell a first submission from an edit of a profile that
+            stays public (#166).
       required:
       - id
       - profileVersionId
@@ -11845,6 +11855,7 @@ components:
       - scope
       - reason
       - decidedAt
+      - approvedVersion
       allOf:
       - if:
           properties:
@@ -11872,6 +11883,14 @@ components:
           properties:
             decidedAt:
               type: string
+      - if:
+          properties:
+            state:
+              const: VERIFIED
+        then:
+          properties:
+            approvedVersion:
+              type: integer
     VerificationDecisionInput:
       type: object
       additionalProperties: false

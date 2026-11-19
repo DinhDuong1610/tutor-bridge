@@ -2,11 +2,15 @@ package com.tutorbridge;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.awaitility.Awaitility.await;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.time.Duration;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -69,6 +73,36 @@ class TutorProfileEvidenceMigrationTest extends IntegrationTest {
                 values (?, ?, 'MATH8_ALGEBRA', ?, ?, ?)
                 """).params(id, profile, status, SHA, reason).update();
         return id;
+    }
+
+    /**
+     * Runs {@code change} while another transaction holds {@code hold} on {@code row} uncommitted, waits
+     * until the change is really blocked on that row, then commits the hold. Without FOR SHARE in the
+     * trigger the change never waits, so the wait times out and the test fails (Codex review of #186).
+     */
+    private Throwable whileHeld(String hold, UUID row, String waitingOn, Runnable change) throws Exception {
+        CompletableFuture<Throwable> outcome;
+        try (Connection gate = DriverManager.getConnection(
+                PostgresTestSupport.jdbcUrl(), "tutorbridge_app", PostgresTestSupport.APP_PASSWORD)) {
+            gate.setAutoCommit(false);
+            try (var statement = gate.prepareStatement(hold)) {
+                statement.setObject(1, row);
+                assertThat(statement.executeUpdate()).isOne();
+            }
+            outcome = Concurrently.supply(() -> {
+                try {
+                    change.run();
+                    return null;
+                } catch (RuntimeException e) {
+                    return e;
+                }
+            });
+            await().atMost(Duration.ofSeconds(10)).pollInterval(Duration.ofMillis(20)).until(() -> jdbc.sql("""
+                    select count(*) from pg_stat_activity where wait_event_type = 'Lock' and query like ?
+                    """).param(waitingOn + "%").query(Integer.class).single() == 1);
+            gate.commit();
+        }
+        return outcome.get(30, TimeUnit.SECONDS);
     }
 
     // ---------------------------------------------------------------- tutor_profile_evidence
@@ -154,6 +188,47 @@ class TutorProfileEvidenceMigrationTest extends IntegrationTest {
     }
 
     @Test
+    void INV_54_a_link_racing_the_submit_of_its_draft_waits_and_is_refused() throws Exception {
+        UUID tutor = tutor();
+        UUID draft = profile(tutor, 1, "DRAFT");
+        UUID evidence = upload(tutor, "READY");
+
+        Throwable outcome = whileHeld("update tutor_profiles set status = 'PENDING' where id = ?", draft,
+                "insert into tutor_profile_evidence", () -> link(draft, evidence));
+
+        assertThat(outcome).isInstanceOf(DataIntegrityViolationException.class)
+                .hasMessageContaining("ready evidence of the profile's own tutor");
+        assertThat(links(draft)).isZero();
+    }
+
+    @Test
+    void INV_54_removing_evidence_racing_the_submit_waits_and_is_refused() throws Exception {
+        UUID tutor = tutor();
+        UUID draft = profile(tutor, 1, "DRAFT");
+        link(draft, upload(tutor, "READY"));
+
+        Throwable outcome = whileHeld("update tutor_profiles set status = 'PENDING' where id = ?", draft,
+                "delete from tutor_profile_evidence", () -> jdbc.sql(
+                        "delete from tutor_profile_evidence where profile_id = ?").param(draft).update());
+
+        assertThat(outcome).isInstanceOf(DataIntegrityViolationException.class).hasMessageContaining("frozen");
+        assertThat(links(draft)).isOne();
+    }
+
+    @Test
+    void a_link_racing_its_upload_leaving_ready_waits_and_is_refused() throws Exception {
+        UUID tutor = tutor();
+        UUID draft = profile(tutor, 1, "DRAFT");
+        UUID evidence = upload(tutor, "READY");
+
+        Throwable outcome = whileHeld("update tutor_evidence_uploads set state = 'DELETED' where id = ?", evidence,
+                "insert into tutor_profile_evidence", () -> link(draft, evidence));
+
+        assertThat(outcome).isInstanceOf(DataIntegrityViolationException.class);
+        assertThat(links(draft)).isZero();
+    }
+
+    @Test
     void a_link_needs_an_existing_version_and_upload() {
         UUID tutor = tutor();
         UUID draft = profile(tutor, 1, "DRAFT");
@@ -191,6 +266,41 @@ class TutorProfileEvidenceMigrationTest extends IntegrationTest {
 
         assertThatThrownBy(() -> verification(retired, "PENDING", null))
                 .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void OP_24_a_decision_racing_the_retire_of_its_version_waits_and_is_refused() throws Exception {
+        UUID version = profile(tutor(), 1, "PENDING");
+        UUID needsInfo = verification(version, "PENDING", "Bo sung bang cap");
+
+        Throwable outcome = whileHeld("update tutor_profiles set status = 'RETIRED' where id = ?", version,
+                "update tutor_verifications", () -> jdbc.sql(
+                        "update tutor_verifications set reason = 'Ly do khac' where id = ?").param(needsInfo).update());
+
+        assertThat(outcome).isInstanceOf(DataIntegrityViolationException.class).hasMessageContaining("retired");
+        assertThat(jdbc.sql("select reason from tutor_verifications where id = ?").param(needsInfo)
+                .query(String.class).single()).isEqualTo("Bo sung bang cap");
+    }
+
+    @Test
+    void OP_24_a_verification_cannot_be_moved_off_its_version() {
+        UUID tutor = tutor();
+        UUID first = profile(tutor, 1, "PENDING");
+        UUID needsInfo = verification(first, "PENDING", "Bo sung bang cap");
+        moveProfile(first, "RETIRED");
+        UUID second = profile(tutor, 2, "PENDING");
+        UUID waiting = verification(second, "PENDING", null);
+        UUID third = profile(tutor, 3, "PENDING");
+
+        for (UUID[] move : new UUID[][] {{needsInfo, second}, {waiting, third}}) {
+            assertThatThrownBy(() -> jdbc.sql(
+                            "update tutor_verifications set profile_id = ?, status = 'REJECTED' where id = ?")
+                            .params(move[1], move[0]).update())
+                    .isInstanceOf(DataIntegrityViolationException.class)
+                    .hasMessageContaining("stays with its profile version");
+        }
+        assertThat(jdbc.sql("select count(*) from tutor_verifications where id in (?, ?) and status = 'PENDING'")
+                .params(needsInfo, waiting).query(Integer.class).single()).isEqualTo(2);
     }
 
     @Test

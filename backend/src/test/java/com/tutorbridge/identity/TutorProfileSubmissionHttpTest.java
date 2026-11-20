@@ -275,6 +275,24 @@ class TutorProfileSubmissionHttpTest extends HttpTest {
     }
 
     @Test
+    void a_null_or_missing_evidence_list_is_422_not_a_server_error() throws Exception {
+        Actor tutor = newActor(Actor.Role.TUTOR);
+        UUID draft = draft(tutor, 1, 1);
+        String before = profileRow(draft);
+
+        submit(tutor, newKey(), etag(1), """
+                {"profileVersionId":"%s","evidenceUploadIds":[null]}
+                """.formatted(draft)).andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+        submit(tutor, newKey(), etag(1), """
+                {"profileVersionId":"%s"}
+                """.formatted(draft)).andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+
+        assertNothingWritten(tutor, draft, before);
+    }
+
+    @Test
     void the_same_evidence_twice_is_422_on_the_repeat() throws Exception {
         Actor tutor = newActor(Actor.Role.TUTOR);
         UUID draft = draft(tutor, 1, 1);

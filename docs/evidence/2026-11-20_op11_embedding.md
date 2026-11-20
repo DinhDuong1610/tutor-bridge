@@ -60,7 +60,8 @@ Giấy phép đọc từ model card trên Hugging Face lúc chạy. Dung lượn
 - **Bộ dữ liệu chưa đủ khó.** Mốc túi từ đạt MRR 0,744, cao hơn hai model nhỏ: mục tiêu vẫn trùng nhiều chữ với mô tả khớp dù đã cố tránh. Với 30 mục tiêu, khoảng tin cậy của mọi phương án chồng lên nhau, nên số đo này **không phân biệt được** các model. Đây là hạn chế của bộ dữ liệu, không phải kết luận về chất lượng model.
 - **e5-small dồn `s` vào khoảng 0,89–0,95.** Nếu dùng, `s` gần như hằng số trong BR03, trừ khi chuẩn hóa lại. Đây là điểm cần nhớ khi chọn model, độc lập với bộ dữ liệu.
 - **bge-m3 tốt nhất trên bộ này nhưng chậm:** p95 358 ms trên CPU này, 1024 chiều, 4,4 GB. Độ trễ phụ thuộc máy chạy worker thật.
-- Cả ba model và mốc túi từ đều trượt G04, G06 (mục tiêu thi học sinh giỏi viết không có từ khóa).
+- **Độ trễ trên máy này không ổn định.** Chạy lại ngày 21/11/2026 với cùng commit model (sau review của Codex, xem dưới): chất lượng giống hệt (thứ hạng từng mục tiêu, MRR, KTC, độ trải `s`), nhưng p95 đổi nhiều: e5-small 24,6 → 38,6 ms, bi-encoder 114,6 → 49,6 ms, **bge-m3 357,8 → 173,8 ms (dưới 300)**. Laptop đổi tốc độ CPU theo nguồn và nhiệt. Kết luận không đổi vì bge-m3 vẫn trượt ngưỡng 3 (hơn mốc túi từ 0,033), nhưng **không nên coi bge-m3 trượt vì chậm**: lần 2 đo độ trễ nhiều lượt trên máy chạy worker. Bảng mục 4 giữ số của lần đo theo giao thức.
+- Cả ba model và mốc túi từ đều trượt G04 (thử sức đội tuyển, không có từ khóa). G06 (câu khó cuối đề) cả ba model đều trượt (hạng 5–7), nhưng mốc túi từ xếp hạng 1 nhờ trùng chữ. (Sửa sau review của Codex trên #193: bản trước ghi mốc túi từ cũng trượt G06, trái với `results.json`.)
 - **Độ trễ chỉ tính bước mã hóa.** Tiền tố và tách từ `pyvi` (bi-encoder) chạy trước khi bấm giờ, nên p95 của bi-encoder chưa gồm thời gian tách từ mà worker thật phải làm. Kết luận không đổi vì bi-encoder trượt ở các ngưỡng khác; lần 2 nên bấm giờ cả bước chuẩn bị văn bản. (Ghi sau khi tự rà PR, 20/11/2026; giao thức mục 2 giữ nguyên.)
 
 ## 6. Bước tiếp theo (Đính quyết khi rà PR #193, 20/11/2026)
@@ -72,4 +73,4 @@ Còn lại cho lần 2 (theo đề xuất của agent và góp ý không chặn 
 - Đo lại độ trễ trên máy sẽ chạy worker khi đã biết máy.
 - Bấm giờ cả bước chuẩn bị văn bản (tiền tố, tách từ `pyvi`), không chỉ bước mã hóa (mục 5).
 - Ghi độ trải của `s` vào phần so sánh khi chọn model, vì e5-small dồn `s` vào 0,89–0,95, gần như hằng số trong BR03. Việc thêm điều kiện này thành ngưỡng mới là việc Huy và Đính chốt khi viết giao thức lần 2, không đổi ngưỡng lần 1.
-- Nếu được, có nhiều mục tiêu không trùng chữ với mô tả khớp như G04, G06, vì đó là chỗ mốc túi từ trượt.
+- Nếu được, có nhiều mục tiêu không trùng chữ với mô tả khớp như G04, vì đó là chỗ mốc túi từ trượt. (Góp ý của Đính dựa trên câu sai về G06 ở mục 5; đã bỏ G06 theo số liệu.)

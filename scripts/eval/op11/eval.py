@@ -22,11 +22,15 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 
-# Cách mã hóa theo trang model của từng ứng viên.
+# Cách mã hóa theo trang model của từng ứng viên. Mỗi model ghim theo commit Hugging Face của lần đo
+# 20/11/2026 (docs/evidence/2026-11-20_op11_results.json), để chạy lại đo đúng bản đó.
 CANDIDATES = [
-    {"id": "intfloat/multilingual-e5-small", "query_prefix": "query: ", "passage_prefix": "passage: ", "segment": False},
-    {"id": "bkai-foundation-models/vietnamese-bi-encoder", "query_prefix": "", "passage_prefix": "", "segment": True},
-    {"id": "BAAI/bge-m3", "query_prefix": "", "passage_prefix": "", "segment": False},
+    {"id": "intfloat/multilingual-e5-small", "revision": "614241f622f53c4eeff9890bdc4f31cfecc418b3",
+     "query_prefix": "query: ", "passage_prefix": "passage: ", "segment": False},
+    {"id": "bkai-foundation-models/vietnamese-bi-encoder", "revision": "84f9d9ada0d1a3c37557398b9ae9fcedcdf40be0",
+     "query_prefix": "", "passage_prefix": "", "segment": True},
+    {"id": "BAAI/bge-m3", "revision": "5617a9f61b028005a4858fdac845db406aefb181",
+     "query_prefix": "", "passage_prefix": "", "segment": False},
 ]
 
 BOOTSTRAP_ROUNDS = 1000
@@ -104,8 +108,8 @@ def evaluate_model(candidate: dict, data: dict) -> dict:
     from huggingface_hub import HfApi, snapshot_download
     from sentence_transformers import SentenceTransformer
 
-    info = HfApi().model_info(candidate["id"])
-    revision = info.sha
+    revision = candidate["revision"]
+    info = HfApi().model_info(candidate["id"], revision=revision)
     license_ = (info.card_data or {}).get("license") if info.card_data is not None else None
     path = Path(snapshot_download(candidate["id"], revision=revision))
     size_mb = sum(f.stat().st_size for f in path.rglob("*") if f.is_file()) / 2**20

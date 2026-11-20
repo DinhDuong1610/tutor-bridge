@@ -205,6 +205,8 @@ class EvidenceUploadsHttpTest extends HttpTest {
             input(PDF, 1, sha.substring(1)),
             input(PDF, 1, sha + "0"),
             "{\"mediaType\":\"application/pdf\",\"sizeBytes\":1}",
+            // A fraction is refused, not cut to 1 (#169, Đính's review of #181).
+            "{\"mediaType\":\"application/pdf\",\"sizeBytes\":1.5,\"sha256\":\"" + sha + "\"}",
         }) {
             create(tutor, key(), json)
                     .andExpect(status().isUnprocessableContent())
@@ -563,5 +565,420 @@ class EvidenceUploadsHttpTest extends HttpTest {
         assertThat(waiting.get(30, TimeUnit.SECONDS)).isEqualTo(403);
         assertThat(state(id)).isEqualTo("UPLOADING");
         assertThat(receiptsOf(tutor)).isEqualTo(1);
+    }
+
+    // ---------------------------------------------------------------- completeEvidenceUpload (TB-12b2)
+
+    /** Real leading bytes of each type, then filler: the structural check reads only what R0 needs. */
+    private static byte[] file(String kind, int size) {
+        byte[] head = switch (kind) {
+            case "pdf" -> "%PDF-1.7\n".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
+            case "jpeg" -> new byte[] {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0};
+            case "png" -> new byte[] {(byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A};
+            case "exe" -> new byte[] {'M', 'Z', (byte) 0x90, 0x00};
+            default -> throw new IllegalArgumentException(kind);
+        };
+        byte[] bytes = bytes(size);
+        System.arraycopy(head, 0, bytes, 0, head.length);
+        return bytes;
+    }
+
+    /** An upload whose declared bytes were PUT, ready to complete. */
+    private UUID uploaded(Actor tutor, String mediaType, byte[] content) throws Exception {
+        UUID id = id(create(tutor, key(), input(mediaType, content.length, sha256(content)))
+                .andExpect(status().isCreated()));
+        upload(tutor, id, key(), mediaType, content).andExpect(status().isOk());
+        return id;
+    }
+
+    private static String completion(long sizeBytes, String sha256) {
+        return "{\"sizeBytes\":%d,\"sha256\":\"%s\"}".formatted(sizeBytes, sha256);
+    }
+
+    private static String completionFor(byte[] content) {
+        return completion(content.length, sha256(content));
+    }
+
+    private ResultActions complete(Actor actor, UUID uploadId, String key, String json) throws Exception {
+        MockHttpServletRequestBuilder request = post(UPLOADS + "/" + uploadId + "/complete")
+                .contentType(MediaType.APPLICATION_JSON).content(json);
+        if (actor != null) {
+            request.with(sessions().as(actor));
+        }
+        if (key != null) {
+            request.header("Idempotency-Key", key);
+        }
+        return mvc.perform(request).andExpect(Contract.matches());
+    }
+
+    @Test
+    void UC03_real_pdf_jpeg_and_png_bytes_become_ready() throws Exception {
+        Actor tutor = newActor(Actor.Role.TUTOR);
+        for (String[] kind : new String[][] {{"pdf", PDF}, {"jpeg", "image/jpeg"}, {"png", "image/png"}}) {
+            byte[] content = file(kind[0], 3000);
+            UUID id = uploaded(tutor, kind[1], content);
+
+            String body = complete(tutor, id, key(), completionFor(content))
+                    .andExpect(status().isOk())
+                    .andExpect(header().string("Cache-Control", "private, no-store"))
+                    .andExpect(jsonPath("$.id").value(id.toString()))
+                    .andExpect(jsonPath("$.state").value("READY"))
+                    .andReturn().getResponse().getContentAsString();
+
+            assertThat(state(id)).isEqualTo("READY");
+            assertThat(body).doesNotContain(objectKey(id)).doesNotContain(evidenceDir().toString());
+        }
+    }
+
+    @Test
+    void UC03_bytes_of_another_type_than_declared_are_failed_and_the_upload_is_closed() throws Exception {
+        Actor tutor = newActor(Actor.Role.TUTOR);
+        for (String[] fake : new String[][] {{"png", PDF}, {"exe", PDF}, {"jpeg", "image/png"}, {"pdf", "image/jpeg"}}) {
+            byte[] content = file(fake[0], 500);
+            UUID id = uploaded(tutor, fake[1], content);
+
+            complete(tutor, id, key(), completionFor(content))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.state").value("FAILED"));
+            assertThat(state(id)).isEqualTo("FAILED");
+
+            // FAILED is final (Huy, TB-12b plan): another key cannot retry it, nor can a PUT reopen it.
+            complete(tutor, id, key(), completionFor(content)).andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.code").value("EVIDENCE_UPLOAD_CLOSED"));
+            upload(tutor, id, key(), fake[1], content).andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.code").value("EVIDENCE_UPLOAD_CLOSED"));
+        }
+    }
+
+    @Test
+    void UC03_input_other_than_declared_is_422_and_changes_nothing() throws Exception {
+        Actor tutor = newActor(Actor.Role.TUTOR);
+        byte[] content = file("pdf", 500);
+        UUID id = uploaded(tutor, PDF, content);
+        int receipts = receiptsOf(tutor);
+        String sha = sha256(content);
+
+        for (String json : new String[] {
+            completion(499, sha),
+            completion(500, sha256(bytes(500))),
+            completion(500, sha.toUpperCase()),
+            completion(500, sha.substring(1)),
+            "{\"sizeBytes\":500}",
+            "{\"sizeBytes\":500.5,\"sha256\":\"" + sha + "\"}",
+            "{\"sizeBytes\":500,\"sha256\":\"" + sha + "\",\"mediaType\":\"application/pdf\"}",
+        }) {
+            complete(tutor, id, key(), json)
+                    .andExpect(status().isUnprocessableContent())
+                    .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+        }
+        assertThat(state(id)).isEqualTo("UPLOADING");
+        assertThat(receiptsOf(tutor)).isEqualTo(receipts);
+    }
+
+    @Test
+    void UC03_complete_before_any_bytes_is_409_and_the_upload_stays_uploading() throws Exception {
+        Actor tutor = newActor(Actor.Role.TUTOR);
+        byte[] content = file("pdf", 500);
+        UUID id = id(create(tutor, key(), inputFor(content)).andExpect(status().isCreated()));
+
+        complete(tutor, id, key(), completionFor(content))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("EVIDENCE_CONTENT_MISSING"));
+        assertThat(state(id)).isEqualTo("UPLOADING");
+
+        // The bytes can still come, and then complete works.
+        upload(tutor, id, key(), PDF, content).andExpect(status().isOk());
+        complete(tutor, id, key(), completionFor(content)).andExpect(jsonPath("$.state").value("READY"));
+    }
+
+    @Test
+    void UC03_an_expired_upload_cannot_complete() throws Exception {
+        Actor tutor = newActor(Actor.Role.TUTOR);
+        byte[] content = file("pdf", 100);
+        UUID id = expiredUpload(tutor, content);
+
+        complete(tutor, id, key(), completionFor(content))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("EVIDENCE_UPLOAD_EXPIRED"));
+        assertThat(state(id)).isEqualTo("UPLOADING");
+        assertThat(receiptsOf(tutor)).isZero();
+    }
+
+    @Test
+    void INV_06_another_tutors_upload_is_404_like_an_unknown_id_for_complete() throws Exception {
+        Actor owner = newActor(Actor.Role.TUTOR);
+        Actor other = newActor(Actor.Role.TUTOR);
+        byte[] content = file("pdf", 100);
+        UUID id = uploaded(owner, PDF, content);
+
+        String foreign = complete(other, id, key(), completionFor(content))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("EVIDENCE_UPLOAD_NOT_FOUND"))
+                .andReturn().getResponse().getContentAsString();
+        String unknown = complete(other, UUID.randomUUID(), key(), completionFor(content))
+                .andExpect(status().isNotFound())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(JSON.readTree(foreign).get("title")).isEqualTo(JSON.readTree(unknown).get("title"));
+        assertThat(state(id)).isEqualTo("UPLOADING");
+        assertThat(receiptsOf(other)).isZero();
+    }
+
+    @Test
+    void UC03_only_an_active_tutor_completes() throws Exception {
+        Actor tutor = newActor(Actor.Role.TUTOR);
+        byte[] content = file("pdf", 100);
+        UUID id = uploaded(tutor, PDF, content);
+
+        complete(newActor(Actor.Role.PARENT), id, key(), completionFor(content)).andExpect(status().isForbidden());
+        complete(null, id, key(), completionFor(content)).andExpect(status().isUnauthorized());
+        jdbc.sql("update accounts set status = 'LOCKED' where id = ?").param(tutor.accountId()).update();
+        complete(tutor, id, key(), completionFor(content)).andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("ACCESS_UNAVAILABLE"));
+
+        assertThat(state(id)).isEqualTo("UPLOADING");
+    }
+
+    @Test
+    void INV_20_complete_without_a_key_is_400_the_same_key_replays_and_another_upload_with_it_is_409()
+            throws Exception {
+        Actor tutor = newActor(Actor.Role.TUTOR);
+        byte[] content = file("png", 300);
+        UUID id = uploaded(tutor, "image/png", content);
+        UUID second = uploaded(tutor, "image/png", content);
+
+        complete(tutor, id, null, completionFor(content)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("IDEMPOTENCY_KEY_REQUIRED"));
+        assertThat(state(id)).isEqualTo("UPLOADING");
+
+        String key = key();
+        String first = complete(tutor, id, key, completionFor(content)).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        String again = complete(tutor, id, key, completionFor(content)).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        complete(tutor, second, key, completionFor(content)).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("IDEMPOTENCY_KEY_REUSED"));
+
+        assertThat(again).isEqualTo(first);
+        assertThat(JSON.readTree(first).get("state").asString()).isEqualTo("READY");
+        assertThat(state(second)).isEqualTo("UPLOADING");
+    }
+
+    /**
+     * Codex review of #183: a key reused on another upload used to move that upload to QUARANTINED before
+     * the receipt refused it, and a valid PUT to it was then 409 closed. The key is now checked first.
+     */
+    @Test
+    void INV_20_a_key_reused_on_another_upload_changes_nothing_there() throws Exception {
+        Actor tutor = newActor(Actor.Role.TUTOR);
+        byte[] content = file("pdf", 300);
+        UUID first = uploaded(tutor, PDF, content);
+        UUID second = uploaded(tutor, PDF, content);
+        String key = key();
+        complete(tutor, first, key, completionFor(content)).andExpect(jsonPath("$.state").value("READY"));
+        int receipts = receiptsOf(tutor);
+
+        complete(tutor, second, key, completionFor(content)).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("IDEMPOTENCY_KEY_REUSED"));
+
+        assertThat(state(second)).isEqualTo("UPLOADING");
+        assertThat(receiptsOf(tutor)).isEqualTo(receipts);
+        upload(tutor, second, key(), PDF, content).andExpect(status().isOk());
+        complete(tutor, second, key(), completionFor(content)).andExpect(jsonPath("$.state").value("READY"));
+    }
+
+    @Test
+    void a_complete_that_died_after_quarantine_goes_on_when_called_again() throws Exception {
+        Actor tutor = newActor(Actor.Role.TUTOR);
+        byte[] content = file("jpeg", 300);
+        UUID id = uploaded(tutor, "image/jpeg", content);
+        // As left by a process that committed the first transaction and stopped before the second.
+        moveTo(id, "QUARANTINED");
+
+        complete(tutor, id, key(), completionFor(content)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.state").value("READY"));
+        assertThat(state(id)).isEqualTo("READY");
+    }
+
+    @Test
+    void quarantined_bytes_that_are_gone_are_failed() throws Exception {
+        Actor tutor = newActor(Actor.Role.TUTOR);
+        byte[] content = file("pdf", 300);
+        UUID id = uploaded(tutor, PDF, content);
+        moveTo(id, "QUARANTINED");
+        Files.delete(stored(id));
+
+        complete(tutor, id, key(), completionFor(content)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.state").value("FAILED"));
+    }
+
+    @Test
+    void bytes_changed_in_the_store_after_the_put_are_failed() throws Exception {
+        Actor tutor = newActor(Actor.Role.TUTOR);
+        byte[] content = file("pdf", 300);
+        UUID id = uploaded(tutor, PDF, content);
+        byte[] changed = content.clone();
+        changed[200] ^= 1;
+        Files.write(stored(id), changed);
+
+        complete(tutor, id, key(), completionFor(content)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.state").value("FAILED"));
+    }
+
+    @Test
+    void two_completes_at_once_change_the_state_once_and_the_other_is_409_closed() throws Exception {
+        Actor tutor = newActor(Actor.Role.TUTOR);
+        byte[] content = file("pdf", 64 * 1024);
+        UUID id = uploaded(tutor, PDF, content);
+        String firstKey = key();
+        String secondKey = key();
+        CompletableFuture<Integer> first;
+        CompletableFuture<Integer> second;
+        try (Connection gate = gate()) {
+            lockRow(gate, id);
+            first = Concurrently.supply(() -> statusOf(() -> complete(tutor, id, firstKey, completionFor(content))));
+            second = Concurrently.supply(() -> statusOf(() -> complete(tutor, id, secondKey, completionFor(content))));
+            awaitWaitingOnTheUpload(2);
+            gate.commit();
+        }
+
+        int firstStatus = first.get(30, TimeUnit.SECONDS);
+        int secondStatus = second.get(30, TimeUnit.SECONDS);
+        assertThat(List.of(firstStatus, secondStatus)).containsExactlyInAnyOrder(200, 409);
+        assertThat(state(id)).isEqualTo("READY");
+        assertThat(receiptStates(tutor)).containsExactlyInAnyOrder("SUCCEEDED", "FAILED");
+        // Each key answers again what it answered (INV-20).
+        complete(tutor, id, firstKey, completionFor(content)).andExpect(status().is(firstStatus));
+        complete(tutor, id, secondKey, completionFor(content)).andExpect(status().is(secondStatus));
+    }
+
+    /** States of the tutor's complete receipts; create and PUT receipts are left out. */
+    private List<String> receiptStates(Actor tutor) {
+        return jdbc.sql("""
+                select state from command_receipts where actor_id = ? and command_type = 'COMPLETE_EVIDENCE_UPLOAD'
+                """).param(tutor.accountId()).query(String.class).list();
+    }
+
+    /** Waits until a command is blocked on another transaction's uncommitted receipt with the same key. */
+    private void awaitWaitingOnTheReceipt() {
+        await().atMost(Duration.ofSeconds(10)).pollInterval(Duration.ofMillis(20)).until(() -> jdbc.sql("""
+                select count(*) from pg_stat_activity
+                where wait_event_type = 'Lock' and query like 'insert into command_receipts%'
+                """).query(Integer.class).single() == 1);
+    }
+
+    /**
+     * Codex review of #183 at 0210c87: one key sent at once for two uploads. The receipt is now written in
+     * transaction 1, so the second command waits on the key and is refused before it changes its upload.
+     */
+    @Test
+    void one_key_sent_at_once_for_two_uploads_changes_only_the_first() throws Exception {
+        Actor tutor = newActor(Actor.Role.TUTOR);
+        byte[] content = file("png", 300);
+        UUID first = uploaded(tutor, "image/png", content);
+        UUID second = uploaded(tutor, "image/png", content);
+        String key = key();
+        CompletableFuture<Integer> holding;
+        CompletableFuture<Integer> waiting;
+        try (Connection gate = gate()) {
+            // The first command takes the key, then waits on its upload; the second then waits on the key.
+            lockRow(gate, first);
+            holding = Concurrently.supply(() -> statusOf(() -> complete(tutor, first, key, completionFor(content))));
+            awaitWaitingOnTheUpload(1);
+            waiting = Concurrently.supply(() -> statusOf(() -> complete(tutor, second, key, completionFor(content))));
+            awaitWaitingOnTheReceipt();
+            gate.commit();
+        }
+
+        assertThat(holding.get(30, TimeUnit.SECONDS)).isEqualTo(200);
+        assertThat(waiting.get(30, TimeUnit.SECONDS)).isEqualTo(409);
+        assertThat(state(first)).isEqualTo("READY");
+        assertThat(state(second)).isEqualTo("UPLOADING");
+        upload(tutor, second, key(), "image/png", content).andExpect(status().isOk());
+    }
+
+    /** The same request sent twice at once: the second waits on the key, then goes on and answers the same. */
+    @Test
+    void the_same_complete_sent_twice_at_once_answers_the_same_once() throws Exception {
+        Actor tutor = newActor(Actor.Role.TUTOR);
+        byte[] content = file("jpeg", 300);
+        UUID id = uploaded(tutor, "image/jpeg", content);
+        String key = key();
+        CompletableFuture<String> holding;
+        CompletableFuture<String> waiting;
+        try (Connection gate = gate()) {
+            lockRow(gate, id);
+            holding = Concurrently.supply(() -> bodyOf(() -> complete(tutor, id, key, completionFor(content))));
+            awaitWaitingOnTheUpload(1);
+            waiting = Concurrently.supply(() -> bodyOf(() -> complete(tutor, id, key, completionFor(content))));
+            awaitWaitingOnTheReceipt();
+            gate.commit();
+        }
+
+        String answer = holding.get(30, TimeUnit.SECONDS);
+        assertThat(waiting.get(30, TimeUnit.SECONDS)).isEqualTo(answer);
+        assertThat(JSON.readTree(answer).get("state").asString()).isEqualTo("READY");
+        assertThat(receiptStates(tutor)).containsExactly("SUCCEEDED");
+    }
+
+    /** A crash after transaction 1 leaves a PROCESSING receipt; the same key then goes on to the end. */
+    @Test
+    void the_same_key_after_a_crash_between_the_transactions_goes_on() throws Exception {
+        Actor tutor = newActor(Actor.Role.TUTOR);
+        byte[] content = file("pdf", 300);
+        UUID id = uploaded(tutor, PDF, content);
+        String key = key();
+        // The rows exactly as a call that committed transaction 1 and then stopped leaves them: the upload
+        // QUARANTINED and its receipt PROCESSING, with the payload complete fingerprints.
+        moveTo(id, "QUARANTINED");
+        jdbc.sql("""
+                insert into command_receipts(id, actor_id, command_type, idempotency_key, payload_sha256, state,
+                                             expires_at)
+                values (?, ?, 'COMPLETE_EVIDENCE_UPLOAD', ?, ?, 'PROCESSING', now() + interval '7 days')
+                """).params(UUID.randomUUID(), tutor.accountId(), key,
+                        com.tutorbridge.platform.api.CanonicalJson.sha256(java.util.Map.of(
+                                "uploadId", id, "sizeBytes", content.length, "sha256", sha256(content))))
+                .update();
+
+        complete(tutor, id, key, completionFor(content)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.state").value("READY"));
+        assertThat(receiptStates(tutor)).containsExactly("SUCCEEDED");
+    }
+
+    private static String bodyOf(Call call) {
+        try {
+            return call.run().andReturn().getResponse().getContentAsString();
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    @Test
+    void a_tutor_locked_while_complete_waits_is_refused_and_the_upload_stays_uploading() throws Exception {
+        Actor tutor = newActor(Actor.Role.TUTOR);
+        byte[] content = file("pdf", 100);
+        UUID id = uploaded(tutor, PDF, content);
+        int receipts = receiptsOf(tutor);
+        CompletableFuture<Integer> waiting;
+        try (Connection gate = gate()) {
+            try (var hold = gate.prepareStatement("select id from accounts where id = ? for update")) {
+                hold.setObject(1, tutor.accountId());
+                hold.execute();
+            }
+            waiting = Concurrently.supply(() -> statusOf(() -> complete(tutor, id, key(), completionFor(content))));
+            await().atMost(Duration.ofSeconds(10)).pollInterval(Duration.ofMillis(20)).until(() -> jdbc.sql("""
+                    select count(*) from pg_stat_activity
+                    where wait_event_type = 'Lock' and query like '%from accounts where id = $1%for share'
+                    """).query(Integer.class).single() == 1);
+            try (var lock = gate.prepareStatement("update accounts set status = 'LOCKED' where id = ?")) {
+                lock.setObject(1, tutor.accountId());
+                lock.executeUpdate();
+            }
+            gate.commit();
+        }
+
+        assertThat(waiting.get(30, TimeUnit.SECONDS)).isEqualTo(403);
+        assertThat(state(id)).isEqualTo("UPLOADING");
+        assertThat(receiptsOf(tutor)).isEqualTo(receipts);
     }
 }

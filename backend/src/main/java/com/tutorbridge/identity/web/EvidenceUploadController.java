@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-/** createEvidenceUpload, uploadEvidenceContent (UC03, TB-12b1). The service checks the owner. */
+/** createEvidenceUpload, uploadEvidenceContent, completeEvidenceUpload (UC03, TB-12b); the service checks the owner. */
 @RestController
 class EvidenceUploadController {
 
@@ -31,6 +31,8 @@ class EvidenceUploadController {
     // Upper bound only, so a huge string is refused early; the service checks the contract's rules.
     record CreateInput(@NotNull @Size(max = 100) String mediaType, @NotNull Integer sizeBytes,
             @NotNull @Size(max = 100) String sha256) {}
+
+    record CompleteInput(@NotNull Integer sizeBytes, @NotNull @Size(max = 100) String sha256) {}
 
     record Ticket(UUID uploadId, URI uploadUrl, Instant expiresAt) {}
 
@@ -59,5 +61,11 @@ class EvidenceUploadController {
             IdempotencyKey key, HttpServletRequest request) throws IOException {
         return uploads.putContent(actor, uploadId, key, request.getHeader(HttpHeaders.CONTENT_TYPE),
                 request.getInputStream());
+    }
+
+    @PostMapping(UPLOADS + "/{uploadId}/complete")
+    EvidenceUploads.Evidence complete(@AuthenticationPrincipal Actor actor, @PathVariable UUID uploadId,
+            IdempotencyKey key, @Valid @RequestBody CompleteInput input) {
+        return uploads.complete(actor, uploadId, key, input.sizeBytes(), input.sha256());
     }
 }

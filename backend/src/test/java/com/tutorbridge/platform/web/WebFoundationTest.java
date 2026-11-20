@@ -15,6 +15,8 @@ import com.tutorbridge.platform.api.WritePrecondition;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -42,6 +44,10 @@ class WebFoundationTest {
         record Body(String name, int count, Long total, Short small) {}
 
         record Scalars(String name, Integer count, Boolean flag, UUID ref, Instant at) {}
+
+        enum Level { LOW, HIGH }
+
+        record Moments(Instant at, LocalDate day, Level level, List<Level> levels) {}
 
         @PostMapping("/probe/command")
         Map<String, String> command(IdempotencyKey key) {
@@ -75,6 +81,11 @@ class WebFoundationTest {
         @PostMapping("/probe/scalars")
         Scalars scalars(@RequestBody Scalars scalars) {
             return scalars;
+        }
+
+        @PostMapping("/probe/moments")
+        Moments moments(@RequestBody Moments moments) {
+            return moments;
         }
 
         @GetMapping("/probe/list")
@@ -251,6 +262,48 @@ class WebFoundationTest {
                 .andExpect(jsonPath("$.flag").value(true))
                 .andExpect(jsonPath("$.ref").value("0193a1b2-0000-7000-8000-000000000001"))
                 .andExpect(jsonPath("$.at").value("2026-11-20T00:00:00Z"));
+    }
+
+    /** A moment and a date are ISO-8601 strings, never a timestamp, an array or a date-time for a date (#195). */
+    @Test
+    void a_number_is_not_a_moment_or_a_date() throws Exception {
+        for (String json : new String[] {
+            "{\"at\":1700000000}", "{\"at\":1700000000.5}", "{\"at\":-1}",
+            "{\"at\":\"1700000000\"}", "{\"at\":[1700000000]}", "{\"at\":\"2026-11-20\"}",
+            "{\"day\":20261120}", "{\"day\":1.5}", "{\"day\":\"20261120\"}", "{\"day\":[2026,11,20]}",
+            "{\"day\":\"2026-11-20T00:00:00Z\"}", "{\"day\":\"2026-02-30\"}", "{\"day\":\"\"}",
+        }) {
+            mvc.perform(post("/probe/moments").contentType(MediaType.APPLICATION_JSON).content(json))
+                    .andExpect(status().isUnprocessableContent())
+                    .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+        }
+        mvc.perform(post("/probe/moments").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"at\":\"2026-11-20T07:30:00.123+07:00\",\"day\":\"2026-11-20\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.at").value("2026-11-20T00:30:00.123Z"))
+                .andExpect(jsonPath("$.day").value("2026-11-20"));
+        mvc.perform(post("/probe/moments").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"at\":\"2026-11-20T00:00:00Z\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.at").value("2026-11-20T00:00:00Z"));
+    }
+
+    /** An enum takes its constant's name, not its position: adding a constant would change the meaning (#195). */
+    @Test
+    void a_number_is_not_an_enum() throws Exception {
+        for (String json : new String[] {
+            "{\"level\":0}", "{\"level\":1.0}", "{\"level\":\"0\"}", "{\"level\":\"1\"}",
+            "{\"levels\":[0]}", "{\"levels\":[\"LOW\",1]}",
+        }) {
+            mvc.perform(post("/probe/moments").contentType(MediaType.APPLICATION_JSON).content(json))
+                    .andExpect(status().isUnprocessableContent())
+                    .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+        }
+        mvc.perform(post("/probe/moments").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"level\":\"HIGH\",\"levels\":[\"LOW\",\"HIGH\"]}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.level").value("HIGH"))
+                .andExpect(jsonPath("$.levels[1]").value("HIGH"));
     }
 
     /** JSON Schema's integer is any number whose fraction is zero (§6.1.1), so 8.0 and 8e0 are 8 (#168). */

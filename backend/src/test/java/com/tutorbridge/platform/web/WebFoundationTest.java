@@ -16,6 +16,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import java.time.Instant;
 import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -39,6 +40,8 @@ class WebFoundationTest {
     static class Probe {
 
         record Body(String name, int count, Long total, Short small) {}
+
+        record Scalars(String name, Integer count, Boolean flag, UUID ref, Instant at) {}
 
         @PostMapping("/probe/command")
         Map<String, String> command(IdempotencyKey key) {
@@ -67,6 +70,11 @@ class WebFoundationTest {
         @PostMapping("/probe/body")
         Body body(@RequestBody Body body) {
             return body;
+        }
+
+        @PostMapping("/probe/scalars")
+        Scalars scalars(@RequestBody Scalars scalars) {
+            return scalars;
         }
 
         @GetMapping("/probe/list")
@@ -194,6 +202,55 @@ class WebFoundationTest {
                         .content("{\"name\":\"a\",\"count\":1,\"small\":2}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.small").value(2));
+    }
+
+    /** A string is not an integer, even when it spells one: Jackson's coercion is off (#170). */
+    @Test
+    void a_string_sent_to_an_integer_field_is_rejected() throws Exception {
+        for (String value : new String[] {"\"7\"", "\"8.0\"", "\"\"", "\" \"", "true"}) {
+            for (String field : new String[] {"count", "total", "small"}) {
+                String json = "count".equals(field)
+                        ? "{\"name\":\"a\",\"count\":" + value + "}"
+                        : "{\"name\":\"a\",\"count\":1,\"" + field + "\":" + value + "}";
+                mvc.perform(post("/probe/body").contentType(MediaType.APPLICATION_JSON).content(json))
+                        .andExpect(status().isUnprocessableContent())
+                        .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+            }
+            mvc.perform(post("/probe/scalars").contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"count\":" + value + "}"))
+                    .andExpect(status().isUnprocessableContent())
+                    .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+        }
+        for (String count : new String[] {"7", "7.0"}) {
+            mvc.perform(post("/probe/body").contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"name\":\"a\",\"count\":" + count + ",\"total\":" + count + "}"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.count").value(7))
+                    .andExpect(jsonPath("$.total").value(7));
+        }
+    }
+
+    /** The other scalar coercions of the same Jackson option are off too: the contract types each field (#170). */
+    @Test
+    void a_scalar_of_another_json_type_is_rejected() throws Exception {
+        for (String json : new String[] {
+            "{\"flag\":\"true\"}", "{\"flag\":1}", "{\"flag\":0}", "{\"flag\":\"\"}",
+            "{\"name\":7}", "{\"name\":7.5}", "{\"name\":true}",
+            "{\"ref\":\"\"}", "{\"at\":\"\"}", "{\"at\":\" \"}",
+        }) {
+            mvc.perform(post("/probe/scalars").contentType(MediaType.APPLICATION_JSON).content(json))
+                    .andExpect(status().isUnprocessableContent())
+                    .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+        }
+        mvc.perform(post("/probe/scalars").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"\",\"count\":3,\"flag\":true,"
+                                + "\"ref\":\"0193a1b2-0000-7000-8000-000000000001\",\"at\":\"2026-11-20T00:00:00Z\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value(""))
+                .andExpect(jsonPath("$.count").value(3))
+                .andExpect(jsonPath("$.flag").value(true))
+                .andExpect(jsonPath("$.ref").value("0193a1b2-0000-7000-8000-000000000001"))
+                .andExpect(jsonPath("$.at").value("2026-11-20T00:00:00Z"));
     }
 
     /** JSON Schema's integer is any number whose fraction is zero (§6.1.1), so 8.0 and 8e0 are 8 (#168). */

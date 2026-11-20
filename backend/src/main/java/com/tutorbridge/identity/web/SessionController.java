@@ -1,6 +1,7 @@
 package com.tutorbridge.identity.web;
 
 import com.tutorbridge.identity.internal.AccountSessions;
+import com.tutorbridge.identity.internal.Masked;
 import com.tutorbridge.platform.api.Actor;
 import com.tutorbridge.platform.api.Page;
 import com.tutorbridge.platform.api.PublicEndpoints;
@@ -33,7 +34,13 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 class SessionController {
 
-    record LoginInput(@NotNull @Email @Size(max = 254) String email, @NotNull @Size(min = 1, max = 256) String password) {}
+    record LoginInput(@NotNull @Email @Size(max = 254) String email, @NotNull @Size(min = 1, max = 256) String password) {
+
+        @Override
+        public String toString() {
+            return "LoginInput[email=%s, password=%s]".formatted(Masked.VALUE, Masked.VALUE);
+        }
+    }
 
     private final AccountSessions sessions;
 

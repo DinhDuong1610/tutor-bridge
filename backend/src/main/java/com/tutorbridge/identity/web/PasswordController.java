@@ -1,5 +1,6 @@
 package com.tutorbridge.identity.web;
 
+import com.tutorbridge.identity.internal.Masked;
 import com.tutorbridge.identity.internal.PasswordChange;
 import com.tutorbridge.platform.api.Actor;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,10 +21,22 @@ class PasswordController {
 
     // Length in code points is checked by the service; UTF-16 length bounds it from above.
     record ChangePasswordInput(@NotNull @Size(max = 256) String currentPassword,
-            @NotNull @Size(max = 256) String newPassword) {}
+            @NotNull @Size(max = 256) String newPassword) {
+
+        @Override
+        public String toString() {
+            return "ChangePasswordInput[currentPassword=%s, newPassword=%s]".formatted(Masked.VALUE, Masked.VALUE);
+        }
+    }
 
     record ReauthInput(@NotNull @Size(max = 256) String password,
-            @NotNull @Pattern(regexp = "PRIVACY|CHANGE_PASSWORD|REVOKE_SESSIONS") String purpose) {}
+            @NotNull @Pattern(regexp = "PRIVACY|CHANGE_PASSWORD|REVOKE_SESSIONS") String purpose) {
+
+        @Override
+        public String toString() {
+            return "ReauthInput[password=%s, purpose=%s]".formatted(Masked.VALUE, purpose);
+        }
+    }
 
     private final PasswordChange passwords;
 

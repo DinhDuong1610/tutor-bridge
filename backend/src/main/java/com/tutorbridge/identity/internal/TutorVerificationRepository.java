@@ -88,10 +88,14 @@ class TutorVerificationRepository {
                 """).params(id, profileId, scope, evidenceKey).update();
     }
 
-    /** A verification of one of this tutor's versions; another tutor's is the same as none (INV-06). */
+    /**
+     * A verification of one of this tutor's versions; another tutor's is the same as none (INV-06). The
+     * scope is the submitted version's subject, frozen by INV-54, which is what the first answer gave: a
+     * verifier may change the verification's own scope later, and a replay must not show it (INV-20).
+     */
     Optional<Submitted> findOwn(UUID verificationId, UUID tutorId) {
         return jdbc.sql("""
-                select v.id, v.profile_id, v.scope from tutor_verifications v
+                select v.id, v.profile_id, p.subject as scope from tutor_verifications v
                 join tutor_profiles p on p.id = v.profile_id
                 where v.id = ? and p.tutor_id = ?
                 """).params(verificationId, tutorId).query(Submitted.class).optional();

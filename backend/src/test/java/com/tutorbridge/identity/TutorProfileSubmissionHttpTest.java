@@ -481,6 +481,24 @@ class TutorProfileSubmissionHttpTest extends HttpTest {
     }
 
     @Test
+    void INV_20_a_replay_keeps_the_first_scope_when_the_verification_scope_changes() throws Exception {
+        Actor tutor = newActor(Actor.Role.TUTOR);
+        UUID draft = draft(tutor, 1, 1);
+        String key = newKey();
+        String json = body(draft, ready(tutor, 1));
+        String first = submit(tutor, key, etag(1), json).andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        String scope = JsonPath.read(first, "$.scope");
+        // A verifier may later narrow or widen what the verification covers; the first answer stays (Codex, #190).
+        jdbc.sql("update tutor_verifications set scope = ?, revision = 2 where profile_id = ?")
+                .params(scope + "_CHANGED", draft).update();
+
+        submit(tutor, key, etag(1), json).andExpect(status().isCreated())
+                .andExpect(jsonPath("$.scope").value(scope))
+                .andExpect(jsonPath("$.revision").value(1));
+    }
+
+    @Test
     void INV_20_the_same_key_with_another_body_is_409() throws Exception {
         Actor tutor = newActor(Actor.Role.TUTOR);
         UUID draft = draft(tutor, 1, 1);

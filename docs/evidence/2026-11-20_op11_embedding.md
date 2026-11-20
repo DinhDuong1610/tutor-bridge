@@ -61,6 +61,7 @@ Giấy phép đọc từ model card trên Hugging Face lúc chạy. Dung lượn
 - **e5-small dồn `s` vào khoảng 0,89–0,95.** Nếu dùng, `s` gần như hằng số trong BR03, trừ khi chuẩn hóa lại. Đây là điểm cần nhớ khi chọn model, độc lập với bộ dữ liệu.
 - **bge-m3 tốt nhất trên bộ này nhưng chậm:** p95 358 ms trên CPU này, 1024 chiều, 4,4 GB. Độ trễ phụ thuộc máy chạy worker thật.
 - Cả ba model và mốc túi từ đều trượt G04, G06 (mục tiêu thi học sinh giỏi viết không có từ khóa).
+- **Độ trễ chỉ tính bước mã hóa.** Tiền tố và tách từ `pyvi` (bi-encoder) chạy trước khi bấm giờ, nên p95 của bi-encoder chưa gồm thời gian tách từ mà worker thật phải làm. Kết luận không đổi vì bi-encoder trượt ở các ngưỡng khác; lần 2 nên bấm giờ cả bước chuẩn bị văn bản. (Ghi sau khi tự rà PR, 20/11/2026; giao thức mục 2 giữ nguyên.)
 
 ## 6. Bước tiếp theo đề xuất (agent theo ủy quyền của Huy, chờ Đính)
 1. Bộ dữ liệu lần 2 do **người khác người dựng nhãn** viết mục tiêu (ví dụ Đính viết mục tiêu, agent viết mô tả), khoảng 100 mục tiêu, vẫn là dữ liệu giả, chốt trước khi chạy như lần này.

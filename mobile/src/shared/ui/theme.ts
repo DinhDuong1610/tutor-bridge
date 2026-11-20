@@ -44,8 +44,11 @@ export const fonts = {
 } as const;
 
 /**
- * Sizes and line heights in points. Every style has a line height of at least 1.4 times its size,
- * so stacked Vietnamese marks (ệ, ẫ, ặ) are not clipped; `dateNumeral` holds digits only. Text
+ * Sizes and line heights in points, as in the approved table of `02-nen-thiet-ke.md`. Every style
+ * has a line height so stacked Vietnamese marks (ệ, ẫ, ặ) are not clipped. The rule in `02` asks
+ * for at least 1.4 times the size, but the table gives `title` 24/32 (1.33) and `caption` 13/18
+ * (1.38). TBD (Đính, #95): change the rule or those two values; until then the table wins.
+ * `dateNumeral` holds digits only, so the rule does not apply to it. Text
  * scales with the system font size; never fix a height around text.
  */
 export const typography = {

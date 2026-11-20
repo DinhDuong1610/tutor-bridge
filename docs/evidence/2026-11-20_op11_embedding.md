@@ -1,6 +1,6 @@
 # OP-11: đo ứng viên embedding cho điểm s (BR03)
 
-Issue #137. Chủ trì: Huy. Người rà: Đính. Huy giao agent (Claude) chọn các phương án thuộc phần của Huy ngày 20/11/2026; mọi lựa chọn dưới đây là của agent theo ủy quyền đó, **chưa phải quyết định chung**. Ngưỡng ở mục 3 là TBD của cả Huy và Đính trong #137, nên cần Đính đồng ý khi rà PR.
+Issue #137. Chủ trì: Huy. Người rà: Đính. Huy giao agent (Claude) chọn các phương án thuộc phần của Huy ngày 20/11/2026; mọi lựa chọn dưới đây là của agent theo ủy quyền đó, **chưa phải quyết định chung**. Ngưỡng ở mục 3 là TBD của cả Huy và Đính trong #137; Đính đồng ý ngày 20/11/2026 khi rà PR #193 (mục 6).
 
 Không phải số đo năng lực của sản phẩm (INV-73): bộ dữ liệu nhỏ và giả, chỉ dùng để chọn model.
 
@@ -63,7 +63,13 @@ Giấy phép đọc từ model card trên Hugging Face lúc chạy. Dung lượn
 - Cả ba model và mốc túi từ đều trượt G04, G06 (mục tiêu thi học sinh giỏi viết không có từ khóa).
 - **Độ trễ chỉ tính bước mã hóa.** Tiền tố và tách từ `pyvi` (bi-encoder) chạy trước khi bấm giờ, nên p95 của bi-encoder chưa gồm thời gian tách từ mà worker thật phải làm. Kết luận không đổi vì bi-encoder trượt ở các ngưỡng khác; lần 2 nên bấm giờ cả bước chuẩn bị văn bản. (Ghi sau khi tự rà PR, 20/11/2026; giao thức mục 2 giữ nguyên.)
 
-## 6. Bước tiếp theo đề xuất (agent theo ủy quyền của Huy, chờ Đính)
-1. Bộ dữ liệu lần 2 do **người khác người dựng nhãn** viết mục tiêu (ví dụ Đính viết mục tiêu, agent viết mô tả), khoảng 100 mục tiêu, vẫn là dữ liệu giả, chốt trước khi chạy như lần này.
-2. Đo lại độ trễ trên máy sẽ chạy worker khi đã biết máy.
-3. Giữ nguyên ngưỡng mục 3 cho lần 2, trừ khi Đính sửa khi rà PR này.
+## 6. Bước tiếp theo (Đính quyết khi rà PR #193, 20/11/2026)
+Đính quyết hai điểm (review duyệt #193, agent của Đính ghi lại theo lựa chọn của Đính):
+1. **Ngưỡng mục 3:** đồng ý cả bốn ngưỡng, **giữ nguyên cho lần 2**. Ngưỡng không còn là TBD.
+2. **Bộ dữ liệu lần 2:** **Đính viết khoảng 100 mục tiêu giả**, agent viết mô tả gia sư, để người viết mục tiêu khác người dựng nhãn. Vẫn là dữ liệu giả, giao thức chốt và commit trước khi chạy như lần này.
+
+Còn lại cho lần 2 (theo đề xuất của agent và góp ý không chặn của Đính khi rà):
+- Đo lại độ trễ trên máy sẽ chạy worker khi đã biết máy.
+- Bấm giờ cả bước chuẩn bị văn bản (tiền tố, tách từ `pyvi`), không chỉ bước mã hóa (mục 5).
+- Ghi độ trải của `s` vào phần so sánh khi chọn model, vì e5-small dồn `s` vào 0,89–0,95, gần như hằng số trong BR03. Việc thêm điều kiện này thành ngưỡng mới là việc Huy và Đính chốt khi viết giao thức lần 2, không đổi ngưỡng lần 1.
+- Nếu được, có nhiều mục tiêu không trùng chữ với mô tả khớp như G04, G06, vì đó là chỗ mốc túi từ trượt.

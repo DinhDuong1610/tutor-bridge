@@ -16,6 +16,12 @@ interface ObjectStore {
      */
     Staged stage(InputStream body, long limit) throws IOException;
 
+    /** Whether bytes were ever committed to {@code objectKey}. */
+    boolean exists(String objectKey) throws IOException;
+
+    /** The committed bytes; {@link java.nio.file.NoSuchFileException} when there are none. */
+    InputStream open(String objectKey) throws IOException;
+
     /** Bytes in the staging area. Closing it removes them unless {@link #commit} moved them first. */
     interface Staged extends AutoCloseable {
 
@@ -25,7 +31,11 @@ interface ObjectStore {
         /** Lowercase hex SHA-256 of the bytes read. */
         String sha256();
 
-        /** Moves the bytes to {@code objectKey} atomically, replacing what was there. */
+        /**
+         * Moves the bytes to {@code objectKey} atomically, replacing what was there. When the file system
+         * will not replace it (Windows, while another commit or a reader holds it) and it already holds
+         * these exact bytes, they are kept and the staged copy is dropped.
+         */
         void commit(String objectKey) throws IOException;
 
         @Override

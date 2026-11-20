@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
+import java.nio.file.FileSystemException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -62,6 +63,24 @@ class LocalObjectStore implements ObjectStore {
         return new LocalStaged(file, size, HexFormat.of().formatHex(digest.digest()));
     }
 
+    @Override
+    public boolean exists(String objectKey) {
+        return Files.isRegularFile(object(objectKey));
+    }
+
+    @Override
+    public InputStream open(String objectKey) throws IOException {
+        return Files.newInputStream(object(objectKey));
+    }
+
+    /** Only keys minted by this service, so no key can name a file outside {@code objects}. */
+    private Path object(String objectKey) {
+        if (!KEY.matcher(objectKey).matches()) {
+            throw new IllegalArgumentException("not an object key minted by this service");
+        }
+        return objects.resolve(objectKey);
+    }
+
     private final class LocalStaged implements Staged {
 
         private final Path file;
@@ -86,11 +105,31 @@ class LocalObjectStore implements ObjectStore {
 
         @Override
         public void commit(String objectKey) throws IOException {
-            if (!KEY.matcher(objectKey).matches()) {
-                throw new IllegalArgumentException("not an object key minted by this service");
+            Path target = object(objectKey);
+            try {
+                Files.move(file, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            } catch (FileSystemException e) {
+                // Windows refuses to replace a file another commit is moving in or a reader holds open.
+                // When that file already holds these exact bytes, the commit has nothing left to do.
+                if (!sameBytes(target)) {
+                    throw e;
+                }
+                Files.deleteIfExists(file);
             }
-            Files.move(file, objects.resolve(objectKey), StandardCopyOption.ATOMIC_MOVE,
-                    StandardCopyOption.REPLACE_EXISTING);
+        }
+
+        private boolean sameBytes(Path target) {
+            MessageDigest digest = LocalObjectStore.sha256();
+            try (InputStream in = Files.newInputStream(target)) {
+                byte[] buffer = new byte[BUFFER];
+                int read;
+                while ((read = in.read(buffer)) != -1) {
+                    digest.update(buffer, 0, read);
+                }
+            } catch (IOException e) {
+                return false;
+            }
+            return HexFormat.of().formatHex(digest.digest()).equals(sha256);
         }
 
         @Override

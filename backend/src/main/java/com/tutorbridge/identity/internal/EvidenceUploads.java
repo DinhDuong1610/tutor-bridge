@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -28,7 +29,8 @@ import org.springframework.transaction.support.TransactionOperations;
 import org.springframework.util.IdGenerator;
 
 /**
- * UC03 evidence for the tutor, TB-12b1: createEvidenceUpload and uploadEvidenceContent.
+ * UC03 evidence for the tutor: createEvidenceUpload, uploadEvidenceContent (TB-12b1) and
+ * completeEvidenceUpload (TB-12b2).
  *
  * <p>The owner comes from the session (INV-03); another tutor's upload is the same 404 as an unknown id
  * (INV-06). An upload belongs to no profile version yet: TB-12c links READY evidence to a submitted
@@ -52,20 +54,24 @@ public class EvidenceUploads {
     static final Duration TICKET_LIFETIME = Duration.ofMinutes(15);
     static final String CREATE = "CREATE_EVIDENCE_UPLOAD";
     static final String PUT_CONTENT = "UPLOAD_EVIDENCE_CONTENT";
+    static final String COMPLETE = "COMPLETE_EVIDENCE_UPLOAD";
+    private static final String CLOSED = "EVIDENCE_UPLOAD_CLOSED";
     private static final String RESULT_TYPE = "EVIDENCE_UPLOAD";
     private static final Pattern SHA256 = Pattern.compile("[0-9a-f]{64}");
 
     private final EvidenceUploadRepository uploads;
     private final ObjectStore store;
+    private final EvidenceScanner scanner;
     private final CommandReceipts receipts;
     private final TransactionOperations transactions;
     private final Clock clock;
     private final IdGenerator ids;
 
-    EvidenceUploads(EvidenceUploadRepository uploads, ObjectStore store, CommandReceipts receipts,
-            TransactionOperations transactions, Clock clock, IdGenerator ids) {
+    EvidenceUploads(EvidenceUploadRepository uploads, ObjectStore store, EvidenceScanner scanner,
+            CommandReceipts receipts, TransactionOperations transactions, Clock clock, IdGenerator ids) {
         this.uploads = uploads;
         this.store = store;
+        this.scanner = scanner;
         this.receipts = receipts;
         this.transactions = transactions;
         this.clock = clock;
@@ -167,6 +173,149 @@ public class EvidenceUploads {
         });
     }
 
+    /**
+     * completeEvidenceUpload (Huy, TB-12b2 plan, 18/11/2026; receipt in transaction 1 since 19/11/2026,
+     * after Codex found that a key checked only in transaction 2 let a reused key change an upload).
+     * Reading the bytes is storage I/O, so it sits between two transactions (INV-18):
+     * <ol>
+     *   <li>Without locks: owner (404), active tutor (403), input equal to what was declared (422). An
+     *       upload still UPLOADING must be in time (409 expired) and have its bytes (409 missing).
+     *   <li>Transaction 1: account {@code FOR SHARE}, receipt, upload {@code FOR UPDATE}. The receipt's
+     *       unique key holds the Idempotency-Key from here on: the same key for another upload waits,
+     *       then is 409, before it changes anything. UPLOADING in time becomes QUARANTINED; QUARANTINED
+     *       stays so; anything else is 409 closed. The PROCESSING receipt commits with the state.
+     *   <li>Outside any transaction, the stored bytes are scanned; bytes that are gone are FAILED.
+     *   <li>Transaction 2: account {@code FOR SHARE}, the same receipt again under its row lock, upload
+     *       {@code FOR UPDATE}. Still QUARANTINED becomes READY or FAILED and the receipt succeeds.
+     *       If another command finished the upload first, the receipt fails with 409 closed.
+     * </ol>
+     * A replay of a finished command answers what it answered (INV-22: the owner and account are checked
+     * again). A replay of a PROCESSING one, after a crash or alongside the same request, goes on from
+     * step 3, so nothing stays stuck.
+     */
+    public Evidence complete(Actor actor, UUID uploadId, IdempotencyKey key, int sizeBytes, String sha256) {
+        requireTutorRole(actor);
+        EvidenceUploadRepository.Row seen = owned(actor, uploadId);
+        if (!uploads.isActiveTutor(actor.accountId())) {
+            throw accessUnavailable();
+        }
+        requireDeclared(seen, sizeBytes, sha256);
+        if (seen.state().equals("UPLOADING")) {
+            if (!clock.instant().isBefore(seen.expiresAt())) {
+                throw expired();
+            }
+            if (!exists(seen.objectKey())) {
+                throw contentMissing();
+            }
+        }
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("uploadId", uploadId);
+        payload.put("sizeBytes", sizeBytes);
+        payload.put("sha256", sha256);
+
+        Optional<Evidence> finished = transactions.execute(status -> {
+            if (!uploads.lockActiveTutor(actor.accountId())) {
+                throw accessUnavailable();
+            }
+            Receipt receipt = receipts.begin(actor.accountId(), COMPLETE, key.value(), payload);
+            if (receipt.replay() && receipt.state() != CommandReceipts.State.PROCESSING) {
+                return Optional.of(replayed(actor, receipt));
+            }
+            EvidenceUploadRepository.Row row = lockOwned(actor, uploadId);
+            if (row.state().equals("UPLOADING")) {
+                if (!clock.instant().isBefore(row.expiresAt())) {
+                    throw expired();
+                }
+                uploads.moveState(uploadId, "UPLOADING", "QUARANTINED");
+            } else if (!row.state().equals("QUARANTINED") && !receipt.replay()) {
+                throw closed();
+            }
+            return Optional.empty();
+        });
+        if (finished.isPresent()) {
+            return finished.get();
+        }
+
+        EvidenceScanner.Verdict verdict = scan(seen);
+
+        Evidence result = transactions.execute(status -> {
+            if (!uploads.lockActiveTutor(actor.accountId())) {
+                throw accessUnavailable();
+            }
+            Receipt receipt = receipts.begin(actor.accountId(), COMPLETE, key.value(), payload);
+            if (receipt.state() != CommandReceipts.State.PROCESSING) {
+                return null;
+            }
+            EvidenceUploadRepository.Row row = lockOwned(actor, uploadId);
+            if (!row.state().equals("QUARANTINED")) {
+                receipts.fail(receipt.id(), CLOSED);
+                return null;
+            }
+            uploads.moveState(uploadId, "QUARANTINED", verdict.name());
+            receipts.succeed(receipt.id(), RESULT_TYPE, uploadId);
+            return new Evidence(row.id(), verdict.name(), row.expiresAt());
+        });
+        if (result != null) {
+            return result;
+        }
+        // The same request finished it meanwhile, or another key did and this receipt failed: read what
+        // the receipt now says, in its own transaction so the failure above is committed first.
+        return transactions.execute(status -> {
+            if (!uploads.lockActiveTutor(actor.accountId())) {
+                throw accessUnavailable();
+            }
+            return replayed(actor, receipts.begin(actor.accountId(), COMPLETE, key.value(), payload));
+        });
+    }
+
+    /** A finished receipt: the record as it is now (INV-22), or the error it ended with. */
+    private Evidence replayed(Actor actor, Receipt receipt) {
+        if (receipt.state() == CommandReceipts.State.FAILED) {
+            throw closed();
+        }
+        return evidence(owned(actor, receipt.resultId()));
+    }
+
+    private boolean exists(String objectKey) {
+        try {
+            return store.exists(objectKey);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    /** Bytes that are gone count as not the declared bytes. Any other I/O error is a 500, retried later. */
+    private EvidenceScanner.Verdict scan(EvidenceUploadRepository.Row row) {
+        try (InputStream bytes = store.open(row.objectKey())) {
+            return scanner.scan(bytes, row.mediaType(), row.sizeBytes(), row.sha256());
+        } catch (java.nio.file.NoSuchFileException gone) {
+            return EvidenceScanner.Verdict.FAILED;
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    /** CompleteEvidenceInput must repeat what createEvidenceUpload declared; checked before any receipt. */
+    private static void requireDeclared(EvidenceUploadRepository.Row row, int sizeBytes, String sha256) {
+        List<FieldProblem> problems = new ArrayList<>();
+        if (sizeBytes != row.sizeBytes()) {
+            problems.add(new FieldProblem("sizeBytes", "Kích thước không khớp với kích thước đã khai."));
+        }
+        if (!sha256.equals(row.sha256())) {
+            problems.add(new FieldProblem("sha256", "Mã SHA-256 không khớp với mã đã khai."));
+        }
+        if (!problems.isEmpty()) {
+            throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "VALIDATION_FAILED", "Dữ liệu chưa hợp lệ.",
+                    problems);
+        }
+    }
+
+    private EvidenceUploadRepository.Row lockOwned(Actor actor, UUID uploadId) {
+        return uploads.lock(uploadId)
+                .filter(row -> row.ownerId().equals(actor.accountId()))
+                .orElseThrow(EvidenceUploads::notFound);
+    }
+
     private EvidenceUploadRepository.Row owned(Actor actor, UUID uploadId) {
         return uploads.find(uploadId)
                 .filter(row -> row.ownerId().equals(actor.accountId()))
@@ -220,13 +369,18 @@ public class EvidenceUploads {
         return new ApiException(HttpStatus.NOT_FOUND, "EVIDENCE_UPLOAD_NOT_FOUND", "Không tìm thấy lượt tải lên.");
     }
 
+    private static ApiException contentMissing() {
+        return new ApiException(HttpStatus.CONFLICT, "EVIDENCE_CONTENT_MISSING",
+                "Chưa nhận được tệp của lượt tải lên này. Hãy tải tệp lên rồi thử lại.");
+    }
+
     private static ApiException expired() {
         return new ApiException(HttpStatus.CONFLICT, "EVIDENCE_UPLOAD_EXPIRED",
                 "Lượt tải lên đã hết hạn. Hãy tạo lượt tải lên mới.");
     }
 
     private static ApiException closed() {
-        return new ApiException(HttpStatus.CONFLICT, "EVIDENCE_UPLOAD_CLOSED",
+        return new ApiException(HttpStatus.CONFLICT, CLOSED,
                 "Lượt tải lên này đã đóng, không nhận thêm tệp.");
     }
 

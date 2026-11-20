@@ -47,7 +47,8 @@ class WebFoundation implements WebMvcConfigurer {
      * for int and long; other integer types refuse any float token). A scalar of the wrong JSON type is a
      * 422 too, instead of Jackson's coercion (#170): {@code "7"} or {@code ""} is not a number, {@code "true"}
      * or {@code 1} is not a boolean, {@code 7} or {@code true} is not a string, and {@code ""} is not a
-     * missing UUID or timestamp.
+     * missing UUID or timestamp. Instants and dates take only ISO-8601 strings ({@link IsoDates}), and an
+     * enum only its constant's name, not its position (#195).
      */
     @Bean
     JsonMapperBuilderCustomizer strictJson() {

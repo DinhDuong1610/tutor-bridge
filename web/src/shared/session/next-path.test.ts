@@ -12,7 +12,7 @@ describe("safeNextPath (#86)", () => {
     ["missing", null],
     ["empty", ""],
     ["protocol-relative", "//example.com"],
-    ["protocol-relative to a console path", "//example.com/admin"],
+    ["protocol-relative to a console path", "//example.com/admin/verifications"],
     ["backslash", "/\\example.com"],
     ["backslash after a slash", "/\\/example.com"],
     ["tab inside the slashes", "/\t/example.com"],

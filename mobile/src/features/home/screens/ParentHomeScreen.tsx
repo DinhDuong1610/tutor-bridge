@@ -1,0 +1,71 @@
+// PH01 Trang chủ phụ huynh (UC02, FR-03). Thiết kế: docs/design/ui/screens/PH01.md
+// TB-14a: chỉ phần đọc được hôm nay (listStudents). Các khối nhu cầu, đề nghị, buổi sắp tới, thông báo
+// ẩn tới khi Issue backend của chúng merge (Đính, #14, 15/11/2026).
+import { ScrollView, StyleSheet, Text } from "react-native";
+import { useStudents } from "@/features/students/api";
+import { useSelectedStudent } from "@/features/students/selection";
+import { Button } from "@/shared/ui/Button";
+import { Notice } from "@/shared/ui/Notice";
+import { QueryScreen } from "@/shared/ui/QueryScreen";
+import { StudentSwitcher, type StudentChoice } from "@/shared/ui/StudentSwitcher";
+import { colors, spacing, typography } from "@/shared/ui/theme";
+
+type Props = {
+  onAddStudent: () => void;
+  onManageStudents: () => void;
+  /** Temporary way in to AUTH06 until the Account tab exists (#119); goes with the tab bar. */
+  onSecurity: () => void;
+};
+
+type StudentItem = { id: string; displayName: string; grade: number };
+
+export function ParentHomeScreen({ onAddStudent, onManageStudents, onSecurity }: Props) {
+  const students = useStudents();
+  return (
+    <QueryScreen title="Tổng quan" query={students}>
+      {(data) => (
+        <Home
+          items={data.pages.flatMap((page) => page.items)}
+          onAddStudent={onAddStudent}
+          onManageStudents={onManageStudents}
+          onSecurity={onSecurity}
+        />
+      )}
+    </QueryScreen>
+  );
+}
+
+function Home({ items, onAddStudent, onManageStudents, onSecurity }: Props & { items: StudentItem[] }) {
+  const { selected, select } = useSelectedStudent(items);
+
+  if (!selected) {
+    return (
+      <ScrollView contentContainerStyle={styles.content}>
+        <Text style={styles.greeting}>Chào bạn</Text>
+        <Notice tone="info" message="Tạo hồ sơ cho con trước. Mọi việc tìm gia sư, lịch và lớp đều gắn với một con." />
+        <Button title="Thêm hồ sơ con" onPress={onAddStudent} />
+        <Button variant="secondary" title="Bảo mật" onPress={onSecurity} />
+      </ScrollView>
+    );
+  }
+
+  const choices: StudentChoice[] = items.map((student) => ({
+    id: student.id,
+    name: student.displayName,
+    label: `${student.displayName}, lớp ${student.grade}`,
+    // The approved sheet also counts classes and offers; those APIs are not merged yet (TBD in handoff).
+    detail: `Lớp ${student.grade}.`,
+  }));
+
+  return (
+    <ScrollView contentContainerStyle={styles.content}>
+      <StudentSwitcher choices={choices} selectedId={selected.id} onSelect={select} onManage={onManageStudents} />
+      <Button variant="secondary" title="Bảo mật" onPress={onSecurity} />
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  content: { gap: spacing.lg, paddingBottom: spacing.md },
+  greeting: { ...typography.heading, color: colors.text },
+});

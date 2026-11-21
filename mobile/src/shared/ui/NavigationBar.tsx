@@ -75,20 +75,25 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   tab: { flex: 1, minHeight: minTouchSize, alignItems: "center", gap: spacing.xs },
-  // The pill and badge sizes follow the Material 3 navigation bar (indicator 32 high around a 24 icon).
-  indicator: { width: 56, height: 32, borderRadius: radius.full, alignItems: "center", justifyContent: "center" },
+  // Sizes from Figma `NavigationBar` (node 8:428, variants 8:148 and 8:232), checked by Đính's review
+  // of #202: indicator 64×32 with the 24 icon at x=20; badge 16×16 at (36, 0) inside the indicator.
+  indicator: { width: 64, height: 32, borderRadius: radius.full, alignItems: "center", justifyContent: "center" },
   indicatorSelected: { backgroundColor: colors.infoSurface },
   badge: {
     position: "absolute",
     top: 0,
-    left: 30,
-    minWidth: 18,
+    left: 36,
+    minWidth: 16,
+    // minHeight, not height: the digits still scale with large text (OP-22 limits only tab labels).
+    minHeight: 16,
     paddingHorizontal: spacing.xs,
     borderRadius: radius.full,
     backgroundColor: colors.danger,
     alignItems: "center",
+    justifyContent: "center",
   },
-  badgeText: { ...typography.caption, color: colors.onPrimary },
+  // The digits sit in the 16 high badge; "99+" widens it through the padding.
+  badgeText: { ...typography.caption, lineHeight: 16, color: colors.onPrimary },
   label: { ...typography.caption, color: colors.textMuted, textAlign: "center" },
   // Same size as the other labels, only heavier, so the row does not shift when the tab changes.
   labelSelected: { fontFamily: fonts.medium, color: colors.text },

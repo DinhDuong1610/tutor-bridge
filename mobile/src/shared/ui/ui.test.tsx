@@ -321,4 +321,13 @@ describe("NavigationBar", () => {
     expect(pill("icon-search")).toMatchObject({ backgroundColor: colors.infoSurface });
     expect(pill("icon-home_fill")?.backgroundColor).toBeUndefined();
   });
+
+  it("matches the Figma sizes: indicator 64×32, badge 16 at x=36 (Đính's review of #202)", async () => {
+    await render(wrap(<NavigationBar tabs={TABS} selectedKey="home" onSelect={() => undefined} />));
+
+    const indicator = StyleSheet.flatten(screen.getByTestId("icon-home_fill", { includeHiddenElements: true }).parent?.props.style);
+    expect(indicator).toMatchObject({ width: 64, height: 32 });
+    const badge = StyleSheet.flatten(screen.getByText("2", { includeHiddenElements: true }).parent?.props.style);
+    expect(badge).toMatchObject({ top: 0, left: 36, minWidth: 16, minHeight: 16 });
+  });
 });

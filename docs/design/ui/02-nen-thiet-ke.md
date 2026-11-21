@@ -2,7 +2,7 @@
 
 Token là nguồn chung của Figma, mobile và web. Figma lưu bằng **Variables**, mobile trong `mobile/src/shared/ui/theme.ts`, web trong `web/src/app/globals.css`. Ba nơi cùng tên vai trò, cùng giá trị. Đổi một token: sửa Figma, tạo version, sửa bảng này và hai file code trong **cùng một PR** ([09](09-quy-trinh.md#đổi-sau-khi-duyệt)).
 
-Giá trị đánh dấu **(đề xuất)** chưa có trong code. Đính chốt khi duyệt trang `01 Foundations`; code đổi theo ở Issue giao diện đầu tiên sau khi duyệt.
+Đính duyệt trang `01 Foundations` v1 ([07](07-figma.md)); mọi giá trị ở đây đã có trong code từ #95.
 
 ## Màu
 Giữ bảng màu hiện tại (Đính chọn giữ xanh dương đậm, 07/11/2026). Chỉ nền sáng.
@@ -14,12 +14,12 @@ Giữ bảng màu hiện tại (Đính chọn giữ xanh dương đậm, 07/11/2
 | `text/default` | `text` | `--foreground` | `#14181F` | Chữ chính |
 | `text/muted` | `textMuted` | `--muted-foreground` | `#4A5361` | Chữ phụ, chú thích |
 | `border/default` | `border` | `--border`, `--input` | `#7A8494` | Viền ô nhập, viền thẻ chưa chốt |
-| `border/subtle` (đề xuất) | `divider` | `--divider` | `#D5DAE1` | Đường phân cách trang trí, không dùng cho viền ô nhập |
+| `border/subtle` | `divider` | `--divider` | `#D5DAE1` | Đường phân cách trang trí, không dùng cho viền ô nhập |
 | `brand/primary` | `primary` | `--primary`, `--ring` | `#0B5CAD` | Nút chính, liên kết, focus, khối ngày của thẻ lịch |
-| `brand/primary-pressed` (đề xuất) | `primaryPressed` | `--primary-pressed` | `#08467F` | Trạng thái nhấn của nút chính |
+| `brand/primary-pressed` | `primaryPressed` | `--primary-pressed` | `#08467F` | Trạng thái nhấn của nút chính |
 | `brand/on-primary` | `onPrimary` | `--primary-foreground` | `#FFFFFF` | Chữ trên nền primary |
 | `status/info` | `info` | `--primary` | `#0B5CAD` | Thông tin, đang gửi |
-| `status/info-bg` | `infoSurface` | `--accent` | `#E8F1FB` | Nền thông báo thông tin |
+| `status/info-bg` | `infoSurface` | `--accent` | `#E8F1FB` | Nền thông báo thông tin, nền nút phụ khi nhấn (Đính chốt 21/11/2026, #188) |
 | `status/success` | `success` | `--success` | `#1E6B34` | Đã xác nhận |
 | `status/success-bg` | `successSurface` | `--success-surface` | `#E7F5EC` | |
 | `status/warning` | `warning` | `--warning` | `#8A5A00` | Chưa rõ kết quả, bản cũ, sắp hết hạn |
@@ -50,20 +50,20 @@ Quy tắc màu:
 ## Chữ
 Font **Be Vietnam Pro** (Đính chọn, 07/11/2026). Mã nguồn mở, có đủ dấu tiếng Việt. Dùng 3 độ đậm: 400, 500, 600.
 
-| Figma text style | Mobile `typography.` | Cỡ / dòng (đề xuất) | Đậm | Dùng cho |
+| Figma text style | Mobile `typography.` | Cỡ / dòng | Đậm | Dùng cho |
 |---|---|---|---|---|
 | `title` | `title` | 24 / 32 | 600 | Tiêu đề màn hình |
 | `heading` | `heading` | 18 / 26 | 600 | Tiêu đề khối, giờ trên thẻ lịch |
 | `body` | `body` | 16 / 24 | 400 | Nội dung, ô nhập |
-| `body-strong` (đề xuất) | `bodyStrong` | 16 / 24 | 500 | Giá, tên người trong thẻ |
+| `body-strong` | `bodyStrong` | 16 / 24 | 500 | Giá, tên người trong thẻ |
 | `label` | `label` | 14 / 20 | 500 | Nhãn ô nhập, nhãn trạng thái, nút |
 | `caption` | `caption` | 13 / 18 | 400 | Chú thích, thời điểm |
-| `date-numeral` (đề xuất) | `dateNumeral` | 28 / 32 | 600 | Chỉ số ngày trong khối ngày của thẻ lịch |
+| `date-numeral` | `dateNumeral` | 28 / 32 | 600 | Chỉ số ngày trong khối ngày của thẻ lịch |
 
-- **Chiều cao dòng bắt buộc.** Dấu tiếng Việt chồng (ệ, ẫ, ặ) bị cắt khi dòng sát cỡ chữ. Mọi style đều có line height, ít nhất 1,4 lần cỡ chữ với chữ thường. Ngoại lệ là `date-numeral`: chỉ chứa số, không có dấu.
+- **Chiều cao dòng bắt buộc.** Dấu tiếng Việt chồng (ệ, ẫ, ặ) bị cắt khi dòng sát cỡ chữ. Mọi style đều có line height, ít nhất 1,4 lần cỡ chữ với chữ thường. Ngoại lệ theo bảng trên: `title` 24/32 (1,33) và `caption` 13/18 (1,38), Đính chốt giữ bảng ngày 21/11/2026 (#188); `date-numeral` chỉ chứa số, không có dấu.
 - Không viết hoa toàn bộ. Viết hoa chữ đầu câu cho tiêu đề, nút và nhãn.
 - Số tiền, giờ và ngày dùng chữ số cùng độ rộng (`tabular-nums` trên web, `fontVariant: ["tabular-nums"]` trên mobile) để cột thẳng hàng.
-- Mobile tải font qua Expo, web qua `next/font`. Gói font cho Expo là thư viện mới, cần Đính duyệt khi làm (ADR-0009). Hiện `theme.ts` chưa có line height và cỡ `title` là 22: sửa theo bảng khi duyệt.
+- Mobile tải font bằng `@expo-google-fonts/be-vietnam-pro` 0.4.1 với `expo-font`, chỉ 3 độ đậm, nạp lúc chạy bằng `useFonts` (vẫn chạy trên Expo Go); Đính duyệt gói ngày 14/11/2026 theo ADR-0009 (#95). Mỗi độ đậm là một `fontFamily` riêng trong `theme.ts`, không đặt `fontWeight`. Web tải qua `next/font/google` với tập con `vietnamese`.
 - Web quản trị dùng cùng thang chữ. Bảng dữ liệu dùng `label` cho tiêu đề cột và `body` cho ô, không thu nhỏ dưới 14.
 
 ## Khoảng cách
@@ -76,14 +76,14 @@ Lưới 4. Giữ thang hiện có, thêm `xxl`.
 | `md` | `md` | 16 | Lề trái phải màn hình mobile, giữa các ô |
 | `lg` | `lg` | 24 | Giữa các khối |
 | `xl` | `xl` | 32 | Trước nút chính, trên dưới trạng thái rỗng |
-| `xxl` (đề xuất) | `xxl` | 48 | Lề trang web quản trị |
+| `xxl` | `xxl` | 48 | Lề trang web quản trị |
 
 "Thoáng" nghĩa là giữa các khối dùng `lg`, không dồn nhiều khối vào một màn hình, chứ không phải tăng cỡ mọi thứ.
 
 ## Bo góc
-Đính chọn "bo tròn vừa". Hiện code là 6 và 10.
+Đính chọn "bo tròn vừa".
 
-| Figma `radius/…` | Mobile `radius.` | Giá trị (đề xuất) | Dùng cho |
+| Figma `radius/…` | Mobile `radius.` | Giá trị | Dùng cho |
 |---|---|---|---|
 | `sm` | `sm` | 8 | Ô nhập, nút, nhãn trạng thái |
 | `md` | `md` | 12 | Thẻ, khung thông báo, thẻ lịch |

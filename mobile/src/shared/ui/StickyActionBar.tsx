@@ -5,8 +5,9 @@ import { colors, spacing } from "./theme";
 
 /**
  * The main action of a screen, kept at the bottom below the scrolling content (Figma
- * `StickyActionBar`). Put it after the ScrollView, inside a KeyboardAvoidingView when the screen
- * has inputs, so the keyboard does not cover it.
+ * `StickyActionBar`). On a screen with inputs, put it after the ScrollView and wrap both in
+ * `<KeyboardAvoidingView behavior="padding">`, as `AddStudentScreen` does, so the keyboard does not
+ * cover it. The top edge is the `divider` line, the only raised surface of the design (`02`).
  */
 export function StickyActionBar({ children }: { children: ReactNode }) {
   const insets = useSafeAreaInsets();
@@ -19,7 +20,7 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
     paddingHorizontal: spacing.md,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
+    borderTopColor: colors.divider,
     backgroundColor: colors.background,
   },
 });

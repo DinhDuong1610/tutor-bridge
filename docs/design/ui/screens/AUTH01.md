@@ -65,4 +65,4 @@ Nguyên văn trong Figma; câu chung lấy từ [04](../04-trang-thai-cau-chu.md
 
 ## Khác so với đặc tả và câu hỏi còn mở
 
-Không có.
+- Đính chốt 18/11/2026 (#179): khung "Đã tạo" hiện câu của máy chủ "Nếu email hợp lệ, chúng tôi đã gửi liên kết xác minh. Vui lòng kiểm tra hộp thư.", thay cho "Đã gửi email xác minh tới địa chỉ bạn vừa nhập." Lý do: email đã có tài khoản thì máy chủ không gửi gì (AC-UC01-01). Câu khẳng định vì vậy sẽ sai, và còn lộ việc email đó đã có tài khoản. Khung không có câu nào khác ngoài bảng ở trên.

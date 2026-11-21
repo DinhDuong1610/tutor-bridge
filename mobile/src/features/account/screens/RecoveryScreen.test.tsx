@@ -3,6 +3,9 @@ import { json, mockApi, problem } from "@/shared/test/mockApi";
 import { renderScreen } from "@/shared/test/renderScreen";
 import { RecoveryScreen } from "./RecoveryScreen";
 
+// AUTH04 "Đã gửi": the screen's approved text replaces the server's, and is just as conditional.
+const SENT =
+  "Kiểm tra email của bạn. Nếu email này có tài khoản, chúng tôi đã gửi liên kết đặt lại mật khẩu. Liên kết có hạn 15 phút. Không thấy email? Xem thư mục Spam, hoặc gửi lại sau ít phút.";
 const ACK = { message: "Nếu email đã đăng ký, bạn sẽ nhận được liên kết đặt lại mật khẩu.", traceId: "0123456789abcdef" };
 
 async function show() {
@@ -10,23 +13,24 @@ async function show() {
 }
 
 async function pressSend() {
-  await act(async () => fireEvent.press(screen.getByRole("button", { name: "Gửi liên kết khôi phục" })));
+  await act(async () => fireEvent.press(screen.getByRole("button", { name: "Gửi liên kết" })));
 }
 
 describe("AUTH04 RecoveryScreen", () => {
   let server: ReturnType<typeof mockApi>;
   afterEach(() => server.restore());
 
-  it("sends the trimmed email and shows only the server's generic answer", async () => {
+  it("sends the trimmed email and shows only the approved conditional answer", async () => {
     server = mockApi({ "POST /auth/recovery": () => json(202, ACK) });
     await show();
     await fireEvent.changeText(screen.getByLabelText("Email"), "  gia.su@example.test ");
 
     await pressSend();
 
-    expect(await screen.findByText(ACK.message)).toBeOnTheScreen();
+    expect(await screen.findByText(SENT)).toBeOnTheScreen();
+    expect(screen.queryByText(ACK.message)).toBeNull();
     expect(await server.requests[0].json()).toEqual({ email: "gia.su@example.test" });
-    // Nothing on screen says the account exists or not; the text is the server's generic one.
+    // Nothing on screen says the account exists or not.
     expect(screen.queryByText(/không tồn tại|đã tìm thấy/i)).toBeNull();
     expect(server.unexpected).toEqual([]);
   });
@@ -38,7 +42,7 @@ describe("AUTH04 RecoveryScreen", () => {
 
     await pressSend();
 
-    expect(await screen.findByText("Lỗi: Email không hợp lệ.")).toBeOnTheScreen();
+    expect(await screen.findByText("Lỗi: Email chưa đúng dạng, ví dụ an@example.com.")).toBeOnTheScreen();
     expect(server.requests).toHaveLength(0);
   });
 
@@ -69,11 +73,11 @@ describe("AUTH04 RecoveryScreen", () => {
 
     await pressSend();
     expect(await screen.findByText(/Chưa rõ kết quả/)).toBeOnTheScreen();
-    expect(screen.queryByText(ACK.message)).toBeNull();
+    expect(screen.queryByText(SENT)).toBeNull();
 
     await act(async () => fireEvent.press(screen.getByRole("button", { name: "Thử lại" })));
 
-    expect(await screen.findByText(ACK.message)).toBeOnTheScreen();
+    expect(await screen.findByText(SENT)).toBeOnTheScreen();
     expect(attempts).toBe(2);
   });
 });

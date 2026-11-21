@@ -37,7 +37,7 @@ describe("PH02 routes", () => {
 
     await act(async () => fireEvent.press(screen.getByRole("button", { name: "Bảo mật" })));
 
-    expect(await screen.findByRole("header", { name: "Bảo mật và phiên đăng nhập" })).toBeOnTheScreen();
+    expect(await screen.findByRole("header", { name: "Bảo mật và phiên" })).toBeOnTheScreen();
     expect(screen).toHavePathname("/parent/security");
   });
 

@@ -63,6 +63,7 @@ Nguyên văn trong Figma; câu chung lấy từ [04](../04-trang-thai-cau-chu.md
 
 ## Khác so với đặc tả và câu hỏi còn mở
 
+- Đính tạm chấp nhận 18/11/2026 (#179): nút "Đăng xuất tài khoản" nằm trong thẻ "Thiết bị này", xác nhận đăng xuất thiết bị khác dùng khung tại chỗ, giữ nhãn "Đã thu hồi" và câu Q12. Khi #95 có `ConfirmSheet` thì chuyển nút xuống cuối màn và dùng sheet theo Figma.
 - Đã chốt 13/11/2026 (#143): đổi mật khẩu đăng xuất mọi thiết bị, kể cả máy đang dùng (UC01, AC-UC01-03). Frame "Đổi mật khẩu" và "Đã đổi mật khẩu" trong version Figma `Lát 1 v1 2026-11-10` còn câu cũ "mọi thiết bị khác"; câu trong bảng trên thắng.
 - TBD: `listOwnSessions` có trả tên thiết bị và trình duyệt không; nếu không, hiện "Thiết bị Android" và thời điểm đăng nhập.
 - OP-22 đã chốt 12/11/2026: riêng nhãn tab giới hạn phóng chữ khoảng 1,3 lần (`maxFontSizeMultiplier`); icon tab giữ `accessibilityLabel` đầy đủ.

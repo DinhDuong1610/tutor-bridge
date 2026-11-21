@@ -13,7 +13,7 @@ const email = z
   .string()
   .trim()
   .min(1, "Vui lòng nhập email.")
-  .refine((value) => lengthOf(value) <= EMAIL_MAX && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value), "Email không hợp lệ.");
+  .refine((value) => lengthOf(value) <= EMAIL_MAX && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value), "Email chưa đúng dạng, ví dụ an@example.com.");
 
 export const registrationSchema = z.object({
   email,
@@ -31,7 +31,7 @@ export const registrationSchema = z.object({
     ),
   // Self registration offers only these two roles (AC-UC01-01); the server enforces it too.
   role: z.enum(["PARENT", "TUTOR"], { error: "Vui lòng chọn bạn là phụ huynh hay gia sư." }),
-  termsAccepted: z.literal(true, { error: "Bạn cần đồng ý với điều khoản để đăng ký." }),
+  termsAccepted: z.literal(true, { error: "Bạn cần đồng ý điều khoản để tạo tài khoản." }),
 });
 export type RegistrationFormInput = z.input<typeof registrationSchema>;
 export type RegistrationForm = z.output<typeof registrationSchema>;

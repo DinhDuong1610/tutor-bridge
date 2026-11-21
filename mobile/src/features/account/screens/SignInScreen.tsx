@@ -3,6 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { ScrollView, StyleSheet, Text } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useServerErrors } from "@/shared/form/serverErrors";
 import { useSession } from "@/shared/session/SessionProvider";
 import type { Session } from "@/shared/session/storage";
@@ -22,11 +23,11 @@ type Props = {
 };
 
 // Fixed text, so the screen never says whether the email has an account.
-const WRONG_CREDENTIALS = "Email hoặc mật khẩu không đúng.";
+const WRONG_CREDENTIALS = "Email hoặc mật khẩu chưa đúng.";
 const NOT_SAVED = "Không lưu được phiên đăng nhập trên máy. Vui lòng thử lại.";
-// Why the user is back here. Wording to be checked against the approved AUTH03 design (#94).
+// Why the user is back here. Wording from the approved AUTH03 (#142).
 const ENDED_BY = {
-  expired: "Phiên đăng nhập đã kết thúc. Vui lòng đăng nhập lại.",
+  expired: "Phiên đăng nhập đã hết. Vui lòng đăng nhập lại. Bản nháp đã lưu vẫn còn.",
   signedOut: "Bạn đã đăng xuất.",
 } as const;
 
@@ -65,53 +66,63 @@ export function SignInScreen({ onGoToRegister, onForgotPassword, onResendVerific
   const endedBy = session.status === "signedOut" && signIn.state === "idle" ? session.endedBy : null;
 
   return (
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-      <Text accessibilityRole="header" style={styles.title}>
-        Đăng nhập
-      </Text>
-      <AccountTextField
-        control={form.control}
-        name="email"
-        label="Email"
-        autoCapitalize="none"
-        autoComplete="email"
-        keyboardType="email-address"
-        inputMode="email"
-      />
-      <AccountTextField
-        control={form.control}
-        name="password"
-        label="Mật khẩu"
-        secureTextEntry
-        autoCapitalize="none"
-        autoComplete="current-password"
-      />
-      {endedBy ? <Notice tone="info" message={ENDED_BY[endedBy]} /> : null}
-      {otherErrors.map((message) => (
-        <Notice key={message} tone="danger" message={message} />
-      ))}
-      {problem ? (
-        <Notice tone="danger" message={problem} />
-      ) : wrongCredentials ? (
-        <Notice tone="danger" message={WRONG_CREDENTIALS} />
-      ) : signIn.state === "unknown" ? (
-        // Not CommandStatus: its retry would skip keeping the session. Signing in again is safe;
-        // at worst the server holds one unused session that expires.
-        <Notice tone="warning" message="Chưa rõ kết quả. Vui lòng kiểm tra kết nối rồi đăng nhập lại." />
-      ) : signIn.state === "confirmed" ? null : (
-        <CommandStatus command={signIn} confirmedMessage="" />
-      )}
-      {unverified ? (
-        <Button variant="secondary" title="Gửi lại liên kết xác minh" onPress={onResendVerification} />
-      ) : null}
-      <Button title="Đăng nhập" busy={signIn.state === "sending"} onPress={form.handleSubmit(submit)} />
-      <Button variant="secondary" title="Quên mật khẩu?" onPress={onForgotPassword} />
-      <Button variant="secondary" title="Chưa có tài khoản? Đăng ký" onPress={onGoToRegister} />
-    </ScrollView>
+    <SafeAreaView style={styles.safe}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+        <Text accessibilityRole="header" style={styles.title}>
+          Đăng nhập
+        </Text>
+        <Text style={styles.body}>Dành cho phụ huynh và gia sư.</Text>
+        <AccountTextField
+          control={form.control}
+          name="email"
+          label="Email"
+          autoCapitalize="none"
+          autoComplete="email"
+          keyboardType="email-address"
+          inputMode="email"
+        />
+        <AccountTextField
+          control={form.control}
+          name="password"
+          label="Mật khẩu"
+          secureTextEntry
+          autoCapitalize="none"
+          autoComplete="current-password"
+        />
+        {endedBy ? <Notice tone="info" message={ENDED_BY[endedBy]} /> : null}
+        {otherErrors.map((message) => (
+          <Notice key={message} tone="danger" message={message} />
+        ))}
+        {problem ? (
+          <Notice tone="danger" message={problem} />
+        ) : wrongCredentials ? (
+          <Notice tone="danger" message={WRONG_CREDENTIALS} />
+        ) : unverified ? (
+          // The server's title is the approved AUTH03 text; the button sits inside the notice (#142).
+          <Notice
+            tone="danger"
+            message={signIn.error?.problem.title ?? ""}
+            action={<Button variant="secondary" title="Gửi lại liên kết" onPress={onResendVerification} />}
+          />
+        ) : signIn.state === "unknown" ? (
+          // Not CommandStatus: its retry would skip keeping the session. Signing in again is safe;
+          // at worst the server holds one unused session that expires.
+          <Notice tone="warning" message="Chưa rõ kết quả. Vui lòng kiểm tra kết nối rồi đăng nhập lại." />
+        ) : signIn.state === "confirmed" ? null : (
+          <CommandStatus command={signIn} confirmedMessage="" />
+        )}
+        <Button title="Đăng nhập" busy={signIn.state === "sending"} onPress={form.handleSubmit(submit)} />
+        <Button variant="secondary" title="Quên mật khẩu?" onPress={onForgotPassword} />
+        <Button variant="secondary" title="Tạo tài khoản" onPress={onGoToRegister} />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  // Below the status bar and the notch, as the approved frames place the title.
+  safe: { flex: 1, backgroundColor: colors.background },
   container: { flexGrow: 1, gap: spacing.md, padding: spacing.md, backgroundColor: colors.background },
   title: { ...typography.title, color: colors.text },
+  body: { ...typography.body, color: colors.text },
 });

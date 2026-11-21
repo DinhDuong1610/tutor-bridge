@@ -1673,9 +1673,29 @@ export interface paths {
         };
         /**
          * listAssignedVerifications
-         * @description Only assigned records; no support-role implicit access
+         * @description Only records assigned to the caller, oldest submission first (AD03, OP-28); no support-role implicit access. Without status every assigned record is listed. A superseded record (its profile version was replaced, OP-24) is never listed under PENDING, since it can no longer be decided.
          */
         get: operations["listAssignedVerifications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/verifications/{verificationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * getAssignedVerification
+         * @description AD04 (OP-28). The exact submitted profile version of one record assigned to the caller, and the list of its evidence. Each evidence id is the evidenceId of readAssignedEvidence; no evidence bytes, object key or hash here. A record assigned to someone else, or no longer assigned to the caller, is 404, as if it did not exist; no support-role implicit access. The ETag is the record revision that decideVerification takes as If-Match.
+         */
+        get: operations["getAssignedVerification"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3321,8 +3341,60 @@ export interface components {
             revision: number;
         };
         VerificationPage: {
-            items: components["schemas"]["VerificationRecord"][];
+            items: components["schemas"]["AssignedVerification"][];
             nextCursor: string | null;
+        };
+        /** @description A verification record as its assigned verifier sees it (AD03, AD04, OP-28). Only for the verifier; the tutor reads TutorVerificationView. No email, no evidence key (AC-UC03-03). */
+        AssignedVerification: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            profileVersionId: string;
+            profileVersion: number;
+            /** @description The tutor's display name; null when the account has none. */
+            tutorDisplayName: string | null;
+            /** Format: uuid */
+            assignedTo: string | null;
+            /** @enum {string} */
+            status: "PENDING" | "VERIFIED" | "REJECTED";
+            scope: string;
+            /** @description The verifier's reason. A PENDING record with a reason is NEEDS_INFO (G3-D07-05); a PENDING record without one has not been decided yet. */
+            reason: string | null;
+            /** Format: date-time */
+            submittedAt: string;
+            /**
+             * Format: date-time
+             * @description When the last decision was recorded, NEEDS_INFO included; null while undecided.
+             */
+            decidedAt: string | null;
+            /** @description True when the tutor replaced this profile version (OP-24); the record can no longer be decided and decideVerification answers 409 VERIFICATION_SUPERSEDED. */
+            superseded: boolean;
+            /** Format: int64 */
+            revision: number;
+        } & (unknown & unknown);
+        /** @description What AD04 needs to examine one assigned record (OP-28). */
+        AssignedVerificationDetail: {
+            verification: components["schemas"]["AssignedVerification"];
+            profile: components["schemas"]["SubmittedTutorProfile"];
+            evidence: components["schemas"]["AssignedEvidence"][];
+        };
+        /** @description The submitted profile version under verification, frozen since it was sent (INV-54). */
+        SubmittedTutorProfile: {
+            /** Format: uuid */
+            id: string;
+            version: number;
+            subject: string;
+            description: string;
+            experienceMonths: number;
+            rateVnd60: number;
+        };
+        /** @description One evidence file of the submitted version. id is the evidenceId of readAssignedEvidence. */
+        AssignedEvidence: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            mediaType: "application/pdf" | "image/jpeg" | "image/png";
+            sizeBytes: number;
         };
         /** @description What a tutor may read about the verification of their own profile (OP-23). No verifier identity, no evidence. */
         TutorVerificationView: {
@@ -9798,6 +9870,8 @@ export interface operations {
             query?: {
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];
+                /** @description Stored status filter of AD03. NEEDS_INFO is PENDING with a reason (G3-D07-05), so it is listed under PENDING. */
+                status?: "PENDING" | "VERIFIED" | "REJECTED";
             };
             header?: never;
             path?: never;
@@ -9825,6 +9899,37 @@ export interface operations {
             412: components["responses"]["Problem"];
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
+            429: components["responses"]["Problem"];
+            503: components["responses"]["Problem"];
+        };
+    };
+    getAssignedVerification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                verificationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authorized committed result; no credentials in ordinary DTOs */
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    /** @description Strong revision of the verification record */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssignedVerificationDetail"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };

@@ -6731,10 +6731,24 @@ paths:
       - UC03
       x-authorization: assigned VERIFIER
       x-transaction: UC03
-      description: Only assigned records; no support-role implicit access
+      description: Only records assigned to the caller, oldest submission first (AD03,
+        OP-28); no support-role implicit access. Without status every assigned record
+        is listed. A superseded record (its profile version was replaced, OP-24) is never
+        listed under PENDING, since it can no longer be decided.
       parameters:
       - $ref: '#/components/parameters/Cursor'
       - $ref: '#/components/parameters/Limit'
+      - name: status
+        in: query
+        required: false
+        description: Stored status filter of AD03. NEEDS_INFO is PENDING with a reason
+          (G3-D07-05), so it is listed under PENDING.
+        schema:
+          type: string
+          enum:
+          - PENDING
+          - VERIFIED
+          - REJECTED
       responses:
         '400':
           $ref: '#/components/responses/Problem'
@@ -6771,6 +6785,58 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/VerificationPage'
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+  /admin/verifications/{verificationId}:
+    get:
+      operationId: getAssignedVerification
+      summary: getAssignedVerification
+      tags:
+      - UC03
+      x-authorization: assigned VERIFIER
+      x-transaction: UC03
+      description: AD04 (OP-28). The exact submitted profile version of one record assigned
+        to the caller, and the list of its evidence. Each evidence id is the evidenceId
+        of readAssignedEvidence; no evidence bytes, object key or hash here. A record
+        assigned to someone else, or no longer assigned to the caller, is 404, as if
+        it did not exist; no support-role implicit access. The ETag is the record revision
+        that decideVerification takes as If-Match.
+      parameters:
+      - name: verificationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+        '200':
+          description: Authorized committed result; no credentials in ordinary DTOs
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                const: private, no-store
+            ETag:
+              schema:
+                type: string
+              description: Strong revision of the verification record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssignedVerificationDetail'
       security:
       - bearerAuth: []
       - cookieAuth: []
@@ -11791,7 +11857,7 @@ components:
         items:
           type: array
           items:
-            $ref: '#/components/schemas/VerificationRecord'
+            $ref: '#/components/schemas/AssignedVerification'
           maxItems: 50
         nextCursor:
           type:
@@ -11801,6 +11867,181 @@ components:
       required:
       - items
       - nextCursor
+    AssignedVerification:
+      type: object
+      additionalProperties: false
+      description: A verification record as its assigned verifier sees it (AD03, AD04,
+        OP-28). Only for the verifier; the tutor reads TutorVerificationView. No email,
+        no evidence key (AC-UC03-03).
+      properties:
+        id:
+          type: string
+          format: uuid
+        profileVersionId:
+          type: string
+          format: uuid
+        profileVersion:
+          type: integer
+          minimum: 1
+        tutorDisplayName:
+          type:
+          - string
+          - 'null'
+          maxLength: 100
+          description: The tutor's display name; null when the account has none.
+        assignedTo:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        status:
+          type: string
+          enum:
+          - PENDING
+          - VERIFIED
+          - REJECTED
+        scope:
+          type: string
+          maxLength: 200
+        reason:
+          type:
+          - string
+          - 'null'
+          maxLength: 2000
+          minLength: 1
+          description: The verifier's reason. A PENDING record with a reason is NEEDS_INFO
+            (G3-D07-05); a PENDING record without one has not been decided yet.
+        submittedAt:
+          type: string
+          format: date-time
+        decidedAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+          description: When the last decision was recorded, NEEDS_INFO included; null
+            while undecided.
+        superseded:
+          type: boolean
+          description: True when the tutor replaced this profile version (OP-24); the
+            record can no longer be decided and decideVerification answers 409
+            VERIFICATION_SUPERSEDED.
+        revision:
+          type: integer
+          minimum: 1
+          format: int64
+      required:
+      - id
+      - profileVersionId
+      - profileVersion
+      - tutorDisplayName
+      - assignedTo
+      - status
+      - scope
+      - reason
+      - submittedAt
+      - decidedAt
+      - superseded
+      - revision
+      allOf:
+      - if:
+          properties:
+            status:
+              enum:
+              - VERIFIED
+              - REJECTED
+        then:
+          properties:
+            reason:
+              type: string
+            decidedAt:
+              type: string
+      - if:
+          properties:
+            reason:
+              type: 'null'
+        then:
+          properties:
+            decidedAt:
+              type: 'null'
+        else:
+          properties:
+            decidedAt:
+              type: string
+    AssignedVerificationDetail:
+      type: object
+      additionalProperties: false
+      description: What AD04 needs to examine one assigned record (OP-28).
+      properties:
+        verification:
+          $ref: '#/components/schemas/AssignedVerification'
+        profile:
+          $ref: '#/components/schemas/SubmittedTutorProfile'
+        evidence:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/AssignedEvidence'
+      required:
+      - verification
+      - profile
+      - evidence
+    SubmittedTutorProfile:
+      type: object
+      additionalProperties: false
+      description: The submitted profile version under verification, frozen since it
+        was sent (INV-54).
+      properties:
+        id:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          minimum: 1
+        subject:
+          type: string
+          maxLength: 64
+          pattern: ^[A-Z0-9_]{1,64}$
+        description:
+          type: string
+          maxLength: 3000
+        experienceMonths:
+          type: integer
+          minimum: 0
+          maximum: 600
+        rateVnd60:
+          type: integer
+          minimum: 1
+      required:
+      - id
+      - version
+      - subject
+      - description
+      - experienceMonths
+      - rateVnd60
+    AssignedEvidence:
+      type: object
+      additionalProperties: false
+      description: One evidence file of the submitted version. id is the evidenceId
+        of readAssignedEvidence.
+      properties:
+        id:
+          type: string
+          format: uuid
+        mediaType:
+          type: string
+          enum:
+          - application/pdf
+          - image/jpeg
+          - image/png
+        sizeBytes:
+          type: integer
+          minimum: 1
+          maximum: 5242880
+      required:
+      - id
+      - mediaType
+      - sizeBytes
     TutorVerificationView:
       type: object
       additionalProperties: false

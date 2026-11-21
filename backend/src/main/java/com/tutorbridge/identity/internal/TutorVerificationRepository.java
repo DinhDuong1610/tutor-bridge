@@ -1,5 +1,6 @@
 package com.tutorbridge.identity.internal;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -99,6 +100,29 @@ class TutorVerificationRepository {
                 join tutor_profiles p on p.id = v.profile_id
                 where v.id = ? and p.tutor_id = ?
                 """).params(verificationId, tutorId).query(Submitted.class).optional();
+    }
+
+    record OwnVerification(UUID id, UUID profileVersionId, int profileVersion, String status, String scope,
+            String reason, Instant reviewedAt, Integer approvedVersion) {}
+
+    /**
+     * What the tutor may read about their own verification: the verification of their most recently
+     * submitted version and the version parents see now ({@code current}), in one statement so both come
+     * from the same snapshot. A version is submitted once, so it has at most one verification; the order
+     * after the version only keeps the answer stable. Never selects the verifier or the evidence.
+     */
+    Optional<OwnVerification> findLatestOwn(UUID tutorId) {
+        return jdbc.sql("""
+                select v.id, p.id as profile_version_id, p.version as profile_version, v.status, v.scope, v.reason,
+                       v.reviewed_at,
+                       (select c.version from tutor_profiles c where c.tutor_id = p.tutor_id and c.current)
+                           as approved_version
+                from tutor_verifications v
+                join tutor_profiles p on p.id = v.profile_id
+                where p.tutor_id = ?
+                order by p.version desc, (v.status = 'PENDING') desc, v.reviewed_at desc nulls first, v.id
+                limit 1
+                """).param(tutorId).query(OwnVerification.class).optional();
     }
 
     private static void requireOne(int updated, String rule) {

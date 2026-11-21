@@ -20,5 +20,11 @@ Huy chụp ngày 21/11/2026 trên iPhone, Expo Go SDK 58, cỡ chữ mặc đị
 7. Chữ lớn: "Đổi con ⌄" chiếm gần nửa thanh nên cột trái hẹp, "Đang xem" bị bẻ thành 2 dòng. Bản duyệt giữ "Đang xem" trên một dòng, chỉ tên xuống dòng.
 8. Dữ liệu cũ: cảnh báo nằm trên thanh "Đang xem" (bản duyệt đặt dưới), có tiêu đề "Lưu ý" (cùng gốc với điểm 1), nút "Thử lại" trải hết chiều ngang (bản duyệt là nút nhỏ). **Đã sửa vị trí** sau khi chụp (Huy chọn, 21/11/2026): cảnh báo nay nằm dưới thanh "Đang xem". Ảnh `PH01-du-lieu-cu.png` chụp trước khi sửa. Tiêu đề và nút trải ngang thuộc phần làm lại `Notice` của TB-95 phần 1b.
 
+## Sau quyết định của Đính (22/11/2026, #192)
+Ảnh ở trên chụp trước các thay đổi này:
+- Đã sửa trong #192: điểm 3 (thanh "Đang xem" trải hết chiều ngang, có đường kẻ dưới), điểm 4 (bảng có thanh kéo), điểm 7 ("Đang xem" có dòng riêng, không bị bẻ khi chữ lớn); khi nhấn thanh và lựa chọn dùng nền `infoSurface`, không mờ.
+- Đã sửa ở #202: điểm 1 và phần còn lại của điểm 8 (`Notice` mới: icon, không dòng nhãn, nút không trải ngang).
+- Ghi là khác bản duyệt (`PH01.md`): điểm 2 (tiêu đề lớn, sửa ở Issue riêng), điểm 5 (dòng phụ "Lớp {lớp}."). Điểm 6 (thanh tab) làm ở Issue sau.
+
 ## Chưa chụp
 Đang tải, lỗi tải.

@@ -27,6 +27,9 @@ export function ParentHomeScreen({ onAddStudent, onManageStudents, onSecurity }:
     <QueryScreen title="Tổng quan" query={students} placesStaleNotice>
       {(data, staleNotice) => (
         <Home
+          // Assumption (Đính's note on #192): the switcher lists the pages loaded so far, which is the
+          // first page of 50 children (STUDENTS_PAGE_LIMIT). A parent with more children reaches the
+          // rest from PH02, which loads further pages.
           items={data.pages.flatMap((page) => page.items)}
           staleNotice={staleNotice}
           onAddStudent={onAddStudent}

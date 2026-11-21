@@ -109,6 +109,14 @@ describe("Button", () => {
     expect(StyleSheet.flatten(buttonStyle("secondary", false, false))).toMatchObject({ borderColor: colors.primary });
   });
 
+  it("gives a pressed secondary button the infoSurface background, not see-through", async () => {
+    const look = (pressed: boolean) => StyleSheet.flatten(buttonStyle("secondary", pressed, false));
+
+    expect(look(false)).toMatchObject({ backgroundColor: colors.background, borderColor: colors.primary });
+    expect(look(true)).toMatchObject({ backgroundColor: colors.infoSurface, borderColor: colors.primary });
+    expect(look(true)).not.toHaveProperty("opacity");
+  });
+
   it("lets a long label wrap inside the button instead of overflowing", async () => {
     await render(<Button title="Đăng xuất khỏi thiết bị này" onPress={() => undefined} />);
     const label = screen.getByText("Đăng xuất khỏi thiết bị này");

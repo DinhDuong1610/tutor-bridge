@@ -12,7 +12,8 @@ type Props = {
 
 /**
  * Figma `Button` (v1). A long label or 200% text wraps inside the button instead of overflowing
- * (`10-ra-soat-nen-08-11.md`, P1). A pressed primary button turns `primaryPressed`.
+ * (`10-ra-soat-nen-08-11.md`, P1). A pressed primary button turns `primaryPressed`; a pressed secondary
+ * button gets the `infoSurface` background (Đính, 21/11/2026, #188). Neither turns see-through.
  */
 export function Button({ title, onPress, variant = "primary", busy = false, disabled = false }: Props) {
   const inactive = busy || disabled;
@@ -58,8 +59,8 @@ const styles = StyleSheet.create({
   primary: { backgroundColor: colors.primary },
   primaryPressed: { backgroundColor: colors.primaryPressed },
   secondary: { backgroundColor: colors.background, borderWidth: 1, borderColor: colors.primary },
-  // TBD (Đính): no pressed token for the secondary button yet; keep the old feedback.
-  secondaryPressed: { opacity: 0.85 },
+  // primary on infoSurface: 5.85:1 (02-nen-thiet-ke.md).
+  secondaryPressed: { backgroundColor: colors.infoSurface },
   inactive: { opacity: 0.6 },
   text: { ...typography.label, flexShrink: 1, textAlign: "center" },
 });

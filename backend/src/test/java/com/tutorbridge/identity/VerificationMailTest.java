@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.tutorbridge.Contract;
 import com.tutorbridge.HttpTest;
+import com.tutorbridge.WebDebugLogging;
 import com.tutorbridge.identity.internal.AccountRegistration;
 import com.tutorbridge.identity.internal.AccountSecrets;
 import com.tutorbridge.platform.internal.OutboxDispatcher;
@@ -159,6 +160,7 @@ class VerificationMailTest extends HttpTest {
     }
 
     @Test
+    @ExtendWith(WebDebugLogging.class)
     void AC_UC01_04_sending_logs_neither_the_code_nor_the_email(CapturedOutput output) throws Exception {
         String email = uniqueEmail();
         register(email).andExpect(status().isAccepted());

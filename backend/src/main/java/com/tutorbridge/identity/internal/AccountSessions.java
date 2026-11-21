@@ -26,7 +26,14 @@ import org.springframework.util.IdGenerator;
 public class AccountSessions {
 
     public record Credential(UUID sessionId, String accessToken, String role, Instant idleExpiresAt,
-            Instant absoluteExpiresAt) {}
+            Instant absoluteExpiresAt) {
+
+        @Override
+        public String toString() {
+            return "Credential[sessionId=%s, accessToken=%s, role=%s, idleExpiresAt=%s, absoluteExpiresAt=%s]"
+                    .formatted(sessionId, Masked.VALUE, role, idleExpiresAt, absoluteExpiresAt);
+        }
+    }
 
     public record OwnSession(UUID id, String deviceLabel, Instant lastSeenAt, Instant expiresAt, boolean current,
             boolean revoked) {}

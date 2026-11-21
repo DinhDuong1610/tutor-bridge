@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.tutorbridge.Concurrently;
 import com.tutorbridge.Contract;
 import com.tutorbridge.IntegrationTest;
+import com.tutorbridge.WebDebugLogging;
 import com.tutorbridge.identity.internal.AccountSecrets;
 import com.tutorbridge.identity.internal.PasswordHasher;
 import java.util.List;
@@ -328,6 +329,7 @@ class AccountSessionsHttpTest extends IntegrationTest {
     // ---------------------------------------------------------------- AC-UC01-04
 
     @Test
+    @ExtendWith(WebDebugLogging.class)
     void AC_UC01_04_passwords_and_session_tokens_do_not_reach_the_log(CapturedOutput output) throws Exception {
         Account account = account("PARENT", "ACTIVE");
         login(account.email(), "sai-mat-khau-de-ghi-log", randomIp()).andExpect(status().isUnauthorized());

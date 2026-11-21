@@ -33,7 +33,7 @@
   --card-foreground: #14181f;
   --popover: #ffffff;
   --popover-foreground: #14181f;
-  /* shadcn/ui derives 8px (sm) and 12px (lg) from it: radius sm and md of 02-nen-thiet-ke.md. */
+  /* The design has only 8, 12 and 999 (02-nen-thiet-ke.md): rounded-sm and rounded-md are 8px, rounded-lg 12px. */
   --radius: 0.75rem;
 }
 
@@ -65,7 +65,8 @@
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  /* shadcn's 10px is not in the design; buttons, inputs and notices use rounded-md (#188). */
+  --radius-md: calc(var(--radius) - 4px);
   --radius-lg: var(--radius);
   /* Be Vietnam Pro from next/font (layout.tsx); the system fonts only while it loads. */
   --font-sans: var(--font-be-vietnam-pro), system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;

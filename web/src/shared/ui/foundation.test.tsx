@@ -65,6 +65,8 @@ describe("web tokens (#95)", () => {
   it("derives the 8 and 12 radius of the design from --radius", () => {
     expect(css).toMatch(/--radius:\s*0\.75rem;/);
     expect(css).toMatch(/--radius-sm:\s*calc\(var\(--radius\) - 4px\);/);
+    // rounded-md of buttons, inputs and notices: 8, not shadcn's 10 (#188).
+    expect(css).toMatch(/--radius-md:\s*calc\(var\(--radius\) - 4px\);/);
     expect(css).toMatch(/--radius-lg:\s*var\(--radius\);/);
   });
 });

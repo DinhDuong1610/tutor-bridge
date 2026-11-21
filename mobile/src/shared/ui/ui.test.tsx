@@ -7,10 +7,12 @@ import { ApiError, UnknownOutcomeError } from "@/shared/api/errors";
 import { Button, buttonStyle } from "./Button";
 import { CommandStatus } from "./CommandStatus";
 import { QueryScreen } from "./QueryScreen";
+import { NavigationBar, type NavigationTab } from "./NavigationBar";
+import { Notice } from "./Notice";
 import { StickyActionBar } from "./StickyActionBar";
 import { TextField } from "./TextField";
 import { TopAppBar } from "./TopAppBar";
-import { colors, typography } from "./theme";
+import { colors, radius, typography } from "./theme";
 
 const problem = (status: number, title = "Không được phép.") =>
   new ApiError({
@@ -216,5 +218,107 @@ describe("StickyActionBar", () => {
     let bar = screen.getByText("Hành động").parent;
     while (bar && !StyleSheet.flatten(bar.props.style)?.borderTopWidth) bar = bar.parent;
     expect(StyleSheet.flatten(bar?.props.style)).toMatchObject({ borderTopColor: colors.divider });
+  });
+});
+
+describe("Notice", () => {
+  const box = (message: string) => {
+    let node = screen.getByText(message).parent;
+    while (node && !StyleSheet.flatten(node.props.style)?.padding) node = node.parent;
+    return StyleSheet.flatten(node?.props.style);
+  };
+
+  it.each([
+    ["info", "Thông tin", "icon-info"],
+    ["success", "Đã xong", "icon-check_circle"],
+    ["warning", "Lưu ý", "icon-warning"],
+    ["danger", "Lỗi", "icon-error"],
+  ] as const)("says the %s tone with an icon named %s, not a label line above the text", async (tone, word, icon) => {
+    await render(<Notice tone={tone} message="Không tải được dữ liệu." />);
+
+    expect(screen.getByRole("image", { name: word })).toBeOnTheScreen();
+    expect(screen.getByTestId(icon)).toBeOnTheScreen();
+    expect(screen.queryByText(word)).toBeNull();
+    expect(screen.getByText("Không tải được dữ liệu.")).toBeOnTheScreen();
+  });
+
+  it("has no colored side edge and the 12 radius of a message box (02)", async () => {
+    await render(<Notice tone="warning" message="Không cập nhật được." />);
+
+    const style = box("Không cập nhật được.");
+    expect(style).toMatchObject({ backgroundColor: colors.warningSurface, borderRadius: radius.md });
+    expect(style).not.toHaveProperty("borderLeftWidth");
+  });
+
+  it("announces errors and warnings as alerts and keeps the action at its own width", async () => {
+    const onPress = jest.fn();
+    await render(<Notice tone="danger" message="Không tải được dữ liệu." action={<Button variant="secondary" title="Thử lại" onPress={onPress} />} />);
+
+    // The box is not focusable itself; its role and live region make the reader announce it.
+    expect(screen.toJSON()).toMatchObject({ props: { accessibilityRole: "alert", accessibilityLiveRegion: "polite" } });
+    const action = screen.getByRole("button", { name: "Thử lại" }).parent;
+    let wrapper = action;
+    while (wrapper && StyleSheet.flatten(wrapper.props.style)?.alignSelf !== "flex-start") wrapper = wrapper.parent;
+    expect(wrapper).not.toBeNull();
+    await fireEvent.press(screen.getByRole("button", { name: "Thử lại" }));
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not announce an info notice as an alert", async () => {
+    await render(<Notice tone="info" message="Tạo hồ sơ cho con trước." />);
+    expect(screen.toJSON()).not.toMatchObject({ props: { accessibilityRole: "alert" } });
+  });
+});
+
+describe("NavigationBar", () => {
+  const TABS: NavigationTab[] = [
+    { key: "home", label: "Tổng quan", icon: "home_fill" },
+    { key: "search", label: "Tìm gia sư", icon: "search" },
+    { key: "classes", label: "Lớp học", icon: "event" },
+    { key: "notifications", label: "Thông báo", icon: "notifications_fill", unread: 2 },
+    { key: "account", label: "Tài khoản", icon: "person_fill" },
+  ];
+
+  it("marks the selected tab and reports the tab that is pressed", async () => {
+    const onSelect = jest.fn();
+    await render(wrap(<NavigationBar tabs={TABS} selectedKey="home" onSelect={onSelect} />));
+
+    expect(screen.getByRole("tab", { name: "Tổng quan" })).toBeSelected();
+    expect(screen.getByRole("tab", { name: "Tìm gia sư" })).not.toBeSelected();
+    await fireEvent.press(screen.getByRole("tab", { name: "Lớp học" }));
+    expect(onSelect).toHaveBeenCalledWith("classes");
+  });
+
+  it("shows the unread count in the badge and in the tab's name; over 99 is 99+ (PH01)", async () => {
+    const many = TABS.map((tab) => (tab.key === "notifications" ? { ...tab, unread: 120 } : tab));
+    await render(wrap(<NavigationBar tabs={many} selectedKey="home" onSelect={() => undefined} />));
+
+    expect(screen.getByRole("tab", { name: "Thông báo, 99+ chưa đọc" })).toBeOnTheScreen();
+    expect(screen.getByText("99+")).toBeOnTheScreen();
+  });
+
+  it("shows no badge when nothing is unread", async () => {
+    const none = TABS.map((tab) => ({ ...tab, unread: 0 }));
+    await render(wrap(<NavigationBar tabs={none} selectedKey="home" onSelect={() => undefined} />));
+
+    expect(screen.getByRole("tab", { name: "Thông báo" })).toBeOnTheScreen();
+    expect(screen.queryByText("0")).toBeNull();
+  });
+
+  it("limits only the tab labels to 1.3x text (OP-22)", async () => {
+    await render(wrap(<NavigationBar tabs={TABS} selectedKey="home" onSelect={() => undefined} />));
+
+    for (const tab of TABS) expect(screen.getByText(tab.label)).toHaveProp("maxFontSizeMultiplier", 1.3);
+    expect(screen.getByText("2")).not.toHaveProp("maxFontSizeMultiplier");
+  });
+
+  it("puts the infoSurface pill only behind the selected tab", async () => {
+    await render(wrap(<NavigationBar tabs={TABS} selectedKey="search" onSelect={() => undefined} />));
+
+    // Tab icons are hidden from screen readers (the tab is named by its label), hence includeHiddenElements.
+    const pill = (icon: string) =>
+      StyleSheet.flatten(screen.getByTestId(icon, { includeHiddenElements: true }).parent?.props.style);
+    expect(pill("icon-search")).toMatchObject({ backgroundColor: colors.infoSurface });
+    expect(pill("icon-home_fill")?.backgroundColor).toBeUndefined();
   });
 });

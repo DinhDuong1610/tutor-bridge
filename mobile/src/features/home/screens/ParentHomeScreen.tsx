@@ -1,6 +1,7 @@
 // PH01 Trang chủ phụ huynh (UC02, FR-03). Thiết kế: docs/design/ui/screens/PH01.md
 // TB-14a: chỉ phần đọc được hôm nay (listStudents). Các khối nhu cầu, đề nghị, buổi sắp tới, thông báo
 // ẩn tới khi Issue backend của chúng merge (Đính, #14, 15/11/2026).
+import type { ReactNode } from "react";
 import { ScrollView, StyleSheet, Text } from "react-native";
 import { useStudents } from "@/features/students/api";
 import { useSelectedStudent } from "@/features/students/selection";
@@ -22,10 +23,12 @@ type StudentItem = { id: string; displayName: string; grade: number };
 export function ParentHomeScreen({ onAddStudent, onManageStudents, onSecurity }: Props) {
   const students = useStudents();
   return (
-    <QueryScreen title="Tổng quan" query={students}>
-      {(data) => (
+    // The approved "Dữ liệu cũ" frame puts the warning below the child switcher, not above it.
+    <QueryScreen title="Tổng quan" query={students} placesStaleNotice>
+      {(data, staleNotice) => (
         <Home
           items={data.pages.flatMap((page) => page.items)}
+          staleNotice={staleNotice}
           onAddStudent={onAddStudent}
           onManageStudents={onManageStudents}
           onSecurity={onSecurity}
@@ -35,12 +38,20 @@ export function ParentHomeScreen({ onAddStudent, onManageStudents, onSecurity }:
   );
 }
 
-function Home({ items, onAddStudent, onManageStudents, onSecurity }: Props & { items: StudentItem[] }) {
+function Home({
+  items,
+  staleNotice,
+  onAddStudent,
+  onManageStudents,
+  onSecurity,
+}: Props & { items: StudentItem[]; staleNotice: ReactNode }) {
   const { selected, select } = useSelectedStudent(items);
 
   if (!selected) {
+    // No frame shows stale data without a child; the warning goes first, as on other screens.
     return (
       <ScrollView contentContainerStyle={styles.content}>
+        {staleNotice}
         <Text style={styles.greeting}>Chào bạn</Text>
         <Notice tone="info" message="Tạo hồ sơ cho con trước. Mọi việc tìm gia sư, lịch và lớp đều gắn với một con." />
         <Button title="Thêm hồ sơ con" onPress={onAddStudent} />
@@ -60,6 +71,7 @@ function Home({ items, onAddStudent, onManageStudents, onSecurity }: Props & { i
   return (
     <ScrollView contentContainerStyle={styles.content}>
       <StudentSwitcher choices={choices} selectedId={selected.id} onSelect={select} onManage={onManageStudents} />
+      {staleNotice}
       <Button variant="secondary" title="Bảo mật" onPress={onSecurity} />
     </ScrollView>
   );

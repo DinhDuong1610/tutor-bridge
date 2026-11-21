@@ -36,6 +36,35 @@ describe("PH02 routes", () => {
     expect(screen.getByRole("button", { name: "Đổi con. Đang xem Bảo Ngọc, lớp 8" })).toBeOnTheScreen();
   });
 
+  it("puts PH01's stale-data warning below the child switcher, as in the approved frame", async () => {
+    let reads = 0;
+    server = mockApi({
+      "GET /students": () => {
+        reads += 1;
+        return reads === 1 ? json(200, { items: [CREATED], nextCursor: null }) : problem(503, "UNAVAILABLE", "Dịch vụ tạm thời không sẵn sàng.");
+      },
+    });
+    await renderRouter("./src/app", { initialUrl: "/parent" });
+    await screen.findByRole("button", { name: "Đổi con. Đang xem Minh An, lớp 8" });
+
+    // Past the 30 s staleTime, PH02 reads the same list again; that read fails after its retries.
+    const later = Date.now() + 31_000;
+    const clock = jest.spyOn(Date, "now").mockImplementation(() => later);
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Đổi con. Đang xem Minh An, lớp 8" })));
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Quản lý hồ sơ các con" })));
+    await screen.findByText("Không cập nhật được. Đang hiển thị dữ liệu đã tải trước đó.", {}, { timeout: 10_000 });
+    clock.mockRestore();
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Quay lại" })));
+    await screen.findByRole("header", { name: "Tổng quan" });
+
+    const tree = JSON.stringify(screen.toJSON());
+    const switcherAt = tree.indexOf("Đang xem");
+    const warningAt = tree.indexOf("Không cập nhật được. Đang hiển thị dữ liệu đã tải trước đó.");
+    expect(switcherAt).toBeGreaterThan(-1);
+    expect(warningAt).toBeGreaterThan(switcherAt);
+    expect(tree.indexOf("Không cập nhật được.")).toBe(warningAt); // shown once, not also above the switcher
+  }, 20_000); // Reads retry twice on 5xx with the default backoff before the warning shows.
+
   it("opens PH02's add screen from PH01 when there is no child yet", async () => {
     server = mockApi({ "GET /students": () => json(200, { items: [], nextCursor: null }) });
     await renderRouter("./src/app", { initialUrl: "/parent" });

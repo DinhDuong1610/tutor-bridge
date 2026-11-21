@@ -18,6 +18,7 @@ import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.cfg.CoercionAction;
 import tools.jackson.databind.cfg.CoercionInputShape;
 import tools.jackson.databind.cfg.DateTimeFeature;
+import tools.jackson.databind.cfg.EnumFeature;
 import tools.jackson.databind.cfg.MutableCoercionConfig;
 import tools.jackson.databind.type.LogicalType;
 
@@ -46,7 +47,8 @@ class WebFoundation implements WebMvcConfigurer {
      * for int and long; other integer types refuse any float token). A scalar of the wrong JSON type is a
      * 422 too, instead of Jackson's coercion (#170): {@code "7"} or {@code ""} is not a number, {@code "true"}
      * or {@code 1} is not a boolean, {@code 7} or {@code true} is not a string, and {@code ""} is not a
-     * missing UUID or timestamp.
+     * missing UUID or timestamp. Instants and dates take only ISO-8601 strings ({@link IsoDates}), and an
+     * enum only its constant's name, not its position (#195).
      */
     @Bean
     JsonMapperBuilderCustomizer strictJson() {
@@ -56,6 +58,7 @@ class WebFoundation implements WebMvcConfigurer {
                         DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
                 .disable(DeserializationFeature.ACCEPT_FLOAT_AS_INT)
                 .disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
+                .enable(EnumFeature.FAIL_ON_NUMBERS_FOR_ENUMS)
                 .withCoercionConfig(LogicalType.Integer,
                         refuse(CoercionInputShape.String, CoercionInputShape.EmptyString, CoercionInputShape.Boolean))
                 .withCoercionConfig(LogicalType.Float,
@@ -66,7 +69,8 @@ class WebFoundation implements WebMvcConfigurer {
                         refuse(CoercionInputShape.Integer, CoercionInputShape.Float, CoercionInputShape.Boolean))
                 .withCoercionConfig(LogicalType.DateTime, refuse(CoercionInputShape.EmptyString))
                 .withCoercionConfig(LogicalType.OtherScalar, refuse(CoercionInputShape.EmptyString))
-                .addModule(WholeNumbers.module());
+                .addModule(WholeNumbers.module())
+                .addModule(IsoDates.module());
     }
 
     private static Consumer<MutableCoercionConfig> refuse(CoercionInputShape... shapes) {

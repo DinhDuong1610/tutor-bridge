@@ -90,6 +90,24 @@ describe("QueryScreen", () => {
     expect(screen.queryByText(/Không tải được/)).toBeNull();
     expect(screen.queryByRole("alert")).toBeNull();
   });
+
+  it("keeps the footer while loading and after a failed first read", async () => {
+    let fail: (error: Error) => void = () => undefined;
+    function WithFooter({ load }: { load: () => Promise<string[]> }) {
+      const query = useQuery({ queryKey: ["footer"], queryFn: load });
+      return (
+        <QueryScreen title="Tổng quan" query={query} footer={<Text>Lối ra</Text>}>
+          {(items) => items.map((item) => <Text key={item}>{item}</Text>)}
+        </QueryScreen>
+      );
+    }
+    await render(wrap(<WithFooter load={() => new Promise((_, reject) => (fail = reject))} />));
+    expect(screen.getByText("Lối ra")).toBeOnTheScreen();
+
+    await act(async () => fail(new UnknownOutcomeError()));
+    expect(await screen.findByText("Không tải được dữ liệu. Kiểm tra kết nối rồi thử lại.")).toBeOnTheScreen();
+    expect(screen.getByText("Lối ra")).toBeOnTheScreen();
+  });
 });
 
 describe("TextField", () => {

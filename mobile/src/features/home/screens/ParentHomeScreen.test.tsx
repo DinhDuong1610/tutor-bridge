@@ -1,8 +1,11 @@
-import { act, fireEvent, screen } from "@testing-library/react-native";
+import { act, fireEvent, screen, within } from "@testing-library/react-native";
+import { StyleSheet } from "react-native";
 import { SelectedStudentProvider } from "@/features/students/selection";
 import { json, mockApi, problem } from "@/shared/test/mockApi";
 import { renderScreen } from "@/shared/test/renderScreen";
 import { fakeSession } from "@/shared/test/session";
+import { barStyle, choiceStyle } from "@/shared/ui/StudentSwitcher";
+import { colors, spacing } from "@/shared/ui/theme";
 import { ParentHomeScreen } from "./ParentHomeScreen";
 
 // Fake children only (AGENTS.md): no real names.
@@ -147,5 +150,49 @@ describe("PH01 Trang chủ phụ huynh", () => {
     expect(name).not.toHaveProp("numberOfLines");
     expect(name).not.toHaveProp("maxFontSizeMultiplier");
     expect(screen.getByText("Đổi con")).not.toHaveProp("numberOfLines");
+  });
+
+  describe("Đính's choices on #192 (22/11/2026, Figma 18:471 and 18:688)", () => {
+    it("turns the bar and a choice infoSurface while pressed, not see-through", () => {
+      expect(StyleSheet.flatten(barStyle(false))).toMatchObject({ backgroundColor: colors.surface });
+      expect(StyleSheet.flatten(barStyle(true))).toMatchObject({ backgroundColor: colors.infoSurface });
+      expect(StyleSheet.flatten(barStyle(true))).not.toHaveProperty("opacity");
+      expect(StyleSheet.flatten(choiceStyle(false, true))).toMatchObject({ backgroundColor: colors.infoSurface });
+      expect(StyleSheet.flatten(choiceStyle(false, true))).not.toHaveProperty("opacity");
+    });
+
+    it("spans the bar edge to edge with a divider below, not an inset rounded card", async () => {
+      server = mockApi({ "GET /students": () => page([MINH]) });
+      await renderHome();
+      await screen.findByText("Minh An, lớp 8");
+
+      const bar = StyleSheet.flatten(barStyle(false));
+      expect(bar).toMatchObject({ borderBottomColor: colors.divider });
+      expect(bar).not.toHaveProperty("borderRadius");
+      // The scroll view undoes the screen padding so the bar reaches both edges.
+      let node = switcher("Minh An, lớp 8").parent;
+      while (node && StyleSheet.flatten(node.props.style)?.marginHorizontal === undefined) node = node.parent;
+      expect(StyleSheet.flatten(node?.props.style)).toMatchObject({ marginHorizontal: -spacing.md });
+    });
+
+    it("keeps \"Đang xem\" on its own full-width line, apart from the name and \"Đổi con\"", async () => {
+      server = mockApi({ "GET /students": () => page([MINH]) });
+      await renderHome();
+      await screen.findByText("Minh An, lớp 8");
+
+      let row = screen.getByText("Đổi con").parent;
+      while (row && !within(row).queryByText("Minh An, lớp 8")) row = row.parent;
+      expect(row).not.toBeNull();
+      expect(within(row!).queryByText("Đang xem")).toBeNull();
+    });
+
+    it("draws a drag handle at the top of the child sheet, hidden from screen readers", async () => {
+      server = mockApi({ "GET /students": () => page([MINH]) });
+      await renderHome();
+      await act(async () => fireEvent.press(await screen.findByRole("button", { name: "Đổi con. Đang xem Minh An, lớp 8" })));
+
+      expect(screen.getByTestId("sheet-handle", { includeHiddenElements: true })).toBeOnTheScreen();
+      expect(screen.queryByTestId("sheet-handle")).toBeNull();
+    });
   });
 });

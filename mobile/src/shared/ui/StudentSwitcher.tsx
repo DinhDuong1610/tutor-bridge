@@ -38,15 +38,16 @@ export function StudentSwitcher({ choices, selectedId, onSelect, onManage }: Pro
         accessibilityRole="button"
         accessibilityLabel={`Đổi con. Đang xem ${selected.label}`}
         onPress={() => setOpen(true)}
-        style={({ pressed }) => [styles.bar, pressed && styles.pressed]}
+        style={({ pressed }) => barStyle(pressed)}
       >
-        <View style={styles.current}>
-          <Text style={styles.caption}>Đang xem</Text>
+        {/* "Đang xem" gets the full width so it stays on one line at 200% (Đính, #192, frame 18:688). */}
+        <Text style={styles.caption}>Đang xem</Text>
+        <View style={styles.currentRow}>
           <Text style={styles.name}>{selected.label}</Text>
-        </View>
-        <View style={styles.changeRow}>
-          <Text style={styles.change}>Đổi con</Text>
-          <Icon name="expand_more" color={colors.primary} />
+          <View style={styles.changeRow}>
+            <Text style={styles.change}>Đổi con</Text>
+            <Icon name="expand_more" color={colors.primary} />
+          </View>
         </View>
       </Pressable>
 
@@ -55,6 +56,8 @@ export function StudentSwitcher({ choices, selectedId, onSelect, onManage }: Pro
           <View style={styles.scrim} />
           <Pressable accessibilityRole="button" accessibilityLabel="Đóng bảng chọn con" style={styles.dismiss} onPress={() => setOpen(false)} />
           <SafeAreaView edges={["bottom"]} style={styles.sheet}>
+            {/* Drag handle as in Figma 18:471; drawing only, the sheet closes by Back or the scrim. */}
+            <View testID="sheet-handle" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.handle} />
             <ScrollView contentContainerStyle={styles.sheetContent}>
               <Text accessibilityRole="header" style={styles.sheetTitle}>
                 Chọn con
@@ -72,7 +75,7 @@ export function StudentSwitcher({ choices, selectedId, onSelect, onManage }: Pro
                         onSelect(choice.id);
                         setOpen(false);
                       }}
-                      style={({ pressed }) => [styles.choice, checked && styles.choiceChecked, pressed && styles.pressed]}
+                      style={({ pressed }) => choiceStyle(checked, pressed)}
                     >
                       <View style={[styles.radio, checked && styles.radioChecked]}>
                         {checked ? <View style={styles.radioDot} /> : null}
@@ -102,21 +105,32 @@ export function StudentSwitcher({ choices, selectedId, onSelect, onManage }: Pro
   );
 }
 
+/** The bar for a press state; exported so the pressed look can be tested (like `buttonStyle`). */
+export function barStyle(pressed: boolean) {
+  return [styles.bar, pressed && styles.pressed];
+}
+
+/** A choice in the sheet for its checked and press states. */
+export function choiceStyle(checked: boolean, pressed: boolean) {
+  return [styles.choice, checked && styles.choiceChecked, pressed && styles.pressed];
+}
+
 const styles = StyleSheet.create({
+  // Full width with a divider below, as in Figma 18:471 (Đính, #192). The screen places it edge to
+  // edge (PH01 lets its scroll view span the screen padding).
   bar: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
     minHeight: minTouchSize,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    borderRadius: radius.sm,
     backgroundColor: colors.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.divider,
   },
-  pressed: { opacity: 0.85 },
-  current: { flex: 1 },
+  // Pressed like the secondary button (#188), not see-through (Đính, #192).
+  pressed: { backgroundColor: colors.infoSurface },
+  currentRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   caption: { ...typography.caption, color: colors.textMuted },
-  name: { ...typography.bodyStrong, color: colors.text },
+  name: { ...typography.bodyStrong, color: colors.text, flex: 1 },
   changeRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
   change: { ...typography.label, color: colors.primary },
   backdrop: { flex: 1, justifyContent: "flex-end" },
@@ -124,6 +138,8 @@ const styles = StyleSheet.create({
   scrim: { position: "absolute", top: 0, right: 0, bottom: 0, left: 0, backgroundColor: colors.text, opacity: 0.4 },
   dismiss: { flex: 1 },
   sheet: { maxHeight: "80%", backgroundColor: colors.background, borderTopLeftRadius: radius.md, borderTopRightRadius: radius.md },
+  // Material 3 handle size (32×4), the same as the approved frame.
+  handle: { alignSelf: "center", width: 32, height: 4, marginTop: spacing.sm, borderRadius: radius.full, backgroundColor: colors.border },
   sheetContent: { gap: spacing.md, padding: spacing.md },
   sheetTitle: { ...typography.heading, color: colors.text },
   choices: { gap: spacing.sm },

@@ -2,7 +2,7 @@
 // TB-14a: chỉ phần đọc được hôm nay (listStudents). Các khối nhu cầu, đề nghị, buổi sắp tới, thông báo
 // ẩn tới khi Issue backend của chúng merge (Đính, #14, 15/11/2026).
 import type { ReactNode } from "react";
-import { ScrollView, StyleSheet, Text } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useStudents } from "@/features/students/api";
 import { useSelectedStudent } from "@/features/students/selection";
 import { Button } from "@/shared/ui/Button";
@@ -76,14 +76,18 @@ function Home({
   }));
 
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    // Edge to edge so the switcher bar spans the screen as in Figma 18:471; the rest keeps the padding.
+    <ScrollView style={styles.edgeToEdge} contentContainerStyle={styles.content}>
       <StudentSwitcher choices={choices} selectedId={selected.id} onSelect={select} onManage={onManageStudents} />
-      {staleNotice}
+      {staleNotice ? <View style={styles.padded}>{staleNotice}</View> : null}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   content: { gap: spacing.lg, paddingBottom: spacing.md },
+  // Undoes the horizontal padding of QueryScreen for this scroll view only.
+  edgeToEdge: { marginHorizontal: -spacing.md },
+  padded: { paddingHorizontal: spacing.md },
   greeting: { ...typography.heading, color: colors.text },
 });

@@ -19,7 +19,7 @@ Giữ bảng màu hiện tại (Đính chọn giữ xanh dương đậm, 07/11/2
 | `brand/primary-pressed` | `primaryPressed` | `--primary-pressed` | `#08467F` | Trạng thái nhấn của nút chính |
 | `brand/on-primary` | `onPrimary` | `--primary-foreground` | `#FFFFFF` | Chữ trên nền primary |
 | `status/info` | `info` | `--primary` | `#0B5CAD` | Thông tin, đang gửi |
-| `status/info-bg` | `infoSurface` | `--accent` | `#E8F1FB` | Nền thông báo thông tin |
+| `status/info-bg` | `infoSurface` | `--accent` | `#E8F1FB` | Nền thông báo thông tin, nền nút phụ khi nhấn (Đính chốt 21/11/2026, #188) |
 | `status/success` | `success` | `--success` | `#1E6B34` | Đã xác nhận |
 | `status/success-bg` | `successSurface` | `--success-surface` | `#E7F5EC` | |
 | `status/warning` | `warning` | `--warning` | `#8A5A00` | Chưa rõ kết quả, bản cũ, sắp hết hạn |
@@ -60,7 +60,7 @@ Font **Be Vietnam Pro** (Đính chọn, 07/11/2026). Mã nguồn mở, có đủ
 | `caption` | `caption` | 13 / 18 | 400 | Chú thích, thời điểm |
 | `date-numeral` | `dateNumeral` | 28 / 32 | 600 | Chỉ số ngày trong khối ngày của thẻ lịch |
 
-- **Chiều cao dòng bắt buộc.** Dấu tiếng Việt chồng (ệ, ẫ, ặ) bị cắt khi dòng sát cỡ chữ. Mọi style đều có line height, ít nhất 1,4 lần cỡ chữ với chữ thường. Ngoại lệ là `date-numeral`: chỉ chứa số, không có dấu.
+- **Chiều cao dòng bắt buộc.** Dấu tiếng Việt chồng (ệ, ẫ, ặ) bị cắt khi dòng sát cỡ chữ. Mọi style đều có line height, ít nhất 1,4 lần cỡ chữ với chữ thường. Ngoại lệ theo bảng trên: `title` 24/32 (1,33) và `caption` 13/18 (1,38), Đính chốt giữ bảng ngày 21/11/2026 (#188); `date-numeral` chỉ chứa số, không có dấu.
 - Không viết hoa toàn bộ. Viết hoa chữ đầu câu cho tiêu đề, nút và nhãn.
 - Số tiền, giờ và ngày dùng chữ số cùng độ rộng (`tabular-nums` trên web, `fontVariant: ["tabular-nums"]` trên mobile) để cột thẳng hàng.
 - Mobile tải font bằng `@expo-google-fonts/be-vietnam-pro` 0.4.1 với `expo-font`, chỉ 3 độ đậm, nạp lúc chạy bằng `useFonts` (vẫn chạy trên Expo Go); Đính duyệt gói ngày 14/11/2026 theo ADR-0009 (#95). Mỗi độ đậm là một `fontFamily` riêng trong `theme.ts`, không đặt `fontWeight`. Web tải qua `next/font/google` với tập con `vietnamese`.

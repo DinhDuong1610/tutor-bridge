@@ -289,11 +289,11 @@ describe("NavigationBar", () => {
     expect(onSelect).toHaveBeenCalledWith("classes");
   });
 
-  it("shows the unread count in the badge and in the tab's name; over 99 is 99+ (PH01)", async () => {
+  it("shows the unread count in the badge and reads it as in 05; over 99 is 99+ (PH01)", async () => {
     const many = TABS.map((tab) => (tab.key === "notifications" ? { ...tab, unread: 120 } : tab));
     await render(wrap(<NavigationBar tabs={many} selectedKey="home" onSelect={() => undefined} />));
 
-    expect(screen.getByRole("tab", { name: "Thông báo, 99+ chưa đọc" })).toBeOnTheScreen();
+    expect(screen.getByRole("tab", { name: "Thông báo, 99+ thông báo chưa đọc" })).toBeOnTheScreen();
     expect(screen.getByText("99+")).toBeOnTheScreen();
   });
 

@@ -40,7 +40,8 @@ export function NavigationBar({ tabs, selectedKey, onSelect }: Props) {
             key={tab.key}
             accessibilityRole="tab"
             accessibilityState={{ selected }}
-            accessibilityLabel={unread > 0 ? `${tab.label}, ${badgeText(unread)} chưa đọc` : tab.label}
+            // 05-dieu-huong-luong.md: the badge reads "3 thông báo chưa đọc" after the tab name.
+            accessibilityLabel={unread > 0 ? `${tab.label}, ${badgeText(unread)} thông báo chưa đọc` : tab.label}
             onPress={() => onSelect(tab.key)}
             style={styles.tab}
           >

@@ -1,5 +1,6 @@
 // AUTH04 Yêu cầu khôi phục mật khẩu (UC01, FR-39)
 import { ScrollView, StyleSheet, Text } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/shared/ui/Button";
 import { colors, spacing, typography } from "@/shared/ui/theme";
 import { useRequestRecovery } from "../api";
@@ -18,18 +19,22 @@ export function RecoveryScreen({ onGoToSignIn }: Props) {
   const recovery = useRequestRecovery();
 
   return (
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-      <Text accessibilityRole="header" style={styles.title}>
-        Quên mật khẩu
-      </Text>
-      <Text style={styles.body}>Nhập email của tài khoản. Chúng tôi sẽ gửi liên kết đặt lại mật khẩu, có hạn 15 phút.</Text>
-      <EmailRequestForm command={recovery} submitTitle="Gửi liên kết" confirmedMessage={SENT} />
-      <Button variant="secondary" title="Quay lại đăng nhập" onPress={onGoToSignIn} />
-    </ScrollView>
+    <SafeAreaView style={styles.safe}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+        <Text accessibilityRole="header" style={styles.title}>
+          Quên mật khẩu
+        </Text>
+        <Text style={styles.body}>Nhập email của tài khoản. Chúng tôi sẽ gửi liên kết đặt lại mật khẩu, có hạn 15 phút.</Text>
+        <EmailRequestForm command={recovery} submitTitle="Gửi liên kết" confirmedMessage={SENT} />
+        <Button variant="secondary" title="Quay lại đăng nhập" onPress={onGoToSignIn} />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  // Below the status bar and the notch, as the approved frames place the title.
+  safe: { flex: 1, backgroundColor: colors.background },
   container: { flexGrow: 1, gap: spacing.md, padding: spacing.md, backgroundColor: colors.background },
   title: { ...typography.title, color: colors.text },
   body: { ...typography.body, color: colors.text },

@@ -1,6 +1,7 @@
 // AUTH02 Xác minh email (UC01, FR-01, FR-39)
 import { useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/shared/ui/Button";
 import { CommandStatus } from "@/shared/ui/CommandStatus";
 import { colors, spacing, typography } from "@/shared/ui/theme";
@@ -59,76 +60,82 @@ export function VerifyEmailScreen({ token, onGoToSignIn }: Props) {
 
   if (verify.state === "confirmed") {
     return (
-      <View style={styles.container}>
-        {/* Announced when it appears, as the Notice it replaced was (TalkBack). */}
-        <View accessibilityLiveRegion="polite" style={styles.section}>
-          <Text accessibilityRole="header" style={styles.title}>
-            Đã xác minh email
-          </Text>
-          <Text style={styles.body}>Bạn có thể đăng nhập bằng email và mật khẩu đã tạo.</Text>
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.container}>
+          {/* Announced when it appears, as the Notice it replaced was (TalkBack). */}
+          <View accessibilityLiveRegion="polite" style={styles.section}>
+            <Text accessibilityRole="header" style={styles.title}>
+              Đã xác minh email
+            </Text>
+            <Text style={styles.body}>Bạn có thể đăng nhập bằng email và mật khẩu đã tạo.</Text>
+          </View>
+          <Button title="Đăng nhập" onPress={onGoToSignIn} />
         </View>
-        <Button title="Đăng nhập" onPress={onGoToSignIn} />
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-      <Text accessibilityRole="header" style={styles.title}>
-        Xác minh email
-      </Text>
-      {validToken ? (
-        <>
-          {linkState ? (
-            // AUTH02 frames: a heading and one sentence per link state (TB-8 error codes).
-            // A live region, so the result of pressing the button is read out like a Notice.
-            <View accessibilityLiveRegion="polite" style={styles.section}>
-              <Text accessibilityRole="header" style={styles.subtitle}>
-                {LINK_STATES[linkState].heading}
-              </Text>
-              <Text style={styles.body}>{LINK_STATES[linkState].body}</Text>
-            </View>
-          ) : verify.state === "sending" ? (
-            <View accessibilityLiveRegion="polite">
-              <Text style={styles.body}>Đang xác minh email…</Text>
-            </View>
-          ) : (
-            <>
-              <Text style={styles.body}>Nhấn nút bên dưới để xác minh email của bạn.</Text>
-              <CommandStatus command={{ ...verify, retry: retryVerify }} confirmedMessage="" />
-            </>
-          )}
-          {verify.state === "failed" && retriedAfterUnknown ? (
-            // The first attempt may have worked before the connection dropped, then the retry finds the link used.
-            <Text style={styles.body}>Lần gửi trước có thể đã xác minh email của bạn. Hãy thử đăng nhập trước.</Text>
-          ) : null}
-          {linkState ? null : (
-            <Button title="Xác minh email" busy={verify.state === "sending"} onPress={() => void verify.submit(undefined)} />
-          )}
-        </>
-      ) : token === undefined ? (
-        // Opened from sign-in or registration to ask for a new link, not from an email link.
-        <Text style={styles.body}>Nhập email đã đăng ký để nhận liên kết xác minh mới.</Text>
-      ) : (
-        <View accessibilityLiveRegion="polite" style={styles.section}>
-          <Text accessibilityRole="header" style={styles.subtitle}>
-            {LINK_STATES.invalid.heading}
-          </Text>
-          <Text style={styles.body}>{LINK_STATES.invalid.body}</Text>
-        </View>
-      )}
-      {validToken === null || verify.state === "failed" ? (
-        <View style={styles.section}>
-          <Text style={styles.body}>Liên kết mới có hạn 30 phút.</Text>
-          <EmailRequestForm command={resend} submitTitle="Gửi lại liên kết" />
-        </View>
-      ) : null}
-      <Button variant="secondary" title="Đến trang đăng nhập" onPress={onGoToSignIn} />
-    </ScrollView>
+    <SafeAreaView style={styles.safe}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+        <Text accessibilityRole="header" style={styles.title}>
+          Xác minh email
+        </Text>
+        {validToken ? (
+          <>
+            {linkState ? (
+              // AUTH02 frames: a heading and one sentence per link state (TB-8 error codes).
+              // A live region, so the result of pressing the button is read out like a Notice.
+              <View accessibilityLiveRegion="polite" style={styles.section}>
+                <Text accessibilityRole="header" style={styles.subtitle}>
+                  {LINK_STATES[linkState].heading}
+                </Text>
+                <Text style={styles.body}>{LINK_STATES[linkState].body}</Text>
+              </View>
+            ) : verify.state === "sending" ? (
+              <View accessibilityLiveRegion="polite">
+                <Text style={styles.body}>Đang xác minh email…</Text>
+              </View>
+            ) : (
+              <>
+                <Text style={styles.body}>Nhấn nút bên dưới để xác minh email của bạn.</Text>
+                <CommandStatus command={{ ...verify, retry: retryVerify }} confirmedMessage="" />
+              </>
+            )}
+            {verify.state === "failed" && retriedAfterUnknown ? (
+              // The first attempt may have worked before the connection dropped, then the retry finds the link used.
+              <Text style={styles.body}>Lần gửi trước có thể đã xác minh email của bạn. Hãy thử đăng nhập trước.</Text>
+            ) : null}
+            {linkState ? null : (
+              <Button title="Xác minh email" busy={verify.state === "sending"} onPress={() => void verify.submit(undefined)} />
+            )}
+          </>
+        ) : token === undefined ? (
+          // Opened from sign-in or registration to ask for a new link, not from an email link.
+          <Text style={styles.body}>Nhập email đã đăng ký để nhận liên kết xác minh mới.</Text>
+        ) : (
+          <View accessibilityLiveRegion="polite" style={styles.section}>
+            <Text accessibilityRole="header" style={styles.subtitle}>
+              {LINK_STATES.invalid.heading}
+            </Text>
+            <Text style={styles.body}>{LINK_STATES.invalid.body}</Text>
+          </View>
+        )}
+        {validToken === null || verify.state === "failed" ? (
+          <View style={styles.section}>
+            <Text style={styles.body}>Liên kết mới có hạn 30 phút.</Text>
+            <EmailRequestForm command={resend} submitTitle="Gửi lại liên kết" />
+          </View>
+        ) : null}
+        <Button variant="secondary" title="Đến trang đăng nhập" onPress={onGoToSignIn} />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  // Below the status bar and the notch, as the approved frames place the title.
+  safe: { flex: 1, backgroundColor: colors.background },
   container: { flexGrow: 1, gap: spacing.md, padding: spacing.md, backgroundColor: colors.background },
   section: { gap: spacing.md },
   title: { ...typography.title, color: colors.text },

@@ -11,7 +11,7 @@ Huy chụp ngày 21/11/2026 trên iPhone, Expo Go SDK 58, cỡ chữ mặc đị
 | [PH01-chu-200.png](PH01-chu-200.png) | Chữ 200% (18:688) | Cỡ chữ lớn trong Trợ năng của iOS (chưa ghi chính xác mức nào). Mọi chữ xuống dòng, không bị cắt, không chồng nhau |
 
 ## Khác bản duyệt
-1. Ô thông báo ở "Chưa có con" hiện tiêu đề "Thông tin" (mặc định của `Notice`). Bản duyệt chỉ có icon và câu, không có tiêu đề.
+1. Ô thông báo ở "Chưa có con" hiện tiêu đề "Thông tin" (mặc định của `Notice`). Bản duyệt chỉ có icon và câu, không có tiêu đề. **Sửa ở TB-95 phần 1b** (Huy chọn, 21/11/2026), cùng lúc làm lại `Notice` có icon.
 2. "Tổng quan" là tiêu đề lớn của `QueryScreen`. Bản duyệt dùng thanh tiêu đề nhỏ (`TopAppBar`).
 3. Thanh "Đang xem" là thẻ bo góc thụt lề. Bản duyệt trải hết chiều ngang, có đường kẻ dưới.
 4. Bảng chọn con không có thanh kéo ở đầu bảng. Lớp nền mờ không phủ thanh trạng thái.

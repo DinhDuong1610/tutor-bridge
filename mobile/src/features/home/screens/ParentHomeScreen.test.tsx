@@ -36,7 +36,9 @@ describe("PH01 Trang chủ phụ huynh", () => {
     expect(await screen.findByRole("header", { name: "Tổng quan" })).toBeOnTheScreen();
     expect(switcher("Minh An, lớp 8")).toBeOnTheScreen();
     expect(screen.getByText("Đang xem")).toBeOnTheScreen();
-    expect(screen.getByText("Đổi con ⌄")).toBeOnTheScreen();
+    expect(screen.getByText("Đổi con")).toBeOnTheScreen();
+    // The chevron icon is hidden from screen readers; the bar is already named "Đổi con...".
+    expect(screen.getByTestId("icon-expand_more", { includeHiddenElements: true })).toBeOnTheScreen();
     const url = new URL(server.requests[0].url);
     expect([...url.searchParams.keys()].sort()).toEqual(["limit"]);
     expect(server.unexpected).toEqual([]);
@@ -132,6 +134,6 @@ describe("PH01 Trang chủ phụ huynh", () => {
     const name = await screen.findByText(`${long.displayName}, lớp 8`);
     expect(name).not.toHaveProp("numberOfLines");
     expect(name).not.toHaveProp("maxFontSizeMultiplier");
-    expect(screen.getByText("Đổi con ⌄")).not.toHaveProp("numberOfLines");
+    expect(screen.getByText("Đổi con")).not.toHaveProp("numberOfLines");
   });
 });

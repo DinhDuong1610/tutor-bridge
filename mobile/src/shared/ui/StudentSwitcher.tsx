@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "./Button";
+import { Icon } from "./Icon";
 import { colors, minTouchSize, radius, spacing, typography } from "./theme";
 
 export type StudentChoice = {
@@ -24,7 +25,8 @@ type Props = {
 /**
  * Figma `StudentSwitcher` (PH01 "Đổi con"): the child being viewed, and a sheet to choose another.
  * Text wraps instead of being cut, for long names and 200% text (PH01 worst data and 200% frames).
- * The chevron is a text glyph like `TopAppBar`; an icon package needs Đính's approval (#95).
+ * The chevron is the `expand_more` icon (#95 part 1b); the bar's accessible name already says
+ * "Đổi con", so the icon is hidden from screen readers.
  */
 export function StudentSwitcher({ choices, selectedId, onSelect, onManage }: Props) {
   const [open, setOpen] = useState(false);
@@ -42,13 +44,16 @@ export function StudentSwitcher({ choices, selectedId, onSelect, onManage }: Pro
           <Text style={styles.caption}>Đang xem</Text>
           <Text style={styles.name}>{selected.label}</Text>
         </View>
-        <Text style={styles.change}>Đổi con ⌄</Text>
+        <View style={styles.changeRow}>
+          <Text style={styles.change}>Đổi con</Text>
+          <Icon name="expand_more" color={colors.primary} />
+        </View>
       </Pressable>
 
       <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
         <View style={styles.backdrop}>
           <View style={styles.scrim} />
-          <Pressable accessibilityLabel="Đóng bảng chọn con" style={styles.dismiss} onPress={() => setOpen(false)} />
+          <Pressable accessibilityRole="button" accessibilityLabel="Đóng bảng chọn con" style={styles.dismiss} onPress={() => setOpen(false)} />
           <SafeAreaView edges={["bottom"]} style={styles.sheet}>
             <ScrollView contentContainerStyle={styles.sheetContent}>
               <Text accessibilityRole="header" style={styles.sheetTitle}>
@@ -112,6 +117,7 @@ const styles = StyleSheet.create({
   current: { flex: 1 },
   caption: { ...typography.caption, color: colors.textMuted },
   name: { ...typography.bodyStrong, color: colors.text },
+  changeRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
   change: { ...typography.label, color: colors.primary },
   backdrop: { flex: 1, justifyContent: "flex-end" },
   // No scrim token in 02-nen-thiet-ke.md yet: the text color dimmed, so no new color value appears.

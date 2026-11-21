@@ -24,7 +24,14 @@ export function ParentHomeScreen({ onAddStudent, onManageStudents, onSecurity }:
   const students = useStudents();
   return (
     // The approved "Dữ liệu cũ" frame puts the warning below the child switcher, not above it.
-    <QueryScreen title="Tổng quan" query={students} placesStaleNotice>
+    <QueryScreen
+      title="Tổng quan"
+      query={students}
+      placesStaleNotice
+      // Outside the data so it stays while the list loads or fails (Codex review of #192): the
+      // parent can still change the password or sign out.
+      footer={<Button variant="secondary" title="Bảo mật" onPress={onSecurity} />}
+    >
       {(data, staleNotice) => (
         <Home
           // Assumption (Đính's note on #192): the switcher lists the pages loaded so far, which is the
@@ -34,7 +41,6 @@ export function ParentHomeScreen({ onAddStudent, onManageStudents, onSecurity }:
           staleNotice={staleNotice}
           onAddStudent={onAddStudent}
           onManageStudents={onManageStudents}
-          onSecurity={onSecurity}
         />
       )}
     </QueryScreen>
@@ -46,8 +52,7 @@ function Home({
   staleNotice,
   onAddStudent,
   onManageStudents,
-  onSecurity,
-}: Props & { items: StudentItem[]; staleNotice: ReactNode }) {
+}: Omit<Props, "onSecurity"> & { items: StudentItem[]; staleNotice: ReactNode }) {
   const { selected, select } = useSelectedStudent(items);
 
   if (!selected) {
@@ -58,7 +63,6 @@ function Home({
         <Text style={styles.greeting}>Chào bạn</Text>
         <Notice tone="info" message="Tạo hồ sơ cho con trước. Mọi việc tìm gia sư, lịch và lớp đều gắn với một con." />
         <Button title="Thêm hồ sơ con" onPress={onAddStudent} />
-        <Button variant="secondary" title="Bảo mật" onPress={onSecurity} />
       </ScrollView>
     );
   }
@@ -75,7 +79,6 @@ function Home({
     <ScrollView contentContainerStyle={styles.content}>
       <StudentSwitcher choices={choices} selectedId={selected.id} onSelect={select} onManage={onManageStudents} />
       {staleNotice}
-      <Button variant="secondary" title="Bảo mật" onPress={onSecurity} />
     </ScrollView>
   );
 }

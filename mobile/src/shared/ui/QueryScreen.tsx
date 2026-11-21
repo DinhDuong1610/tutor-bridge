@@ -22,6 +22,11 @@ type Props<T> = {
    * argument. The empty state still shows the warning on top.
    */
   placesStaleNotice?: boolean;
+  /**
+   * Shown below the body in every state, including loading and a failed first read. For ways out
+   * that must not depend on the data, such as PH01's temporary "Bảo mật" until the Account tab exists.
+   */
+  footer?: ReactNode;
   children: (data: T, staleNotice: ReactNode) => ReactNode;
 };
 
@@ -30,7 +35,7 @@ type Props<T> = {
  * FR-37): loading, empty, system error with retry, lost access, not found, and stale data after a
  * failed refresh. A 401 is handled by the session (M3), so nothing is shown for it here.
  */
-export function QueryScreen<T>({ title, onBack, query, empty, placesStaleNotice, children }: Props<T>) {
+export function QueryScreen<T>({ title, onBack, query, empty, placesStaleNotice, footer, children }: Props<T>) {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
@@ -38,12 +43,13 @@ export function QueryScreen<T>({ title, onBack, query, empty, placesStaleNotice,
         <Body query={query} empty={empty} placesStaleNotice={placesStaleNotice}>
           {children}
         </Body>
+        {footer}
       </View>
     </SafeAreaView>
   );
 }
 
-function Body<T>({ query, empty, placesStaleNotice, children }: Omit<Props<T>, "title" | "onBack">) {
+function Body<T>({ query, empty, placesStaleNotice, children }: Omit<Props<T>, "title" | "onBack" | "footer">) {
   if (query.isPending) {
     return (
       <View style={styles.center} accessibilityLiveRegion="polite">

@@ -109,6 +109,18 @@ describe("PH01 Trang chủ phụ huynh", () => {
     expect(onSecurity).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps the way in to AUTH06 while the list is loading and after it fails (Codex, #192)", async () => {
+    // Without it a parent whose first read fails could not change the password or sign out from PH01.
+    server = mockApi({ "GET /students": () => problem(503, "UNAVAILABLE", "Dịch vụ tạm thời không sẵn sàng.") });
+    const { onSecurity } = await renderHome();
+    expect(screen.getByRole("button", { name: "Bảo mật" })).toBeOnTheScreen(); // still loading
+
+    await screen.findByText("Không tải được dữ liệu. Kiểm tra kết nối rồi thử lại.", {}, { timeout: 10_000 });
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Bảo mật" })));
+
+    expect(onSecurity).toHaveBeenCalledTimes(1);
+  }, 15_000);
+
   it("shows the load error with a retry that reads the list again", async () => {
     // Reads retry twice on 5xx with the default backoff before the error shows (same as PH02's test).
     let attempts = 0;

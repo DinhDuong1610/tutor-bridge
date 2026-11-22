@@ -63,6 +63,12 @@ tutorbridge:
   # Worker role (docs/design/kien-truc.md): claims outbox events and sends email. Off on API instances.
   worker:
     enabled: ${TB_WORKER_ENABLED:false}
+    # Retention cleanup (#24, ADR-0006): expired receipts, outbox events 7 days after delivery.
+    cleanup:
+      interval: PT1H
+      batch-size: 500
+      max-batches: 40
+      outbox-keep: P7D
 management:
   endpoints:
     web:

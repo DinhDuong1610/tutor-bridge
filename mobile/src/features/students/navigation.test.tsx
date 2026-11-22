@@ -15,29 +15,78 @@ afterEach(() => server.restore());
 
 // Uses the real route tree in src/app.
 describe("PH02 routes", () => {
-  it("opens PH02 from the temporary link on the parent home", async () => {
-    server = mockApi({ "GET /students": () => json(200, { items: [], nextCursor: null }) });
+  it("opens PH02 from the child sheet on PH01 and keeps the chosen child after coming back", async () => {
+    const NGOC = { ...CREATED, id: "1c8d5a4f-3b62-4b9f-8b54-7e2a1d3c0f21", displayName: "Bảo Ngọc" };
+    server = mockApi({ "GET /students": () => json(200, { items: [CREATED, NGOC], nextCursor: null }) });
     await renderRouter("./src/app", { initialUrl: "/parent" });
-    await screen.findByRole("header", { name: "Trang chủ phụ huynh" });
+    await screen.findByRole("button", { name: "Đổi con. Đang xem Minh An, lớp 8" });
 
-    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Hồ sơ các con" })));
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Đổi con. Đang xem Minh An, lớp 8" })));
+    await act(async () => fireEvent.press(screen.getByRole("radio", { name: "Bảo Ngọc. Lớp 8." })));
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Đổi con. Đang xem Bảo Ngọc, lớp 8" })));
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Quản lý hồ sơ các con" })));
 
     expect(await screen.findByRole("header", { name: "Hồ sơ các con" })).toBeOnTheScreen();
     expect(screen).toHavePathname("/parent/account/students");
 
     await act(async () => fireEvent.press(screen.getByRole("button", { name: "Quay lại" })));
-    expect(await screen.findByRole("header", { name: "Trang chủ phụ huynh" })).toBeOnTheScreen();
+    expect(await screen.findByRole("header", { name: "Tổng quan" })).toBeOnTheScreen();
     expect(screen).toHavePathname("/parent");
+    // The choice lives in the parent area's layout, so PH01 still shows the same child.
+    expect(screen.getByRole("button", { name: "Đổi con. Đang xem Bảo Ngọc, lớp 8" })).toBeOnTheScreen();
+  });
+
+  it("puts PH01's stale-data warning below the child switcher, as in the approved frame", async () => {
+    let reads = 0;
+    server = mockApi({
+      "GET /students": () => {
+        reads += 1;
+        return reads === 1 ? json(200, { items: [CREATED], nextCursor: null }) : problem(503, "UNAVAILABLE", "Dịch vụ tạm thời không sẵn sàng.");
+      },
+    });
+    await renderRouter("./src/app", { initialUrl: "/parent" });
+    await screen.findByRole("button", { name: "Đổi con. Đang xem Minh An, lớp 8" });
+
+    // Past the 30 s staleTime, PH02 reads the same list again; that read fails after its retries.
+    const later = Date.now() + 31_000;
+    const clock = jest.spyOn(Date, "now").mockImplementation(() => later);
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Đổi con. Đang xem Minh An, lớp 8" })));
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Quản lý hồ sơ các con" })));
+    await screen.findByText("Không cập nhật được. Đang hiển thị dữ liệu đã tải trước đó.", {}, { timeout: 10_000 });
+    clock.mockRestore();
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Quay lại" })));
+    await screen.findByRole("header", { name: "Tổng quan" });
+
+    const tree = JSON.stringify(screen.toJSON());
+    const switcherAt = tree.indexOf("Đang xem");
+    const warningAt = tree.indexOf("Không cập nhật được. Đang hiển thị dữ liệu đã tải trước đó.");
+    expect(switcherAt).toBeGreaterThan(-1);
+    expect(warningAt).toBeGreaterThan(switcherAt);
+    expect(tree.indexOf("Không cập nhật được.")).toBe(warningAt); // shown once, not also above the switcher
+  }, 20_000); // Reads retry twice on 5xx with the default backoff before the warning shows.
+
+  it("opens PH02's add screen from PH01 when there is no child yet", async () => {
+    server = mockApi({ "GET /students": () => json(200, { items: [], nextCursor: null }) });
+    await renderRouter("./src/app", { initialUrl: "/parent" });
+    await screen.findByText("Chào bạn");
+
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Thêm hồ sơ con" })));
+
+    expect(await screen.findByRole("header", { name: "Thêm hồ sơ con" })).toBeOnTheScreen();
+    expect(screen).toHavePathname("/parent/account/students/new");
   });
 
   it("opens AUTH06 from the temporary link on the parent home", async () => {
-    server = mockApi({ "GET /me/sessions": () => json(200, { items: [], nextCursor: null }) });
+    server = mockApi({
+      "GET /students": () => json(200, { items: [CREATED], nextCursor: null }),
+      "GET /me/sessions": () => json(200, { items: [], nextCursor: null }),
+    });
     await renderRouter("./src/app", { initialUrl: "/parent" });
-    await screen.findByRole("header", { name: "Trang chủ phụ huynh" });
+    await screen.findByRole("button", { name: "Đổi con. Đang xem Minh An, lớp 8" });
 
     await act(async () => fireEvent.press(screen.getByRole("button", { name: "Bảo mật" })));
 
-    expect(await screen.findByRole("header", { name: "Bảo mật và phiên đăng nhập" })).toBeOnTheScreen();
+    expect(await screen.findByRole("header", { name: "Bảo mật và phiên" })).toBeOnTheScreen();
     expect(screen).toHavePathname("/parent/security");
   });
 

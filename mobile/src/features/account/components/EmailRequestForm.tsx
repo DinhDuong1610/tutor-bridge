@@ -15,13 +15,15 @@ type Acknowledgment = { message: string };
 type Props = {
   command: ReturnType<typeof useCommand<EmailOnlyForm, Acknowledgment>>;
   submitTitle: string;
+  /** Shown once the server confirms, instead of its text; must not say whether the email has an account. */
+  confirmedMessage?: string;
 };
 
 /**
  * Email in, generic acknowledgment out: resend verification (AUTH02) and password recovery (AUTH04).
  * The confirmation is the server's own text, which never says whether the email has an account.
  */
-export function EmailRequestForm({ command, submitTitle }: Props) {
+export function EmailRequestForm({ command, submitTitle, confirmedMessage }: Props) {
   const form = useForm<EmailOnlyForm>({ resolver: zodResolver(emailOnlySchema), defaultValues: { email: "" } });
   const otherErrors = useServerErrors(command.error, form.setError, ["email"]);
 
@@ -40,7 +42,7 @@ export function EmailRequestForm({ command, submitTitle }: Props) {
         <Notice key={message} tone="danger" message={message} />
       ))}
       {command.state === "confirmed" && command.result ? (
-        <Notice tone="success" message={command.result.message} />
+        <Notice tone="success" message={confirmedMessage ?? command.result.message} />
       ) : (
         <CommandStatus command={command} confirmedMessage="" />
       )}

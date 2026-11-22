@@ -16,7 +16,18 @@ type Props<T> = {
   query: UseQueryResult<T>;
   /** Shown when `isEmpty(data)` is true, for example "Chưa có hồ sơ con nào." */
   empty?: { when: (data: T) => boolean; message: string; action?: ReactNode };
-  children: (data: T) => ReactNode;
+  /**
+   * Set when the screen places the stale-data warning itself, for example PH01 below the child
+   * switcher as in the approved frame. `children` then gets the warning (or null) as its second
+   * argument. The empty state still shows the warning on top.
+   */
+  placesStaleNotice?: boolean;
+  /**
+   * Shown below the body in every state, including loading and a failed first read. For ways out
+   * that must not depend on the data, such as PH01's temporary "Bảo mật" until the Account tab exists.
+   */
+  footer?: ReactNode;
+  children: (data: T, staleNotice: ReactNode) => ReactNode;
 };
 
 /**
@@ -24,20 +35,21 @@ type Props<T> = {
  * FR-37): loading, empty, system error with retry, lost access, not found, and stale data after a
  * failed refresh. A 401 is handled by the session (M3), so nothing is shown for it here.
  */
-export function QueryScreen<T>({ title, onBack, query, empty, children }: Props<T>) {
+export function QueryScreen<T>({ title, onBack, query, empty, placesStaleNotice, footer, children }: Props<T>) {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
         <TopAppBar title={title} onBack={onBack} />
-        <Body query={query} empty={empty}>
+        <Body query={query} empty={empty} placesStaleNotice={placesStaleNotice}>
           {children}
         </Body>
+        {footer}
       </View>
     </SafeAreaView>
   );
 }
 
-function Body<T>({ query, empty, children }: Omit<Props<T>, "title" | "onBack">) {
+function Body<T>({ query, empty, placesStaleNotice, children }: Omit<Props<T>, "title" | "onBack" | "footer">) {
   if (query.isPending) {
     return (
       <View style={styles.center} accessibilityLiveRegion="polite">
@@ -50,16 +62,18 @@ function Body<T>({ query, empty, children }: Omit<Props<T>, "title" | "onBack">)
     return <LoadError error={query.error} retry={() => void query.refetch()} />;
   }
   const data = query.data as T;
+  const staleNotice = query.isError ? (
+    <Notice
+      tone="warning"
+      message="Không cập nhật được. Đang hiển thị dữ liệu đã tải trước đó."
+      action={<Button variant="secondary" title="Thử lại" onPress={() => void query.refetch()} />}
+    />
+  ) : null;
+  const isEmpty = empty !== undefined && empty.when(data);
   return (
     <>
-      {query.isError ? (
-        <Notice
-          tone="warning"
-          message="Không cập nhật được. Đang hiển thị dữ liệu đã tải trước đó."
-          action={<Button variant="secondary" title="Thử lại" onPress={() => void query.refetch()} />}
-        />
-      ) : null}
-      {empty && empty.when(data) ? <Notice tone="info" message={empty.message} action={empty.action} /> : children(data)}
+      {placesStaleNotice && !isEmpty ? null : staleNotice}
+      {isEmpty ? <Notice tone="info" message={empty.message} action={empty.action} /> : children(data, staleNotice)}
     </>
   );
 }

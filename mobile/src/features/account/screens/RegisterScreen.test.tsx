@@ -14,12 +14,12 @@ async function fillValidForm() {
   await fireEvent.changeText(screen.getByLabelText("Email"), "  phu.huynh@example.test ");
   await fireEvent.changeText(screen.getByLabelText("Tên hiển thị"), "Phụ huynh A");
   await fireEvent.changeText(screen.getByLabelText("Mật khẩu"), PASSWORD);
-  await fireEvent.press(screen.getByRole("radio", { name: "Tôi là phụ huynh" }));
-  await fireEvent.press(screen.getByRole("checkbox", { name: "Tôi đồng ý với điều khoản sử dụng" }));
+  await fireEvent.press(screen.getByRole("radio", { name: "Phụ huynh. Tìm gia sư và theo dõi việc học của con." }));
+  await fireEvent.press(screen.getByRole("checkbox", { name: /^Tôi đồng ý với Điều khoản sử dụng/ }));
 }
 
 async function pressRegister() {
-  await act(async () => fireEvent.press(screen.getByRole("button", { name: "Đăng ký" })));
+  await act(async () => fireEvent.press(screen.getByRole("button", { name: "Tạo tài khoản" })));
 }
 
 describe("AUTH01 RegisterScreen", () => {
@@ -31,7 +31,10 @@ describe("AUTH01 RegisterScreen", () => {
     await show();
 
     const roles = screen.getAllByRole("radio").map((node) => node.props.accessibilityLabel);
-    expect(roles).toEqual(["Tôi là phụ huynh", "Tôi là gia sư"]);
+    expect(roles).toEqual([
+      "Phụ huynh. Tìm gia sư và theo dõi việc học của con.",
+      "Gia sư. Nhận lớp và chuẩn bị bài cho học sinh.",
+    ]);
   });
 
   it("sends the trimmed form with the chosen role and terms version, then asks to check email", async () => {
@@ -43,6 +46,9 @@ describe("AUTH01 RegisterScreen", () => {
 
     expect(await screen.findByRole("header", { name: "Kiểm tra email của bạn" })).toBeOnTheScreen();
     expect(screen.getByText(ACK.message)).toBeOnTheScreen();
+    expect(screen.getByText("Liên kết có hạn 30 phút.")).toBeOnTheScreen();
+    // AUTH01 "Đã tạo" has no Spam sentence; that one belongs to AUTH04 (Đính's review of #179).
+    expect(screen.queryByText(/Spam/)).toBeNull();
     expect(server.requests).toHaveLength(1);
     expect(await server.requests[0].json()).toEqual({
       email: "phu.huynh@example.test",
@@ -64,7 +70,7 @@ describe("AUTH01 RegisterScreen", () => {
     expect(screen.getByText("Lỗi: Vui lòng nhập tên hiển thị.")).toBeOnTheScreen();
     expect(screen.getByText("Lỗi: Mật khẩu cần từ 15 đến 128 ký tự.")).toBeOnTheScreen();
     expect(screen.getByText("Lỗi: Vui lòng chọn bạn là phụ huynh hay gia sư.")).toBeOnTheScreen();
-    expect(screen.getByText("Lỗi: Bạn cần đồng ý với điều khoản để đăng ký.")).toBeOnTheScreen();
+    expect(screen.getByText("Lỗi: Bạn cần đồng ý điều khoản để tạo tài khoản.")).toBeOnTheScreen();
     expect(server.requests).toHaveLength(0);
   });
 

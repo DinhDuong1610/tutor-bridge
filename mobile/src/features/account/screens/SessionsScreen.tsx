@@ -20,10 +20,12 @@ export function SessionsScreen({ onChangePassword }: { onChangePassword: () => v
 
   return (
     // No `empty` on QueryScreen: it would replace the content and hide "Đổi mật khẩu".
-    <QueryScreen title="Bảo mật và phiên đăng nhập" query={sessions}>
+    <QueryScreen title="Bảo mật và phiên" query={sessions}>
       {(data) => (
         <ScrollView contentContainerStyle={styles.list}>
-          <Button variant="secondary" title="Đổi mật khẩu" onPress={onChangePassword} />
+          <Text accessibilityRole="header" style={styles.section}>
+            Thiết bị đang đăng nhập
+          </Text>
           {data.pages.every((page) => page.items.length === 0) ? (
             <Notice tone="info" message="Không có phiên đăng nhập nào." />
           ) : null}
@@ -38,6 +40,12 @@ export function SessionsScreen({ onChangePassword }: { onChangePassword: () => v
               onPress={() => void sessions.fetchNextPage()}
             />
           ) : null}
+          <Text accessibilityRole="header" style={styles.section}>
+            Mật khẩu
+          </Text>
+          {/* Đính 13/11/2026 (#143): every device, this one too (UC01, AC-UC01-03). */}
+          <Text style={styles.note}>Sau khi đổi, mọi thiết bị, kể cả máy này, sẽ bị đăng xuất.</Text>
+          <Button variant="secondary" title="Đổi mật khẩu" onPress={onChangePassword} />
         </ScrollView>
       )}
     </QueryScreen>
@@ -71,8 +79,8 @@ function CurrentSession({ session }: { session: SessionMetadata }) {
   }, [logout.state, signOut]);
 
   return (
-    <View style={styles.card} accessibilityLabel={`${deviceName(session)}, phiên hiện tại`}>
-      <Text style={styles.badge}>Máy này (phiên hiện tại)</Text>
+    <View style={styles.card} accessibilityLabel={`${deviceName(session)}, thiết bị này`}>
+      <Text style={styles.badge}>Thiết bị này</Text>
       <Details session={session} />
       <CommandStatus command={logout} confirmedMessage="Đã đăng xuất." />
       {logout.state === "unknown" ? (
@@ -83,7 +91,7 @@ function CurrentSession({ session }: { session: SessionMetadata }) {
           action={<Button variant="secondary" title="Đăng xuất khỏi máy này" onPress={() => void signOut()} />}
         />
       ) : null}
-      <Button title="Đăng xuất" busy={logout.state === "sending"} onPress={() => void logout.submit(undefined)} />
+      <Button title="Đăng xuất tài khoản" busy={logout.state === "sending"} onPress={() => void logout.submit(undefined)} />
     </View>
   );
 }
@@ -111,22 +119,22 @@ function OtherSession({ session }: { session: SessionMetadata }) {
     <View style={styles.card} accessibilityLabel={deviceName(session)}>
       {session.revoked ? <Text style={styles.badge}>Đã thu hồi</Text> : null}
       <Details session={session} />
-      <CommandStatus command={{ ...revoke, retry: retryRevoke }} confirmedMessage="Đã thu hồi phiên." />
+      <CommandStatus command={{ ...revoke, retry: retryRevoke }} confirmedMessage={`Đã đăng xuất ${deviceName(session)}.`} />
       {session.revoked || revoke.state === "confirmed" ? null : confirming ? (
         <Notice
           tone="warning"
-          message={`Thu hồi phiên trên "${deviceName(session)}"? Máy đó sẽ phải đăng nhập lại.`}
+          message={`Đăng xuất thiết bị này? Phiên trên "${deviceName(session)}" sẽ bị đăng xuất ngay. Thiết bị đó phải đăng nhập lại.`}
           action={
             <View style={styles.actions}>
-              <Button title="Xác nhận thu hồi" onPress={() => void confirmRevoke()} />
-              <Button variant="secondary" title="Hủy" onPress={() => setConfirming(false)} />
+              <Button title="Đăng xuất thiết bị" onPress={() => void confirmRevoke()} />
+              <Button variant="secondary" title="Quay lại" onPress={() => setConfirming(false)} />
             </View>
           }
         />
       ) : (
         <Button
           variant="secondary"
-          title="Thu hồi phiên"
+          title="Đăng xuất"
           busy={revoke.state === "sending"}
           onPress={() => setConfirming(true)}
         />
@@ -139,6 +147,8 @@ const styles = StyleSheet.create({
   list: { gap: spacing.md, paddingBottom: spacing.lg },
   card: { gap: spacing.xs, padding: spacing.md, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, backgroundColor: colors.surface },
   actions: { gap: spacing.sm },
+  section: { ...typography.label, color: colors.text },
+  note: { ...typography.body, color: colors.text },
   badge: { ...typography.label, color: colors.text },
   device: { ...typography.body, color: colors.text },
   muted: { ...typography.caption, color: colors.textMuted },

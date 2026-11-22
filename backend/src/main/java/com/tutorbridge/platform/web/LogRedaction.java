@@ -15,8 +15,14 @@ public class LogRedaction implements StructuredLoggingJsonMembersCustomizer<Obje
 
     private static final Pattern BEARER = Pattern.compile("(?i)(bearer\\s+)[^\\s,;\"']+");
     private static final Pattern COOKIE = Pattern.compile("(?i)\\b(tb_session|tb_csrf)=[^\\s,;\"']+");
+    /**
+     * A key that ends with a secret word, with or without a prefix: {@code password}, {@code currentPassword},
+     * {@code new_password}, {@code csrfToken}. A key that only starts with one, such as {@code tokenCount}, is
+     * left alone. The value stops at {@code ]} too, the end of a record's {@code toString()} (#197).
+     */
     private static final Pattern SECRET_PAIR = Pattern.compile(
-            "(?i)\\b(password|passwd|token|secret|otp|code_hash|idempotency[-_]key)(\"?\\s*[:=]\\s*\"?)[^\\s,;\"'}&]+");
+            "(?i)\\b([a-z0-9_-]*?(?:password|passwd|token|secret|otp|code_hash|idempotency[-_]key))"
+                    + "(\"?\\s*[:=]\\s*\"?)[^\\s,;\"'}&\\]]+");
     private static final Pattern EMAIL = Pattern.compile("[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}");
 
     @Override

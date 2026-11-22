@@ -44,6 +44,27 @@ describe("hasOpenAvailability (TB-14 Q4)", () => {
     // Ended exactly now: nothing left to offer.
     expect(hasOpenAvailability(calendar([{ start: "2026-11-22T01:00:00Z", end: "2026-11-22T03:00:00Z", kind: "AVAILABLE" }]), NOW)).toBe(false);
   });
+
+  it("takes BLOCKED windows away from the free time, as TX05 does (Codex, #206 P2)", () => {
+    const free = { start: "2026-11-24T11:00:00Z", end: "2026-11-24T13:00:00Z", kind: "AVAILABLE" } as const;
+    // Fully covered, also by two BLOCKED windows that touch: nothing left.
+    expect(hasOpenAvailability(calendar([free, { start: "2026-11-24T10:00:00Z", end: "2026-11-24T14:00:00Z", kind: "BLOCKED" }]), NOW)).toBe(false);
+    expect(
+      hasOpenAvailability(
+        calendar([
+          free,
+          { start: "2026-11-24T11:00:00Z", end: "2026-11-24T12:00:00Z", kind: "BLOCKED" },
+          { start: "2026-11-24T12:00:00Z", end: "2026-11-24T13:00:00Z", kind: "BLOCKED" },
+        ]),
+        NOW,
+      ),
+    ).toBe(false);
+    // Partly covered: the hour left still counts.
+    expect(hasOpenAvailability(calendar([free, { start: "2026-11-24T11:00:00Z", end: "2026-11-24T12:00:00Z", kind: "BLOCKED" }]), NOW)).toBe(true);
+    // The only part not blocked is already over.
+    const started = { start: "2026-11-22T01:00:00Z", end: "2026-11-22T05:00:00Z", kind: "AVAILABLE" } as const;
+    expect(hasOpenAvailability(calendar([started, { start: "2026-11-22T02:00:00Z", end: "2026-11-22T05:00:00Z", kind: "BLOCKED" }]), NOW)).toBe(false);
+  });
 });
 
 describe("deriveTutorHome (GS01 v2)", () => {

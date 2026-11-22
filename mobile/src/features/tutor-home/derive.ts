@@ -63,13 +63,31 @@ const NOT_LISTED = "Hồ sơ của bạn chưa xuất hiện khi phụ huynh tì
 const NOT_LISTED_SHORT = "Hồ sơ chưa xuất hiện khi phụ huynh tìm: ";
 
 /**
- * Step 3 counts as done when the effective calendar still has a window that is not BLOCKED and
- * ends after `now`. The app cannot check "đủ cho chu kỳ 28 ngày" (BR04); the server filters on it.
- * Agent's choice until Đính answers TB-14 Q4.
+ * Step 3 counts as done when the effective calendar still has free time after `now`: a window that
+ * is not BLOCKED, minus every BLOCKED window, as TX05 reads the calendar (a session must not touch a
+ * BLOCKED window; Codex, #206 P2). The app cannot check "đủ cho chu kỳ 28 ngày" (BR04); the server
+ * filters on it. Agent's choice until Đính answers TB-14 Q4.
  */
 export function hasOpenAvailability(calendar: TutorCalendar | null, now: Date): boolean {
   if (!calendar) return false;
-  return calendar.windows.some((window) => window.kind !== "BLOCKED" && new Date(window.end).getTime() > now.getTime());
+  const span = (window: TutorCalendar["windows"][number]) => [new Date(window.start).getTime(), new Date(window.end).getTime()] as const;
+  const blocked = calendar.windows
+    .filter((window) => window.kind === "BLOCKED")
+    .map(span)
+    .sort((a, b) => a[0] - b[0]);
+  return calendar.windows
+    .filter((window) => window.kind !== "BLOCKED")
+    .some((window) => {
+      const [start, end] = span(window);
+      // Walk the blocked windows in order, moving the start of what is left past each one it meets.
+      let from = Math.max(start, now.getTime());
+      for (const [blockStart, blockEnd] of blocked) {
+        if (from >= end) break;
+        if (blockStart > from) return true; // a free gap before this block
+        from = Math.max(from, blockEnd);
+      }
+      return from < end;
+    });
 }
 
 /** Builds GS01 from the three reads, following the state table of `docs/handoff/TB-14.md`. */

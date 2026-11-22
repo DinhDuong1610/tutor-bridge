@@ -129,7 +129,7 @@ web/src/
     (public)/          WEB01 (/), WEB02 (/huong-dan); không có học liệu riêng
     admin/(auth)/      AD01 /admin/sign-in
     admin/(console)/   AD03 /admin/verifications, AD04...; layout kiểm phiên quản trị
-    admin/session-expired/route.ts   xóa cookie khi API trả 401
+    admin/session-expired/route.ts   xóa cookie khi API trả 401, 403
     not-found.tsx      404 tiếng Việt
   proxy.ts             chặn /admin khi chưa có cookie phiên
   features/<tính năng>/   components, actions.ts (Server Action), schemas.ts
@@ -147,7 +147,7 @@ web/src/
 ### Phiên quản trị
 - Cookie `tb_session` (HttpOnly, Secure, SameSite=Strict) đặt bằng `setSessionCookie` trong Server Action đăng nhập; xóa bằng `clearSessionCookie`. Trình duyệt không đọc được token.
 - Gọi API bằng `await adminApi()`: tự gửi cookie phiên; lệnh ghi gửi thêm cặp CSRF và `Origin` (`TB_WEB_ORIGIN`, phải nằm trong `tutorbridge.security.admin-origins` của API).
-- `proxy.ts` chỉ kiểm có cookie. Kiểm thật là `verifyAdminSession()`: layout quản trị gọi, và **mỗi trang quản trị cũng gọi** trước khi lấy dữ liệu, vì trang được prerender một phần nên phần tĩnh của trang con vẫn gửi đi dù layout chuyển hướng. Không đặt nội dung nhạy cảm trong phần tĩnh.
+- `proxy.ts` chỉ kiểm có cookie. Kiểm thật là `verifyAdminSession()`, gọi `getAdminSession`: chỉ phiên ADMIN đã qua MFA được vào console; 401, 403 đi qua `/admin/session-expired`, route này hỏi lại API và chỉ xóa cookie khi API trả 401 hoặc 403 (#82, #86). Chuyển tiếp sau đăng nhập chỉ dùng `safeNextPath(next)`. Layout quản trị gọi `verifyAdminSession()`, và **mỗi trang quản trị cũng gọi** trước khi lấy dữ liệu, vì trang được prerender một phần nên phần tĩnh của trang con vẫn gửi đi dù layout chuyển hướng. Không đặt nội dung nhạy cảm trong phần tĩnh.
 
 ### Trang và form
 - Đọc trong Server Component: `const result = await load((await adminApi()).GET(...))`; `result.status !== "ok"` thì trả `<StateMessage result={result} />`. 401 tự về hết phiên. Danh sách rỗng dùng `EmptyState`. Khung trang `AdminPage`.

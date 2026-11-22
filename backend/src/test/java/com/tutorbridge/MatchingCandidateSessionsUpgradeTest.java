@@ -89,6 +89,10 @@ class MatchingCandidateSessionsUpgradeTest extends IntegrationTest {
             assertThat(kept.next()).isTrue();
             assertThat(kept.getInt(1)).isEqualTo(1);
             assertThat(kept.getInt(2)).isEqualTo(150000);
+            var code = statement.executeQuery("select status, failure_code from matching_runs where id = '" + run + "'");
+            assertThat(code.next()).isTrue();
+            assertThat(code.getString(1)).isEqualTo("COMPLETED");
+            assertThat(code.getString(2)).isNull();
             statement.execute("""
                     insert into matching_candidate_sessions(run_id, tutor_id, ordinal, during)
                     values ('%s', '%s', 1, tstzrange(now() + interval '15 days', now() + interval '15 days 90 minutes', '[)'))"""

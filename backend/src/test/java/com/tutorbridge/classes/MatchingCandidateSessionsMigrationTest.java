@@ -18,7 +18,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * V15 (TB-17, #17 Q3): the common schedule of a matching candidate. Every rule is tried straight
+ * V15 (TB-17, #17 Q3 and Q1): the common schedule of a matching candidate, and the failure code of a run. Every rule is tried straight
  * against the database, as the application role, next to a case it lets through.
  */
 class MatchingCandidateSessionsMigrationTest extends IntegrationTest {
@@ -149,6 +149,26 @@ class MatchingCandidateSessionsMigrationTest extends IntegrationTest {
         }
         session(run, tutor, 1, start);
         assertThat(starts(run, tutor)).containsExactly(start.toInstant());
+    }
+
+    private void runWith(Need need, String status, String failureCode) {
+        jdbc.sql("""
+                insert into matching_runs(id, need_version_id, mode, algorithm_version, config_version, status,
+                                          failure_code, expires_at)
+                values (?, ?, 'S', 'S-v1', 'none', ?, ?, now() + interval '24 hours')
+                """).params(UUID.randomUUID(), need.versionId(), status, failureCode).update();
+    }
+
+    @Test
+    void Q1_only_a_failed_run_has_a_failure_code_and_it_always_has_one() {
+        Need need = fixture.need(fixture.student());
+
+        runWith(need, "FAILED", "AI_RANKING_UNAVAILABLE");
+        runWith(need, "COMPLETED", null);
+        runWith(need, "RUNNING", null);
+        assertThatThrownBy(() -> runWith(need, "FAILED", null)).isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(() -> runWith(need, "COMPLETED", "AI_RANKING_UNAVAILABLE"))
+                .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test

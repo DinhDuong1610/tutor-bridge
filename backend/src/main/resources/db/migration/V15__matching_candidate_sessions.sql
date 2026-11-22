@@ -17,3 +17,9 @@ CREATE TABLE matching_candidate_sessions (
  -- The same shape as offer_sessions: a finite, half-open, non-empty range.
  CHECK(NOT isempty(during) AND NOT lower_inf(during) AND NOT upper_inf(during) AND lower_inc(during) AND NOT upper_inc(during)),
  EXCLUDE USING gist(run_id WITH =,tutor_id WITH =,during WITH &&));
+
+-- createMatchingRun with mode S while OP-11 is open answers a FAILED run with failureCode
+-- AI_RANKING_UNAVAILABLE (Đính, #17 Q1), distinct from an empty COMPLETED run (INV-38, AC-UC05-04). Only a
+-- FAILED run has a code. No code writes matching_runs before V15, so no row needs a backfill.
+ALTER TABLE matching_runs ADD COLUMN failure_code varchar(100);
+ALTER TABLE matching_runs ADD CONSTRAINT matching_run_failure_code CHECK((status = 'FAILED') = (failure_code IS NOT NULL));

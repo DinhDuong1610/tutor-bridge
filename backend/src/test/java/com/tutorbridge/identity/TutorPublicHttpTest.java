@@ -159,6 +159,14 @@ class TutorPublicHttpTest extends HttpTest {
     }
 
     @Test
+    void a_tutor_id_that_is_not_a_uuid_is_400_and_reads_nothing() throws Exception {
+        mvc.perform(get("/api/v1/tutors/{tutorId}/public-profile", "khong-phai-uuid")
+                        .with(sessions().as(newActor(Actor.Role.PARENT))))
+                .andExpect(Contract.matches())
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void without_a_session_it_is_401() throws Exception {
         mvc.perform(get("/api/v1/tutors/{tutorId}/public-profile", UUID.randomUUID()))
                 .andExpect(Contract.matches())

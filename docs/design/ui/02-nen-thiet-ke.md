@@ -59,6 +59,7 @@ Font **Be Vietnam Pro** (Đính chọn, 07/11/2026). Mã nguồn mở, có đủ
 | `label` | `label` | 14 / 20 | 500 | Nhãn ô nhập, nhãn trạng thái, nút |
 | `caption` | `caption` | 13 / 18 | 400 | Chú thích, thời điểm |
 | `date-numeral` | `dateNumeral` | 28 / 32 | 600 | Chỉ số ngày trong khối ngày của thẻ lịch |
+| `badge` (chữ số badge, Figma 8:232) | `badge` | 11 / 16 | 400 | Chỉ số đếm trong badge của `NavigationBar` (Đính, 22/11/2026, #95); phóng tối đa 1,3 lần (OP-22) |
 
 - **Chiều cao dòng bắt buộc.** Dấu tiếng Việt chồng (ệ, ẫ, ặ) bị cắt khi dòng sát cỡ chữ. Mọi style đều có line height, ít nhất 1,4 lần cỡ chữ với chữ thường. Ngoại lệ theo bảng trên: `title` 24/32 (1,33) và `caption` 13/18 (1,38), Đính chốt giữ bảng ngày 21/11/2026 (#188); `date-numeral` chỉ chứa số, không có dấu.
 - Không viết hoa toàn bộ. Viết hoa chữ đầu câu cho tiêu đề, nút và nhãn.

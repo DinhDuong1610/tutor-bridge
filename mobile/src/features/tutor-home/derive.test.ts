@@ -101,15 +101,19 @@ describe("deriveTutorHome (GS01 v2)", () => {
     expect(home.visibility).toEqual({ kind: "hidden", message });
   });
 
-  it.each(["WAITING", "NEEDS_INFO", "REJECTED"] as const)(
-    "OP-24 %s of an edit while an approved version stays public hides the block (TB-14 Q1)",
-    (state) => {
-      const home = deriveTutorHome({ profile: profile(2), verification: verification(state, { profileVersion: 2, approvedVersion: 1 }), calendar: OPEN }, NOW);
-      expect(home.visibility).toBeNull();
-      // The task card is right in every case (GS01.md, Hành vi).
-      expect(home.tasks[0].kind).not.toBe("step");
-    },
-  );
+  it.each([
+    ["WAITING", "Phụ huynh vẫn thấy bản hồ sơ đã duyệt trước của bạn. Bản sửa: đang chờ xác minh."],
+    ["NEEDS_INFO", "Phụ huynh vẫn thấy bản hồ sơ đã duyệt trước của bạn. Bản sửa: cần bổ sung."],
+    ["REJECTED", "Phụ huynh vẫn thấy bản hồ sơ đã duyệt trước của bạn. Bản sửa: chưa được duyệt."],
+  ] as const)("OP-24 %s of an edit while an approved version stays public says so (Đính, #14 Q1)", (state, message) => {
+    const home = deriveTutorHome({ profile: profile(2), verification: verification(state, { profileVersion: 2, approvedVersion: 1 }), calendar: OPEN }, NOW);
+    expect(home.visibility).toEqual({ kind: "stillPublic", message });
+    expect(home.visibilityFirst).toBe(true);
+    // Never "chưa xuất hiện" while the approved version is public (OP-24 (1)).
+    expect(home.visibility.message).not.toMatch(/chưa xuất hiện/);
+    // The task card is right in every case (GS01.md, Hành vi).
+    expect(home.tasks[0].kind).not.toBe("step");
+  });
 
   it("frame Đang nhận lớp: verified with a calendar, rate of the approved version", () => {
     const home = deriveTutorHome({ profile: profile(1, 250000), verification: verification("VERIFIED"), calendar: OPEN }, NOW);

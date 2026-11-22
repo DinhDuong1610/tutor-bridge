@@ -28,7 +28,7 @@ export function TutorHomeScreen({ onOpen, onSecurity, now = () => new Date() }: 
     >
       {(data) => {
         const { tasks, visibility, visibilityFirst } = deriveTutorHome(data, now());
-        const listing = visibility ? <Listing visibility={visibility} /> : null;
+        const listing = <Listing visibility={visibility} />;
         return (
           <ScrollView contentContainerStyle={styles.content}>
             {/* No API returns the tutor's own name yet (TB-14 Q2), so the greeting is the one PH01 uses. */}
@@ -65,7 +65,8 @@ function Listing({ visibility }: { visibility: Visibility }) {
           <Text style={styles.verifiedText}>{`Đã xác minh: ${visibility.scope}`}</Text>
         </View>
       ) : null}
-      <Text style={visibility.kind === "verified" ? styles.text : styles.muted}>{visibility.message}</Text>
+      {/* "Chưa xuất hiện" reads as a missing step, so it is muted; the other two state facts. */}
+      <Text style={visibility.kind === "hidden" ? styles.muted : styles.text}>{visibility.message}</Text>
     </View>
   );
 }

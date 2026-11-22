@@ -23,12 +23,14 @@ export type Task =
 
 export type Visibility =
   | { kind: "hidden"; message: string }
+  /** An edit is waiting or refused while the approved version stays public (OP-24 (1)). */
+  | { kind: "stillPublic"; message: string }
   | { kind: "verified"; scope: string; message: string };
 
 export type TutorHome = {
   tasks: Task[];
-  /** Block "Hồ sơ khi phụ huynh tìm"; null hides the whole block. */
-  visibility: Visibility | null;
+  /** Block "Hồ sơ khi phụ huynh tìm": always there, it says why parents can or cannot find the tutor. */
+  visibility: Visibility;
   /** The approved frames put the block above "Việc cần làm" until the profile is verified, below after. */
   visibilityFirst: boolean;
 };
@@ -61,6 +63,7 @@ const PROFILE_DONE: Task = { kind: "done", title: "Hồ sơ chuyên môn và h�
 
 const NOT_LISTED = "Hồ sơ của bạn chưa xuất hiện khi phụ huynh tìm gia sư: ";
 const NOT_LISTED_SHORT = "Hồ sơ chưa xuất hiện khi phụ huynh tìm: ";
+const STILL_PUBLIC = "Phụ huynh vẫn thấy bản hồ sơ đã duyệt trước của bạn. Bản sửa: ";
 
 /**
  * Step 3 counts as done when the effective calendar still has free time after `now`: a window that
@@ -116,27 +119,31 @@ export function deriveTutorHome({ profile, verification, calendar }: TutorHomeDa
     };
   }
 
-  // While an approved version stays public, parents still find the tutor (OP-24 (1)); the copy for
-  // that case is TBD (#166, TB-14 Q1), so the block is hidden instead of saying "chưa xuất hiện".
+  // While an approved version stays public, parents still find the tutor (OP-24 (1)), so the line
+  // never says "chưa xuất hiện" then. Copy: Đính, #14 Q1, 22/11/2026.
   const firstSubmission = verification.approvedVersion === null;
+  const line = (notListed: string, edit: string): Visibility =>
+    firstSubmission
+      ? { kind: "hidden", message: NOT_LISTED_SHORT + notListed }
+      : { kind: "stillPublic", message: STILL_PUBLIC + edit };
   const reason = verification.reason ?? "";
   switch (verification.state) {
     case "WAITING":
       return {
         tasks: [{ kind: "waiting", title: "Hồ sơ đang được xác minh", body: "Bạn sẽ nhận thông báo khi có kết quả." }, ...calendarTasks, PROFILE_DONE],
-        visibility: firstSubmission ? { kind: "hidden", message: NOT_LISTED_SHORT + "đang chờ xác minh." } : null,
+        visibility: line("đang chờ xác minh.", "đang chờ xác minh."),
         visibilityFirst: true,
       };
     case "NEEDS_INFO":
       return {
         tasks: [{ kind: "needsInfo", title: "Người xác minh cần thêm thông tin", reason, action: "Xem và gửi lại", target: "evidence" }, ...calendarTasks, PROFILE_DONE],
-        visibility: firstSubmission ? { kind: "hidden", message: NOT_LISTED_SHORT + "cần bổ sung hồ sơ." } : null,
+        visibility: line("cần bổ sung hồ sơ.", "cần bổ sung."),
         visibilityFirst: true,
       };
     case "REJECTED":
       return {
         tasks: [{ kind: "rejected", title: "Hồ sơ chưa được duyệt", reason, action: "Sửa hồ sơ và gửi lại", target: "evidence" }, ...calendarTasks, PROFILE_DONE],
-        visibility: firstSubmission ? { kind: "hidden", message: NOT_LISTED_SHORT + "hồ sơ chưa được duyệt." } : null,
+        visibility: line("hồ sơ chưa được duyệt.", "chưa được duyệt."),
         visibilityFirst: true,
       };
   }

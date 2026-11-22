@@ -139,16 +139,21 @@ describe("GS01 Trang chủ gia sư", () => {
     expect(onOpen).toHaveBeenCalledWith("evidence");
   });
 
-  it("OP-24 never says \"chưa xuất hiện\" while an approved version stays public (TB-14 Q1)", async () => {
+  it.each([
+    ["WAITING", "Hồ sơ đang được xác minh", "Phụ huynh vẫn thấy bản hồ sơ đã duyệt trước của bạn. Bản sửa: đang chờ xác minh."],
+    ["NEEDS_INFO", "Người xác minh cần thêm thông tin", "Phụ huynh vẫn thấy bản hồ sơ đã duyệt trước của bạn. Bản sửa: cần bổ sung."],
+    ["REJECTED", "Hồ sơ chưa được duyệt", "Phụ huynh vẫn thấy bản hồ sơ đã duyệt trước của bạn. Bản sửa: chưa được duyệt."],
+  ])("OP-24 %s of an edit: parents still see the approved version, never \"chưa xuất hiện\" (Đính, #14 Q1)", async (state, card, message) => {
     server = serve({
       profile: { ...PROFILE, version: 2 },
-      verification: verification("REJECTED", { profileVersion: 2, approvedVersion: 1 }),
+      verification: verification(state, { profileVersion: 2, approvedVersion: 1 }),
       calendar: CALENDAR,
     });
     await renderHome();
 
-    expect(await screen.findByText("Hồ sơ chưa được duyệt")).toBeOnTheScreen();
-    expect(screen.queryByText("Hồ sơ khi phụ huynh tìm")).toBeNull();
+    expect(await screen.findByText(card)).toBeOnTheScreen();
+    expect(screen.getByRole("header", { name: "Hồ sơ khi phụ huynh tìm" })).toBeOnTheScreen();
+    expect(screen.getByText(message)).toBeOnTheScreen();
     expect(screen.queryByText(/chưa xuất hiện/)).toBeNull();
   });
 

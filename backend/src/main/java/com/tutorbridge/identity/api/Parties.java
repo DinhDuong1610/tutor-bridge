@@ -1,10 +1,26 @@
 package com.tutorbridge.identity.api;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 /** What other modules may ask about accounts and profiles, without reading identity tables. */
 public interface Parties {
+
+    /**
+     * What parents may see of a tutor before an agreement (the {@code TutorPublic} schema; BR07): no
+     * contact, no evidence. {@code verificationScopes} are the VERIFIED decisions of this very version.
+     */
+    record PublicTutor(UUID tutorId, UUID profileVersionId, String displayName, String description, int rateVnd60,
+            int experienceMonths, List<String> verificationScopes, long revision) {}
+
+    /**
+     * The first hard filters of BR01 for matching (TB-17): an ACTIVE tutor account with a display name and
+     * a current APPROVED profile in R0's subject (INV-30), whose rate is at most {@code maxRateVnd60}. Missing
+     * data is not a pass (INV-35). One bounded page ordered by tutor id, after {@code afterTutorId} when given
+     * (INV-81); the caller asks again with the last id until a page comes back short.
+     */
+    List<PublicTutor> matchableTutors(int maxRateVnd60, UUID afterTutorId, int limit);
 
     boolean isActiveTutor(UUID accountId);
 

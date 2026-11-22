@@ -13,9 +13,16 @@ import org.springframework.transaction.annotation.Transactional;
 class PartiesRepository implements Parties {
 
     private final JdbcClient jdbc;
+    private final TutorPublicRepository tutors;
 
-    PartiesRepository(JdbcClient jdbc) {
+    PartiesRepository(JdbcClient jdbc, TutorPublicRepository tutors) {
         this.jdbc = jdbc;
+        this.tutors = tutors;
+    }
+
+    @Override
+    public List<PublicTutor> matchableTutors(int maxRateVnd60, UUID afterTutorId, int limit) {
+        return tutors.listMatchable(maxRateVnd60, afterTutorId, limit);
     }
 
     @Override

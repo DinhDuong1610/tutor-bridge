@@ -14,7 +14,7 @@ export const MAX_BYTES = 5 * 1024 * 1024;
 export const MAX_FILES = 10;
 
 /**
- * A file the tutor picked. The picker itself waits for Đính (Q12 on #14); the screen takes a function
+ * A file the tutor picked (`pickEvidenceFile` reads it with the libraries of Q12 on #14). The screen takes a function
  * that returns one of these, so the rest of GS03 does not depend on which library reads the file.
  */
 export type PickedFile = { name: string; mediaType: string; sizeBytes: number; read: () => Promise<Uint8Array<ArrayBuffer>> };

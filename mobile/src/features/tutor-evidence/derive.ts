@@ -12,7 +12,7 @@ export const NEEDS_INFO: Label = { label: "Cần bổ sung", tone: "warning", ic
 export const REJECTED: Label = { label: "Chưa được duyệt", tone: "danger", icon: "error" };
 
 export type EvidenceMode =
-  /** No profile version yet: GS03 has nothing to send (TBD Q14). */
+  /** No profile version yet: GS03 has nothing to send (Đính, Q14 (1) on #14). */
   | { kind: "noProfile" }
   /**
    * Evidence can be added and sent. `draft` is the newest version when it is a DRAFT; null when the newest

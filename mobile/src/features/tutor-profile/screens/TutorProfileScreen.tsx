@@ -128,6 +128,9 @@ function ProfileForm({
       <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
         {save.state === "confirmed" && !hasChanges ? <Notice tone="success" message="Đã lưu nháp hồ sơ." /> : null}
         {mode.publicVersion ? <PublicVersion profile={mode.publicVersion} scope={mode.publicScope} /> : null}
+        {mode.stillPublicVersion !== null ? (
+          <Text style={styles.body}>{`Phụ huynh vẫn thấy bản hồ sơ đã duyệt trước của bạn (phiên bản ${mode.stillPublicVersion}).`}</Text>
+        ) : null}
         {mode.editingPublic ? (
           <>
             <Text accessibilityRole="header" style={styles.heading}>
@@ -246,7 +249,7 @@ function WaitingProfile({ profile, stillPublic }: { profile: TutorProfile; still
       <StatusRow {...STATUS_LABELS.PENDING} />
       <Text style={styles.body}>
         {stillPublic
-          ? // OP-24: parents keep seeing the approved version, so "Phụ huynh chưa thấy hồ sơ" would be wrong (TBD Q2).
+          ? // OP-24: parents keep seeing the approved version, so "Phụ huynh chưa thấy hồ sơ" would be wrong (Đính, Q8 on #14).
             "Hồ sơ đã gửi. Bản đã gửi được giữ nguyên để người xác minh xem. Phụ huynh vẫn thấy bản hồ sơ đã duyệt trước của bạn."
           : "Hồ sơ đã gửi. Bản đã gửi được giữ nguyên để người xác minh xem. Phụ huynh chưa thấy hồ sơ cho tới khi được xác minh."}
       </Text>

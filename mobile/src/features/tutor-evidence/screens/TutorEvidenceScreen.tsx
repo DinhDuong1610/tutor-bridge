@@ -20,7 +20,7 @@ type Props = {
   onBack: () => void;
   /** GS02, to write the profile first or change it after a refusal. */
   onEditProfile: () => void;
-  /** Opens the system file picker; null when the tutor closed it (picker library: Q12 on #14). */
+  /** Opens the system file picker (`pickEvidenceFile`, Q12 on #14); null when the tutor closed it. */
   pickFile: () => Promise<PickedFile | null>;
   /** Tests pass a SHA-256 that runs without the native module. */
   hash?: Sha256;
@@ -37,7 +37,7 @@ type Row = { key: number; name: string; detail: string; state: FileState; id?: s
 
 /**
  * Loading, lost access and the end of the session come from QueryScreen (INV-06). The files picked in
- * this visit live in the screen only: the contract has no way to list them again (Q13 on #14).
+ * this visit live in the screen only: the contract has no way to list them again (Đính accepted this for Lát 1, Q13 (a) on #14).
  */
 export function TutorEvidenceScreen({ onBack, ...props }: Props) {
   const query = useTutorProfile();
@@ -141,7 +141,7 @@ function Evidence({
   const fileList = shown.length > 0 ? shown.map(({ key, ...row }) => <FileRow key={key} {...row} />) : null;
 
   if (mode.kind === "noProfile") {
-    // TBD Q14: no frame for opening GS03 before GS02 is saved.
+    // No frame for opening GS03 before GS02 is saved: copy chosen by Đính, Q14 (1) on #14.
     return (
       <View style={styles.body}>
         <Notice tone="info" message="Lưu hồ sơ chuyên môn trước, rồi tải minh chứng." />

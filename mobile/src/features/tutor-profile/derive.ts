@@ -21,9 +21,12 @@ export type ProfileMode =
       etag: string | null;
       /**
        * The approved version parents see, when it is the version being edited (frame "Đã duyệt, đang
-       * sửa"). Once a newer draft exists its text is no longer readable here (TBD Q1).
+       * sửa"). Once a newer version exists its text is no longer readable here; `stillPublicVersion` says
+       * its number instead (Đính, Q7 (b) on #14, 23/11/2026).
        */
       publicVersion: TutorProfile | null;
+      /** The approved version parents still see while a newer version is being edited. */
+      stillPublicVersion: number | null;
       publicScope: string | null;
       /** Editing while an approved version stays public: the frame's "Bạn đang sửa phần chuyên môn" notice. */
       editingPublic: boolean;
@@ -49,6 +52,7 @@ export function deriveProfileMode({ profile, verification }: TutorProfileData): 
       profile: null,
       etag: null,
       publicVersion: null,
+      stillPublicVersion: null,
       publicScope: null,
       editingPublic: false,
       label: null,
@@ -65,6 +69,7 @@ export function deriveProfileMode({ profile, verification }: TutorProfileData): 
     profile: profile.data,
     etag: profile.etag,
     publicVersion: isPublic ? profile.data : null,
+    stillPublicVersion: isPublic ? null : approvedVersion,
     publicScope: isPublic && own?.state === "VERIFIED" ? own.scope : null,
     editingPublic: isPublic || approvedVersion !== null,
     // The form is the next draft when the newest version is approved (frame "Đã duyệt, đang sửa").

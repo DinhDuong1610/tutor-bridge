@@ -225,12 +225,28 @@ describe("GS02 Hồ sơ chuyên môn và học phí", () => {
     await renderProfile();
 
     expect(await screen.findByRole("header", { name: "Bản đang công khai (phiên bản 2)" })).toBeOnTheScreen();
+    expect(screen.queryByText(/Phụ huynh vẫn thấy/)).toBeNull();
     expect(screen.getByText("Đã xác minh: Toán 8, đại số")).toBeOnTheScreen();
     expect(screen.getByText("Kinh nghiệm 24 tháng (tự khai). Học phí 250.000 ₫ / 60 phút.")).toBeOnTheScreen();
     expect(screen.getByRole("header", { name: "Bản đang sửa" })).toBeOnTheScreen();
     expect(
       screen.getByText("Bạn đang sửa phần chuyên môn. Sau khi gửi lại, phần này phải được xác minh lại; nhãn xác minh cũ không dùng cho nội dung mới."),
     ).toBeOnTheScreen();
+    expect(screen.getByText("Nháp, chưa gửi duyệt")).toBeOnTheScreen();
+  });
+
+  it("Q7 a newer draft after the approved version: parents still see that version, by its number (Đính, #14)", async () => {
+    server = mockApi({
+      "GET /me/tutor-profile": () => withEtag({ ...DRAFT, version: 3 }),
+      "GET /me/tutor-profile/verification": () =>
+        json(200, verification({ profileVersionId: NEXT_ID, profileVersion: 2, state: "VERIFIED", decidedAt: "2026-11-20T08:00:00Z", approvedVersion: 2 })),
+    });
+    await renderProfile();
+
+    expect(await screen.findByText("Phụ huynh vẫn thấy bản hồ sơ đã duyệt trước của bạn (phiên bản 2).")).toBeOnTheScreen();
+    // The text of version 2 is not readable from here, so its card is not drawn.
+    expect(screen.queryByRole("header", { name: /Bản đang công khai/ })).toBeNull();
+    expect(screen.getByRole("header", { name: "Bản đang sửa" })).toBeOnTheScreen();
     expect(screen.getByText("Nháp, chưa gửi duyệt")).toBeOnTheScreen();
   });
 

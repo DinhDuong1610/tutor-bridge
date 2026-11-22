@@ -43,7 +43,7 @@ export function TutorEvidenceScreen({ onBack, ...props }: Props) {
   const query = useTutorProfile();
   return (
     <QueryScreen title={TITLE} onBack={onBack} query={query}>
-      {(loaded) => <Evidence data={loaded} onReload={() => void query.refetch()} {...props} />}
+      {(loaded) => <Evidence data={loaded} onReload={query.refetch} {...props} />}
     </QueryScreen>
   );
 }
@@ -54,7 +54,7 @@ function Evidence({
   onEditProfile,
   pickFile,
   hash,
-}: Omit<Props, "onBack"> & { data: TutorProfileData; onReload: () => void }) {
+}: Omit<Props, "onBack"> & { data: TutorProfileData; onReload: () => Promise<{ isSuccess: boolean }> }) {
   const mode = deriveEvidenceMode(data);
   const [rows, setRows] = useState<Row[]>([]);
   const [nextKey, setNextKey] = useState(0);
@@ -71,7 +71,10 @@ function Evidence({
     setRows((current) => current.map((row) => (row.key === key ? { ...row, ...change } : row)));
 
   // Evidence the server refused at submission shows the server's message on its row and is not sent again.
-  const refused = new Map<string, string>();
+  // The last failure is read from `submit.error`; earlier ones are kept in `kept`, written just before
+  // that error is cleared by the next submission or by "Tải lại".
+  const [kept, setKept] = useState<ReadonlyMap<string, string>>(new Map());
+  const refused = new Map(kept);
   if (submit.state === "failed" && submit.error) {
     for (const [path, message] of Object.entries(submit.error.fields)) {
       const index = /^evidenceUploadIds\[(\d+)]$/.exec(path)?.[1];
@@ -79,6 +82,7 @@ function Evidence({
       if (id !== undefined) refused.set(id, message);
     }
   }
+  const keepRefused = () => setKept(refused);
   const shown: Row[] = rows.map((row) =>
     row.id !== undefined && refused.has(row.id) ? { ...row, state: "error", errorMessage: refused.get(row.id) } : row,
   );
@@ -109,6 +113,7 @@ function Evidence({
   // The sheet stays open on a failure or an unknown outcome, so its "Thử lại" or message stays in view.
   const submitDraft = async (draft: { profile: { id: string }; etag: string }) => {
     const ids = ready.map((row) => row.id as string);
+    keepRefused();
     setSentIds(ids);
     if (await submit.submit({ profileVersionId: draft.profile.id, etag: draft.etag, evidenceUploadIds: ids })) setAsking(false);
   };
@@ -134,6 +139,16 @@ function Evidence({
     retry: async () => {
       if (await submit.retry()) setAsking(false);
     },
+  };
+
+  // INV-23: after a stale ETag, "Tải lại" reads the new revision, then clears the stale answers so the
+  // next submission starts as a new command against it. The files picked in this visit stay (Q13).
+  const reload = async () => {
+    const result = await onReload();
+    if (!result.isSuccess) return;
+    keepRefused();
+    save.reset();
+    submit.reset();
   };
 
   const sent = submit.state === "confirmed";
@@ -235,7 +250,7 @@ function Evidence({
       </ScrollView>
       <StickyActionBar>
         {stale ? (
-          <Notice tone="warning" message={STALE} action={<Button variant="secondary" title="Tải lại" onPress={onReload} />} />
+          <Notice tone="warning" message={STALE} action={<Button variant="secondary" title="Tải lại" onPress={() => void reload()} />} />
         ) : null}
         <Button title={submitTitle} disabled={ready.length === 0 || blocked} busy={busy && !asking} onPress={() => setAsking(true)} />
       </StickyActionBar>

@@ -241,6 +241,134 @@ describe("GS03 Minh chứng và kết quả xác minh", () => {
     expect(await submit.json()).toEqual({ profileVersionId: next.id, evidenceUploadIds: [UPLOAD_ID] });
   });
 
+  it("INV-23 after a stale ETag, Tải lại reads the new revision and the tutor can send against it", async () => {
+    let revision = 5;
+    server = mockApi({
+      "GET /me/tutor-profile": () => withEtag({ ...DRAFT, revision }),
+      "GET /me/tutor-profile/verification": noVerification,
+      ...uploadRoutes(),
+      "POST /me/tutor-profile/submit": (r) => {
+        if (r.headers.get("If-Match") !== '"6"') {
+          revision = 6; // the profile changed elsewhere meanwhile
+          return problem(412, "PRECONDITION_FAILED", "Dữ liệu đã thay đổi.");
+        }
+        return json(201, { id: VERIFICATION_ID, profileVersionId: DRAFT.id, assignedTo: null, status: "PENDING", scope: "Toán 8, đại số", revision: 1 });
+      },
+    });
+    await renderEvidence();
+    await screen.findByText("Chưa gửi duyệt");
+    await press("Tải minh chứng");
+    await screen.findByText("Sẵn sàng");
+    await press("Gửi duyệt");
+    const sheet = screen.getByRole("header", { name: "Gửi hồ sơ để xác minh?" }).parent!;
+    await act(async () => fireEvent.press(within(sheet).getByRole("button", { name: "Gửi duyệt" })));
+    await act(async () => fireEvent.press(within(sheet).getByRole("button", { name: "Quay lại" })));
+
+    expect(screen.getByText(/Dữ liệu đã thay đổi từ lúc bạn mở/)).toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: "Gửi duyệt" })).toBeDisabled();
+    await press("Tải lại");
+
+    await waitFor(() => expect(screen.queryByText(/Dữ liệu đã thay đổi từ lúc bạn mở/)).toBeNull());
+    // The file picked in this visit is kept (Q13).
+    expect(screen.getByText("Sẵn sàng")).toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: "Gửi duyệt" })).toBeEnabled();
+    await press("Gửi duyệt");
+    const again = screen.getByRole("header", { name: "Gửi hồ sơ để xác minh?" }).parent!;
+    await act(async () => fireEvent.press(within(again).getByRole("button", { name: "Gửi duyệt" })));
+    await waitFor(() => expect(sent(server, "POST", "/submit")).toHaveLength(2));
+    const [stale, fresh] = sent(server, "POST", "/submit");
+    expect(fresh.headers.get("If-Match")).toBe('"6"');
+    // A new command after a known outcome: a new key.
+    expect(fresh.headers.get("Idempotency-Key")).not.toBe(stale.headers.get("Idempotency-Key"));
+  });
+
+  it("INV-23 a stale ETag while saving the draft after Cần bổ sung: Tải lại lets the tutor send again", async () => {
+    let revision = 5;
+    const next = { ...DRAFT, id: "6e3a9b72-4c5d-4e8f-9a01-2b3c4d5e6f70", version: 2, revision: 7 };
+    server = mockApi({
+      "GET /me/tutor-profile": () => withEtag({ ...DRAFT, status: "PENDING", revision }),
+      "GET /me/tutor-profile/verification": () =>
+        json(200, verification({ state: "NEEDS_INFO", reason: "Ảnh bằng cấp bị mờ.", decidedAt: "2026-11-20T08:00:00Z" })),
+      ...uploadRoutes(),
+      "PUT /me/tutor-profile": (r) => {
+        if (r.headers.get("If-Match") !== '"6"') {
+          revision = 6;
+          return problem(412, "PRECONDITION_FAILED", "Dữ liệu đã thay đổi.");
+        }
+        return withEtag(next);
+      },
+      "POST /me/tutor-profile/submit": () =>
+        json(201, { id: VERIFICATION_ID, profileVersionId: next.id, assignedTo: null, status: "PENDING", scope: "Toán 8, đại số", revision: 1 }),
+    });
+    await renderEvidence();
+    await screen.findByText("Cần bổ sung");
+    await press("Tải minh chứng");
+    await screen.findByText("Sẵn sàng");
+    await press("Gửi lại để xác minh");
+    const sheet = screen.getByRole("header", { name: "Gửi hồ sơ để xác minh?" }).parent!;
+    await act(async () => fireEvent.press(within(sheet).getByRole("button", { name: "Gửi lại để xác minh" })));
+    await act(async () => fireEvent.press(within(sheet).getByRole("button", { name: "Quay lại" })));
+    await press("Tải lại");
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Gửi lại để xác minh" })).toBeEnabled());
+    await press("Gửi lại để xác minh");
+    const again = screen.getByRole("header", { name: "Gửi hồ sơ để xác minh?" }).parent!;
+    await act(async () => fireEvent.press(within(again).getByRole("button", { name: "Gửi lại để xác minh" })));
+    await waitFor(() => expect(sent(server, "POST", "/submit")).toHaveLength(1));
+    expect(sent(server, "PUT", "/me/tutor-profile").map((r) => r.headers.get("If-Match"))).toEqual(['"5"', '"6"']);
+  });
+
+  it("a file refused at submission stays refused and is never sent again, even after another failed submission", async () => {
+    const ids = ["8a5c1d94-6e7f-4a01-9c23-4d5e6f708101", "8a5c1d94-6e7f-4a01-9c23-4d5e6f708102", "8a5c1d94-6e7f-4a01-9c23-4d5e6f708103"];
+    let next = 0;
+    let submits = 0;
+    server = mockApi({
+      "GET /me/tutor-profile": () => withEtag(DRAFT),
+      "GET /me/tutor-profile/verification": noVerification,
+      "POST /me/tutor-profile/evidence-uploads": () => {
+        const id = ids[next++];
+        return json(201, { uploadId: id, uploadUrl: `${API_BASE_URL}/me/tutor-profile/evidence-uploads/${id}/content`, expiresAt: "2026-11-22T10:00:00Z" });
+      },
+      "PUT /me/tutor-profile/evidence-uploads/{uploadId}/content": (r) =>
+        json(200, { id: new URL(r.url).pathname.split("/")[6], state: "UPLOADING", expiresAt: "2026-11-22T10:00:00Z" }),
+      "POST /me/tutor-profile/evidence-uploads/{uploadId}/complete": (r) =>
+        json(200, { id: new URL(r.url).pathname.split("/")[6], state: "READY", expiresAt: "2026-11-22T10:00:00Z" }),
+      "POST /me/tutor-profile/submit": () =>
+        ++submits === 1
+          ? problem(422, "VALIDATION_FAILED", "Dữ liệu chưa hợp lệ.", [{ path: "evidenceUploadIds[0]", message: "Minh chứng này không dùng được. Vui lòng chọn lại." }])
+          : submits === 2
+            ? problem(422, "VALIDATION_FAILED", "Dữ liệu chưa hợp lệ.", [{ path: "evidenceUploadIds[0]", message: "Tệp này cũng không dùng được." }])
+            : json(201, { id: VERIFICATION_ID, profileVersionId: DRAFT.id, assignedTo: null, status: "PENDING", scope: "Toán 8, đại số", revision: 1 }),
+    });
+    await renderEvidence();
+    await screen.findByText("Chưa gửi duyệt");
+    const sendOnce = async () => {
+      await press("Gửi duyệt");
+      const sheet = screen.getByRole("header", { name: "Gửi hồ sơ để xác minh?" }).parent!;
+      await act(async () => fireEvent.press(within(sheet).getByRole("button", { name: "Gửi duyệt" })));
+      if (screen.queryByRole("header", { name: "Gửi hồ sơ để xác minh?" })) {
+        await act(async () => fireEvent.press(within(sheet).getByRole("button", { name: "Quay lại" })));
+      }
+    };
+
+    await press("Tải minh chứng");
+    await screen.findByText("Sẵn sàng");
+    await sendOnce(); // the first file is refused
+    await press("Tải thêm minh chứng");
+    await screen.findByText("Sẵn sàng");
+    await sendOnce(); // the second file is refused too
+
+    expect(screen.queryByText("Sẵn sàng")).toBeNull();
+    expect(screen.getByText("Minh chứng này không dùng được. Vui lòng chọn lại.")).toBeOnTheScreen();
+    expect(screen.getByText("Tệp này cũng không dùng được.")).toBeOnTheScreen();
+    await press("Tải thêm minh chứng");
+    await screen.findByText("Sẵn sàng");
+    await sendOnce();
+
+    const bodies = await Promise.all(sent(server, "POST", "/submit").map((r) => r.json()));
+    expect(bodies.map((b) => b.evidenceUploadIds)).toEqual([[ids[0]], [ids[1]], [ids[2]]]);
+  });
+
   it("INV-20 retries a submission with an unknown outcome with the same key", async () => {
     let calls = 0;
     server = mockApi({

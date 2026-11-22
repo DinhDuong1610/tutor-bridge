@@ -157,6 +157,20 @@ describe("GS01 Trang chủ gia sư", () => {
     expect(screen.queryByText(/chưa xuất hiện/)).toBeNull();
   });
 
+  it("OP-24 an edit while the approved version is public but no calendar: not listed, the card keeps the edit's state (Đính, #206)", async () => {
+    server = serve({
+      profile: { ...PROFILE, version: 2 },
+      verification: verification("NEEDS_INFO", { profileVersion: 2, approvedVersion: 1 }),
+      calendar: null,
+    });
+    await renderHome();
+
+    expect(await screen.findByText("Người xác minh cần thêm thông tin")).toBeOnTheScreen();
+    expect(screen.getByText("Hồ sơ của bạn chưa xuất hiện khi phụ huynh tìm gia sư: chưa có lịch rảnh.")).toBeOnTheScreen();
+    expect(screen.queryByText(/vẫn thấy/)).toBeNull();
+    expect(screen.getByText("Xác nhận lịch rảnh")).toBeOnTheScreen();
+  });
+
   it("frame Đang nhận lớp: verified, listed, with the approved rate and self-declared experience", async () => {
     server = serve({ profile: PROFILE, verification: verification("VERIFIED"), calendar: CALENDAR });
     await renderHome();

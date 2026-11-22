@@ -115,6 +115,24 @@ describe("deriveTutorHome (GS01 v2)", () => {
     expect(home.tasks[0].kind).not.toBe("step");
   });
 
+  it.each([
+    ["WAITING", "waiting"],
+    ["NEEDS_INFO", "needsInfo"],
+    ["REJECTED", "rejected"],
+  ] as const)("OP-24 %s of an edit with no free time left: not listed, BR01 filters the tutor out (Đính, #206)", (state, kind) => {
+    const home = deriveTutorHome({ profile: profile(2), verification: verification(state, { profileVersion: 2, approvedVersion: 1 }), calendar: null }, NOW);
+    expect(home.visibility).toEqual({ kind: "hidden", message: "Hồ sơ của bạn chưa xuất hiện khi phụ huynh tìm gia sư: chưa có lịch rảnh." });
+    expect(home.visibility.message).not.toMatch(/vẫn thấy/);
+    // The card still tells the state of the edit, and step 3 asks for a calendar.
+    expect(kinds(home)).toEqual([kind, "step3", "done"]);
+  });
+
+  it("OP-24 an edit whose calendar has only past windows is not listed either (OP-26)", () => {
+    const past = calendar([{ start: "2026-11-20T11:00:00Z", end: "2026-11-20T13:00:00Z", kind: "AVAILABLE" }]);
+    const home = deriveTutorHome({ profile: profile(2), verification: verification("WAITING", { profileVersion: 2, approvedVersion: 1 }), calendar: past }, NOW);
+    expect(home.visibility).toEqual({ kind: "hidden", message: "Hồ sơ của bạn chưa xuất hiện khi phụ huynh tìm gia sư: chưa có lịch rảnh." });
+  });
+
   it("frame Đang nhận lớp: verified with a calendar, rate of the approved version", () => {
     const home = deriveTutorHome({ profile: profile(1, 250000), verification: verification("VERIFIED"), calendar: OPEN }, NOW);
     // Offers are hidden until TB-18 (Đính, #14 câu 1), so nothing is left to do.

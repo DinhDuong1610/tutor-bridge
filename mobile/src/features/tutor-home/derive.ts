@@ -119,13 +119,16 @@ export function deriveTutorHome({ profile, verification, calendar }: TutorHomeDa
     };
   }
 
-  // While an approved version stays public, parents still find the tutor (OP-24 (1)), so the line
-  // never says "chưa xuất hiện" then. Copy: Đính, #14 Q1, 22/11/2026.
+  // While an approved version stays public, parents still find the tutor (OP-24 (1)) as long as the
+  // calendar has free time; without it BR01 filters the tutor out, so the line says the Q3 copy and the
+  // card alone tells the state of the edit. Copy: Đính, #14 Q1 and #206, 22/11/2026.
   const firstSubmission = verification.approvedVersion === null;
   const line = (notListed: string, edit: string): Visibility =>
     firstSubmission
       ? { kind: "hidden", message: NOT_LISTED_SHORT + notListed }
-      : { kind: "stillPublic", message: STILL_PUBLIC + edit };
+      : hasCalendar
+        ? { kind: "stillPublic", message: STILL_PUBLIC + edit }
+        : { kind: "hidden", message: NOT_LISTED + "chưa có lịch rảnh." };
   const reason = verification.reason ?? "";
   switch (verification.state) {
     case "WAITING":

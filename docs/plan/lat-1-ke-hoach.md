@@ -117,7 +117,7 @@ Cách gán người ở trên: Issue backend giữ người cũ, Issue giao di�
 | ~~Thử bản mẫu theo tiêu chí đã chốt~~: đã thay bằng chấp nhận rủi ro (OP-06, 06/11/2026) | Đính | Xong |
 | Ngân sách và mốc (OP-01) | Đính, Huy | Trước khi cam kết ngày |
 | Thêm Huy vào repo (OP-13) | Đính | Xong |
-| Quyết định môi trường thử chung, ngoài máy local | Đính | Trước M6 |
+| ~~Quyết định môi trường thử chung, ngoài máy local~~: nghiệm thu M7 chạy trên máy local của Đính; máy chủ chung làm trước thí điểm R0 (OP-33, 23/11/2026) | Đính | Xong |
 
 ## Rủi ro kế hoạch
 - Ước lượng chưa có cơ sở thực tế. Sau M1, tính lại theo giờ thực tế ghi trên Issue.

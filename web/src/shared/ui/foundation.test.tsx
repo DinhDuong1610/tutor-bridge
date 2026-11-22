@@ -70,3 +70,15 @@ describe("web tokens (#95)", () => {
     expect(css).toMatch(/--radius-lg:\s*var\(--radius\);/);
   });
 });
+
+describe("Button disabled (Figma Button State=Disabled 6:143, 6:148; Đính, 22/11/2026, #95)", () => {
+  it.each(["default", "secondary", "outline"] as const)(
+    "draws a disabled %s button with surface, border and textMuted, not see-through",
+    (variant) => {
+      const classes = buttonVariants({ variant }).split(/\s+/);
+
+      expect(classes).toEqual(expect.arrayContaining(["disabled:bg-muted", "disabled:border", "disabled:border-border", "disabled:text-muted-foreground"]));
+      expect(classes.some((name) => name.startsWith("disabled:opacity"))).toBe(false);
+    },
+  );
+});

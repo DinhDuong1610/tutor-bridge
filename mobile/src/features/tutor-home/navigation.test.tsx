@@ -25,4 +25,18 @@ describe("GS01 with the session", () => {
     expect(await screen.findByRole("header", { name: "Đăng nhập" })).toBeOnTheScreen();
     await waitFor(() => expect(storedSession()).toBeUndefined());
   });
+
+  it("ends the session on a 401 while another read of GS01 is still waiting (Codex, #206 P1 lần 2)", async () => {
+    server = mockApi({
+      "GET /me/tutor-profile": () => problem(404, "NOT_FOUND", "Không tìm thấy"),
+      "GET /me/tutor-profile/verification": () => problem(401, "AUTHENTICATION_REQUIRED", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."),
+      // The calendar never answers: the 401 must not wait for it.
+      "GET /me/tutor-calendar": () => new Promise<Response>(() => undefined),
+    });
+    storeSession(fakeSession("TUTOR"));
+    await renderRouter("./src/app", { initialUrl: "/tutor" });
+
+    expect(await screen.findByRole("header", { name: "Đăng nhập" })).toBeOnTheScreen();
+    await waitFor(() => expect(storedSession()).toBeUndefined());
+  });
 });

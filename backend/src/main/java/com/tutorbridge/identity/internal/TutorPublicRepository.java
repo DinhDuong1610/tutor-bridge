@@ -4,6 +4,7 @@ import com.tutorbridge.identity.api.Parties.PublicTutor;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -49,6 +50,25 @@ class TutorPublicRepository {
         return jdbc.sql(SELECT + " and p.rate_vnd_60 <= ? and (?::uuid is null or a.id > ?) order by a.id limit ?")
                 .params(SUBJECT, maxRateVnd60, afterTutorId, afterTutorId, limit)
                 .query(TutorPublicRepository::row).list();
+    }
+
+    /** The run's own versions (#17 Q7): no status or current filter, the version is what parents were shown. */
+    List<PublicTutor> listByProfile(Collection<UUID> profileIds) {
+        if (profileIds.isEmpty()) {
+            return List.of();
+        }
+        if (profileIds.size() > 5) {
+            throw new IllegalArgumentException("a run has at most 5 candidates");
+        }
+        return jdbc.sql("""
+                select a.id as tutor_id, p.id as profile_id, a.display_name, p.description, p.rate_vnd_60,
+                       p.experience_months, p.revision,
+                       array(select distinct v.scope from tutor_verifications v
+                             where v.profile_id = p.id and v.status = 'VERIFIED' order by 1 limit 20) as scopes
+                from tutor_profiles p
+                join accounts a on a.id = p.tutor_id
+                where p.id = any(?)
+                """).param(profileIds.toArray(UUID[]::new)).query(TutorPublicRepository::row).list();
     }
 
     private static PublicTutor row(ResultSet rs, int n) throws SQLException {

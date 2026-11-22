@@ -131,4 +131,37 @@ class PartiesTest extends IntegrationTest {
 
         assertThat(found).containsExactlyElementsOf(mine.stream().sorted(Comparator.comparing(UUID::toString)).toList());
     }
+
+    // ---------------------------------------------------------------- publicTutorsByProfile (TB-17, #17 Q7)
+
+    @Test
+    void Q7_a_stored_run_reads_the_versions_it_showed_even_after_a_newer_one_is_approved() {
+        UUID tutor = tutor("Cô Lan Thử", "ACTIVE");
+        UUID shown = profile(tutor, 1, "RETIRED", false, 200000);
+        UUID newer = profile(tutor, 2, "APPROVED", true, 300000);
+
+        List<Parties.PublicTutor> found = parties.publicTutorsByProfile(List.of(shown));
+
+        assertThat(found).singleElement().satisfies(t -> {
+            assertThat(t.tutorId()).isEqualTo(tutor);
+            assertThat(t.profileVersionId()).isEqualTo(shown);
+            assertThat(t.rateVnd60()).isEqualTo(200000);
+            assertThat(t.displayName()).isEqualTo("Cô Lan Thử");
+        });
+        assertThat(parties.publicTutorsByProfile(List.of(newer))).extracting(Parties.PublicTutor::rateVnd60)
+                .containsExactly(300000);
+    }
+
+    @Test
+    void Q7_unknown_ids_are_left_out_and_more_than_a_run_holds_is_refused() {
+        UUID tutor = tutor("Cô Lan Thử", "ACTIVE");
+        UUID shown = profile(tutor, 1, "APPROVED", true, 200000);
+
+        assertThat(parties.publicTutorsByProfile(List.of(shown, UUID.randomUUID())))
+                .extracting(Parties.PublicTutor::profileVersionId).containsExactly(shown);
+        assertThat(parties.publicTutorsByProfile(List.of())).isEmpty();
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> parties.publicTutorsByProfile(
+                        java.util.stream.Stream.generate(UUID::randomUUID).limit(6).toList()))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
 }

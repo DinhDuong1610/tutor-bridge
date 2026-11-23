@@ -47,7 +47,7 @@ class ResourceLocks {
      * calendar version or a need, cannot make it wait.
      */
     void lock(String... resources) {
-        jdbc.sql("set local lock_timeout = '" + LOCK_TIMEOUT + "'").update();
+        limitWait();
         long[] keys = Arrays.stream(resources).distinct()
                 .mapToLong(resource -> jdbc.sql("select hashtextextended(?, 0)").param(resource)
                         .query(Long.class).single())
@@ -62,6 +62,15 @@ class ResourceLocks {
             }
             throw e;
         }
+    }
+
+    /**
+     * {@link #LOCK_TIMEOUT} for every lock wait in the rest of the transaction, without a resource lock.
+     * For a transaction that only waits on rows, as createMatchingRun on its need (TX03): the caller
+     * answers {@link #busy()} for {@link #timedOut}, as after {@link #lock}.
+     */
+    void limitWait() {
+        jdbc.sql("set local lock_timeout = '" + LOCK_TIMEOUT + "'").update();
     }
 
     /**

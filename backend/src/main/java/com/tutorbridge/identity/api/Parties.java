@@ -1,5 +1,6 @@
 package com.tutorbridge.identity.api;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -21,6 +22,13 @@ public interface Parties {
      * (INV-81); the caller asks again with the last id until a page comes back short.
      */
     List<PublicTutor> matchableTutors(int maxRateVnd60, UUID afterTutorId, int limit);
+
+    /**
+     * These profile versions as parents saw them in a stored matching run (getMatchingRun, #17 Q7): the
+     * version's own text, rate and VERIFIED scopes, whatever its status is now, with the tutor's display
+     * name. At most 5 ids (a run's candidates); an unknown id is left out.
+     */
+    List<PublicTutor> publicTutorsByProfile(Collection<UUID> profileIds);
 
     boolean isActiveTutor(UUID accountId);
 

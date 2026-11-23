@@ -1,6 +1,7 @@
 package com.tutorbridge.identity.internal;
 
 import com.tutorbridge.identity.api.Parties;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -23,6 +24,11 @@ class PartiesRepository implements Parties {
     @Override
     public List<PublicTutor> matchableTutors(int maxRateVnd60, UUID afterTutorId, int limit) {
         return tutors.listMatchable(maxRateVnd60, afterTutorId, limit);
+    }
+
+    @Override
+    public List<PublicTutor> publicTutorsByProfile(Collection<UUID> profileIds) {
+        return tutors.listByProfile(profileIds);
     }
 
     @Override

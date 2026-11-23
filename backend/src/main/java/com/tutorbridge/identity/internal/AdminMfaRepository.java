@@ -98,6 +98,61 @@ class AdminMfaRepository {
                 .params(step, accountId, step).update() == 1;
     }
 
+    // ---------------------------------------------------------------- admin-setup (AdminAccounts)
+
+    record AccountRole(UUID id, String role) {}
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    Optional<AccountRole> findAccountRole(String emailDigest) {
+        return jdbc.sql("select id, role from accounts where email_digest = ? for update").param(emailDigest)
+                .query((rs, n) -> new AccountRole(rs.getObject(1, UUID.class), rs.getString(2))).optional();
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    void insertAdmin(UUID id, String emailDigest, byte[] emailCiphertext, String displayName, Instant now) {
+        jdbc.sql("""
+                insert into accounts (id, role, status, email_digest, email_ciphertext, display_name, created_at)
+                values (?, 'ADMIN', 'ACTIVE', ?, ?, ?, ?)""")
+                .params(id, emailDigest, emailCiphertext, displayName, at(now)).update();
+    }
+
+    /** A reset admin: the raised epoch ends every earlier session (V5 {@code valid_session}). */
+    @Transactional(propagation = Propagation.MANDATORY)
+    void endSessions(UUID accountId) {
+        jdbc.sql("update accounts set auth_epoch = auth_epoch + 1, revision = revision + 1 where id = ?")
+                .param(accountId).update();
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    void setPassword(UUID accountId, String passwordHash, String policy, Instant now) {
+        jdbc.sql("""
+                insert into account_credentials (account_id, password_hash, hash_policy, changed_at) values (?, ?, ?, ?)
+                on conflict (account_id) do update
+                set password_hash = excluded.password_hash, hash_policy = excluded.hash_policy,
+                    changed_at = excluded.changed_at""")
+                .params(accountId, passwordHash, policy, at(now)).update();
+    }
+
+    /** One enrollment per admin: a new secret replaces the old one and forgets its used step. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    void enroll(UUID accountId, String secretHandle, Instant now) {
+        jdbc.sql("""
+                insert into admin_mfa_enrollments (account_id, secret_handle, enrolled_at) values (?, ?, ?)
+                on conflict (account_id) do update
+                set secret_handle = excluded.secret_handle, enrolled_at = excluded.enrolled_at, revoked_at = null,
+                    last_used_step = null""")
+                .params(accountId, secretHandle, at(now)).update();
+    }
+
+    /** The first admin has nobody to grant it, so the command grants it in the admin's own name. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    void grantVerify(UUID accountId, Instant now) {
+        jdbc.sql("""
+                insert into admin_assignments (account_id, capability, granted_by, granted_at) values (?, 'VERIFY', ?, ?)
+                on conflict (account_id, capability) do update set revoked_at = null""")
+                .params(accountId, accountId, at(now)).update();
+    }
+
     private static Locked locked(ResultSet rs, int n) throws SQLException {
         return new Locked(rs.getObject("id", UUID.class), rs.getObject("account_id", UUID.class),
                 rs.getString("status"), rs.getString("role"), rs.getLong("auth_epoch"), instant(rs, "expires_at"),

@@ -639,6 +639,92 @@ class MatchingRunsHttpTest extends HttpTest {
         assertThat(eventsOf(body)).containsExactly("MATCHING_FALLBACK_USED/COMPLETED");
     }
 
+    /** Runs one create while {@code holder} keeps its locks; bounded, so a wait without limit fails the test. */
+    private MockHttpServletResponse runWhileHeld(Connection holder, Actor parent, Need need, String key)
+            throws Exception {
+        CompletableFuture<MockHttpServletResponse> pending = Concurrently.supply(() -> {
+            try {
+                return run(parent, need.id(), key, "\"2\"", b(need)).andReturn().getResponse();
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
+            }
+        });
+        try {
+            return pending.get(15, TimeUnit.SECONDS);
+        } finally {
+            holder.rollback();
+        }
+    }
+
+    private void assertNothingWrittenFor(Actor parent, Need need) {
+        assertThat(runsOf(need)).isZero();
+        assertThat(jdbc.sql("select count(*) from command_receipts where actor_id = ?").param(parent.accountId())
+                .query(Integer.class).single()).isZero();
+        assertThat(jdbc.sql("select count(*) from audit_events where actor_id = ?").param(parent.accountId())
+                .query(Integer.class).single()).isZero();
+    }
+
+    @Test
+    void TX03_ADR_0007_a_receipt_held_by_another_request_with_the_same_key_is_503_too() throws Exception {
+        // The timeout is set before the receipt, so the wait on the receipt's unique key is bounded as well
+        // (Codex, #215 review of a724c86).
+        Actor parent = newActor(Actor.Role.PARENT);
+        LocalDate start = farCycle();
+        Need need = need(parent, start, 200000, 60, 1, daily(start, 18, 22, "AVAILABLE"));
+        tutor("Cô Lan Thử", 150000, 60, daily(start, 18, 22, "AVAILABLE"));
+        String key = UUID.randomUUID().toString();
+        MockHttpServletResponse answer;
+        try (Connection holder = DriverManager.getConnection(
+                PostgresTestSupport.jdbcUrl(), "tutorbridge_app", PostgresTestSupport.APP_PASSWORD)) {
+            holder.setAutoCommit(false);
+            // Another request with this key that has written its receipt and not committed yet.
+            try (var receipt = holder.prepareStatement("""
+                    insert into tutorbridge.command_receipts(id, actor_id, command_type, idempotency_key, payload_sha256,
+                                                             state, expires_at)
+                    values (?, ?, 'CREATE_MATCHING_RUN', ?, repeat('0', 64), 'PROCESSING', now() + interval '7 days')
+                    """)) {
+                receipt.setObject(1, UUID.randomUUID());
+                receipt.setObject(2, parent.accountId());
+                receipt.setString(3, key);
+                receipt.executeUpdate();
+            }
+            answer = runWhileHeld(holder, parent, need, key);
+        }
+        assertThat(answer.getStatus()).isEqualTo(503);
+        assertThat((String) JsonPath.read(answer.getContentAsString(), "$.code")).isEqualTo("SERVICE_BUSY");
+        assertNothingWrittenFor(parent, need);
+        run(parent, need.id(), key, "\"2\"", b(need)).andExpect(status().isAccepted());
+        assertThat(runsOf(need)).isOne();
+    }
+
+    @Test
+    void TX03_ADR_0007_a_candidate_waiting_on_its_tutor_account_rolls_back_the_run_and_is_503() throws Exception {
+        // Writing a candidate takes a key share lock on the tutor's account (foreign key); an account held FOR
+        // UPDATE, as submitTutorProfile holds it, makes that wait. Past the timeout the run already inserted
+        // is rolled back with the receipt (Codex, #215 review of a724c86).
+        Actor parent = newActor(Actor.Role.PARENT);
+        LocalDate start = farCycle();
+        Need need = need(parent, start, 200000, 60, 1, daily(start, 18, 22, "AVAILABLE"));
+        Tutor busyTutor = tutor("Cô Bận Hồ Sơ Thử", 150000, 60, daily(start, 18, 22, "AVAILABLE"));
+        String key = UUID.randomUUID().toString();
+        MockHttpServletResponse answer;
+        try (Connection holder = DriverManager.getConnection(
+                PostgresTestSupport.jdbcUrl(), "tutorbridge_app", PostgresTestSupport.APP_PASSWORD)) {
+            holder.setAutoCommit(false);
+            try (var account = holder.prepareStatement("select 1 from tutorbridge.accounts where id = ? for update")) {
+                account.setObject(1, busyTutor.id());
+                account.executeQuery();
+            }
+            answer = runWhileHeld(holder, parent, need, key);
+        }
+        assertThat(answer.getStatus()).isEqualTo(503);
+        assertThat((String) JsonPath.read(answer.getContentAsString(), "$.code")).isEqualTo("SERVICE_BUSY");
+        assertNothingWrittenFor(parent, need);
+        String body = body(run(parent, need.id(), key, "\"2\"", b(need)).andExpect(status().isAccepted()));
+        assertThat(JsonPath.<List<String>>read(body, "$.candidates[*].tutor.tutorId"))
+                .containsExactly(busyTutor.id().toString());
+    }
+
     // ---------------------------------------------------------------- idempotency
 
     @Test

@@ -99,6 +99,34 @@ class MatchingScheduleTest {
     }
 
     @Test
+    void BR04_a_now_a_fraction_of_a_second_past_a_quarter_hour_never_gives_a_session_before_it() {
+        Instant now = at(START, 19, 0).plusMillis(1);
+
+        // 19:00:00 is already past, so the first session that day starts at 19:15 (Codex, #215 review).
+        List<Interval> sessions = MatchingSchedule.sessions(START, 60, 1, now, daily(18, 22), List.of()).orElseThrow();
+        assertThat(sessions.getFirst()).isEqualTo(on(0, 19, 15, 20, 15));
+        assertThat(sessions.getFirst().start()).isAfterOrEqualTo(now);
+    }
+
+    @Test
+    void Q4_a_window_fits_only_when_a_session_could_be_placed_in_it() {
+        // Long enough, but no quarter hour start leaves 60 minutes: 19:15 + 60 ends after 20:07.
+        Interval unaligned = on(0, 19, 7, 20, 7);
+        assertThat(MatchingSchedule.fittingWindows(List.of(unaligned), List.of(unaligned), 60)).isZero();
+        // Long enough, but across midnight: 30 minutes on each day, and a session stays inside one day.
+        Interval overnight = new Interval(at(START, 23, 30), at(START.plusDays(1), 0, 30));
+        assertThat(MatchingSchedule.fittingWindows(List.of(overnight), List.of(overnight), 60)).isZero();
+        // At the edges it still fits: exactly one aligned session, and one that ends at midnight.
+        Interval exact = on(0, 19, 15, 20, 15);
+        assertThat(MatchingSchedule.fittingWindows(List.of(exact), List.of(exact), 60)).isEqualTo(1);
+        Interval lateEvening = new Interval(at(START, 23, 0), at(START.plusDays(1), 0, 30));
+        assertThat(MatchingSchedule.fittingWindows(List.of(lateEvening), List.of(lateEvening), 60)).isEqualTo(1);
+        // After midnight on the next day too: 00:00–01:00 lies inside a window of 23:30–01:00.
+        Interval intoNextDay = new Interval(at(START, 23, 30), at(START.plusDays(1), 1, 0));
+        assertThat(MatchingSchedule.fittingWindows(List.of(intoNextDay), List.of(intoNextDay), 60)).isEqualTo(1);
+    }
+
+    @Test
     void Q4_a_preferred_window_fits_when_it_holds_one_whole_session_of_free_time() {
         List<Interval> free = List.of(on(0, 19, 0, 20, 0), on(1, 19, 0, 21, 0));
         List<Interval> preferred = List.of(on(0, 19, 0, 22, 0), on(1, 20, 0, 22, 0), on(2, 19, 0, 22, 0));

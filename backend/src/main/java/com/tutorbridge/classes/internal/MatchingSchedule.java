@@ -81,22 +81,34 @@ final class MatchingSchedule {
 
     /**
      * Q4: how many preferred windows still hold one whole session in the common free time. A window fits
-     * when its overlap with one free interval is at least {@code durationMinutes} long.
+     * when one session that {@link #sessions} could choose lies inside it: starting on a quarter hour, of
+     * {@code durationMinutes}, inside one free interval and inside one day (Vietnam). A window counts
+     * whether or not its session is the one chosen.
+     *
+     * @param free disjoint, ordered common free time
      */
     static int fittingWindows(List<Interval> preferred, List<Interval> free, int durationMinutes) {
         long length = durationMinutes * 60L;
         int fitting = 0;
         for (Interval window : preferred) {
-            for (Interval part : free) {
-                Instant lo = max(window.start(), part.start());
-                Instant hi = min(window.end(), part.end());
-                if (hi.getEpochSecond() - lo.getEpochSecond() >= length) {
-                    fitting++;
-                    break;
-                }
+            if (holdsSession(intersect(List.of(window), free), length)) {
+                fitting++;
             }
         }
         return fitting;
+    }
+
+    /** Whether one interval of {@code parts} holds a session as {@link #sessions} places one, day by day. */
+    private static boolean holdsSession(List<Interval> parts, long length) {
+        for (Interval part : parts) {
+            for (LocalDate day = part.start().atZone(CalendarService.VIETNAM).toLocalDate();
+                    midnight(day).isBefore(part.end()); day = day.plusDays(1)) {
+                if (earliest(List.of(part), midnight(day), midnight(day.plusDays(1)), length).isPresent()) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /** a = k/n, or 0.5 without preferred windows (BR03), rounded to 6 decimals as stored. */
@@ -134,7 +146,10 @@ final class MatchingSchedule {
         for (Interval part : free) {
             Instant lo = max(part.start(), from);
             Instant hi = min(part.end(), to);
-            long start = Math.ceilDiv(lo.getEpochSecond(), STEP_SECONDS) * STEP_SECONDS;
+            // Round up from the exact instant: a fraction of a second after a quarter hour is past it, so a
+            // now of 19:00:00.001 never gives a session at 19:00:00. hi rounds down, which only shortens.
+            long seconds = lo.getEpochSecond() + (lo.getNano() > 0 ? 1 : 0);
+            long start = Math.ceilDiv(seconds, STEP_SECONDS) * STEP_SECONDS;
             if (start + length <= hi.getEpochSecond()) {
                 return Optional.of(new Interval(Instant.ofEpochSecond(start), Instant.ofEpochSecond(start + length)));
             }

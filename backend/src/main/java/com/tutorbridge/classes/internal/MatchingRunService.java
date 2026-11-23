@@ -56,6 +56,8 @@ public class MatchingRunService {
     static final String ALGORITHM_B = "B-v1";
     static final String ALGORITHM_S = "S-v1";
     static final String AI_RANKING_UNAVAILABLE = "AI_RANKING_UNAVAILABLE";
+    /** The separate event of a B run (BR03, INV-38). The name is the agent's choice, see #215. */
+    static final String FALLBACK_USED = "MATCHING_FALLBACK_USED";
     static final int TOP = 5;
     /** Tutors read per page of {@link Parties#matchableTutors} (INV-81). */
     static final int PAGE = 50;
@@ -146,6 +148,9 @@ public class MatchingRunService {
                     runs.insertCandidate(runId, new CandidateRow(p.tutor().tutorId(), p.tutor().profileVersionId(),
                             p.calendarId(), i + 1, p.e(), p.a(), p.score(), p.price()), p.sessions());
                 }
+                // BR03, INV-38: B is used only on the parent's choice, and that use is its own event, empty
+                // or not. A replay returns above, so it never records a second one.
+                audit.record(actor.accountId(), receipt.id(), FALLBACK_USED, "MATCHING_RUN", runId, "COMPLETED");
             }
             receipts.succeed(receipt.id(), RESULT_TYPE, runId);
             // The answer is read back as getMatchingRun reads it, so both always say the same.

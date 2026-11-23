@@ -59,10 +59,18 @@ class MatchingRepository {
     /**
      * TX03 step 2: the need row FOR SHARE, so update and confirm (FOR UPDATE) wait until the run commits and
      * cannot move the version under it, while two runs of one need do not wait on each other.
+     *
+     * <p>The lock and the read are two statements, as {@link NeedRepository#lock}. Locking the joined row
+     * in one statement would, after waiting for an edit that moved {@code current_version_id}, re-check the
+     * join against the old version and find no row: a 404 where the edit means 412. The second statement
+     * sees what that edit committed.
      */
     @Transactional(propagation = Propagation.MANDATORY)
     Optional<NeedVersion> lockNeedShared(UUID needId) {
-        return jdbc.sql(NEED + " for share of n").param(needId).query(MatchingRepository::needVersion).optional();
+        boolean exists = jdbc.sql("select 1 from learning_needs where id = ? for share").param(needId)
+                .query((rs, n) -> 1).optional().isPresent();
+        return exists ? jdbc.sql(NEED).param(needId).query(MatchingRepository::needVersion).optional()
+                : Optional.empty();
     }
 
     /** The student's PREFERRED windows inside the cycle, overlapping ones merged (Q4). */

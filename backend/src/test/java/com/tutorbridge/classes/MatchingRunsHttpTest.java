@@ -200,6 +200,13 @@ class MatchingRunsHttpTest extends HttpTest {
                 .query(Integer.class).single();
     }
 
+    /** The audit events of the run a response shows, as "type/outcome". */
+    private List<String> eventsOf(String body) {
+        UUID runId = UUID.fromString(JsonPath.read(body, "$.id"));
+        return jdbc.sql("select event_type || '/' || outcome from audit_events where object_id = ? order by created_at")
+                .param(runId).query(String.class).list();
+    }
+
     // ---------------------------------------------------------------- AC-UC05-01: min(5, N), no duplicates
 
     @Test
@@ -308,6 +315,47 @@ class MatchingRunsHttpTest extends HttpTest {
         assertThat(Instant.parse(starts.getFirst())).isEqualTo(at(start.plusDays(1), 18, 0).toInstant());
     }
 
+    @Test
+    void AC_UC05_02_time_the_student_already_has_a_class_is_not_offered_with_another_tutor() throws Exception {
+        // BR04 for the student's side: a real class through acceptOffer books the child on the first evening
+        // of each week, 18:00–19:30 (OfferFixture). A new need of the same child, with a tutor who has no
+        // booking at all, must still leave those evenings out.
+        OfferFixture fixture = new OfferFixture(jdbc, tx);
+        OfferFixture.Student child = fixture.student();
+        OfferFixture.Tutor classTutor = fixture.tutor();
+        UUID offer = fixture.offer(fixture.need(child), classTutor, fixture.sessionStart(18, 0));
+        acceptOffer.accept(classTutor.id(), offer, 1, UUID.randomUUID().toString());
+
+        LocalDate start = fixture.cycleStart();
+        calendar("STUDENT", child.id(), daily(start, 18, 20, "AVAILABLE"));
+        OfferFixture.Need next = fixture.need(child);
+        // 60 months and a fair rate, so this tutor is among the five whatever else is free then.
+        Tutor free = tutor("Cô Rảnh Tối Thử", 120000, 60, daily(start, 18, 20, "AVAILABLE"));
+        Actor parent = new Actor(child.parentId(), Actor.Role.PARENT, UUID.randomUUID());
+
+        String body = body(run(parent, next.id(), UUID.randomUUID().toString(), "\"1\"",
+                "{\"mode\":\"B\",\"needVersionId\":\"%s\",\"fallbackExplicitlyChosen\":true}".formatted(next.versionId()))
+                .andExpect(status().isAccepted()));
+
+        List<String> ids = JsonPath.read(body, "$.candidates[*].tutor.tutorId");
+        int index = ids.indexOf(free.id().toString());
+        assertThat(index).as("the tutor is free on the other evenings").isNotNegative();
+        List<Instant> starts = JsonPath.<List<String>>read(body, "$.candidates[" + index + "].commonSchedule[*].start")
+                .stream().map(Instant::parse).toList();
+        List<Instant> childBooked = jdbc.sql("""
+                select lower(during) from resource_bookings where resource_kind = 'STUDENT' and resource_id = ? and active
+                """).param(child.id()).query(OffsetDateTime.class).list().stream().map(OffsetDateTime::toInstant).toList();
+        assertThat(childBooked).hasSize(4);
+        assertThat(jdbc.sql("select count(*) from resource_bookings where resource_id = ? and active")
+                .param(free.id()).query(Integer.class).single()).as("only the child is booked").isZero();
+        assertThat(starts).doesNotContainAnyElementsOf(childBooked);
+        // 90 minutes fit an 18:00–20:00 evening only from 18:00 to 18:30, all inside the booked 18:00–19:30,
+        // so each week starts on the day after the class instead.
+        for (int week = 0; week < 4; week++) {
+            assertThat(starts.get(week)).isEqualTo(at(start.plusDays(7L * week + 1), 18, 0).toInstant());
+        }
+    }
+
     // ---------------------------------------------------------------- AC-UC05-03: deterministic, recomputable
 
     @Test
@@ -406,11 +454,13 @@ class MatchingRunsHttpTest extends HttpTest {
         // Nobody else is free in this cycle, and this tutor costs too much (AT02: nothing is relaxed).
         tutor("Thầy Đắt Thử", 500000, 60, daily(start, 18, 22, "AVAILABLE"));
 
-        run(parent, need)
+        String body = body(run(parent, need)
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.status").value("COMPLETED"))
                 .andExpect(jsonPath("$.candidates.length()").value(0))
-                .andExpect(jsonPath("$.failureCode").doesNotExist());
+                .andExpect(jsonPath("$.failureCode").doesNotExist()));
+        // INV-38: an empty B run is still a use of B, with its own event.
+        assertThat(eventsOf(body)).containsExactly("MATCHING_FALLBACK_USED/COMPLETED");
     }
 
     @Test
@@ -504,10 +554,22 @@ class MatchingRunsHttpTest extends HttpTest {
         try (Connection edit = DriverManager.getConnection(
                 PostgresTestSupport.jdbcUrl(), "tutorbridge_app", PostgresTestSupport.APP_PASSWORD)) {
             edit.setAutoCommit(false);
-            // What updateNeedDraft does first: the need row FOR UPDATE, then the next revision.
-            try (var hold = edit.prepareStatement(
-                    "update tutorbridge.learning_needs set revision = revision + 1, status = 'DRAFT' where id = ?")) {
-                hold.setObject(1, need.id());
+            // What updateNeedDraft does: a new draft version, then the need row moved to it with the next
+            // revision. Moving current_version_id is what a run waiting on the row must still answer 412 to,
+            // not 404 (Codex, #215 review).
+            UUID next = UUID.randomUUID();
+            try (var version = edit.prepareStatement(
+                    "insert into tutorbridge.need_versions(id, need_id, version, goal) values (?, ?, 2, ?)")) {
+                version.setObject(1, next);
+                version.setObject(2, need.id());
+                version.setString(3, "Ôn lại phương trình bậc nhất và bài toán thực tế.");
+                version.executeUpdate();
+            }
+            try (var hold = edit.prepareStatement("""
+                    update tutorbridge.learning_needs set revision = revision + 1, status = 'DRAFT',
+                           current_version_id = ? where id = ?""")) {
+                hold.setObject(1, next);
+                hold.setObject(2, need.id());
                 hold.executeUpdate();
             }
             ran = Concurrently.supply(() -> {
@@ -525,9 +587,11 @@ class MatchingRunsHttpTest extends HttpTest {
             assertThat(runsOf(need)).isZero();
             edit.commit();
         }
-        // The If-Match "2" is now stale: nothing is computed on the old version.
+        // The If-Match "2" is now stale: nothing is computed on the old version, and no receipt is kept.
         assertThat(ran.get(10, TimeUnit.SECONDS)).isEqualTo(412);
         assertThat(runsOf(need)).isZero();
+        assertThat(jdbc.sql("select count(*) from command_receipts where actor_id = ? and command_type = ?")
+                .params(parent.accountId(), "CREATE_MATCHING_RUN").query(Integer.class).single()).isZero();
     }
 
     // ---------------------------------------------------------------- idempotency
@@ -547,6 +611,8 @@ class MatchingRunsHttpTest extends HttpTest {
 
         assertThat(again).isEqualTo(first);
         assertThat(runsOf(need)).isOne();
+        // BR03, INV-38: the use of B is its own event, recorded once; the replay adds none.
+        assertThat(eventsOf(first)).containsExactly("MATCHING_FALLBACK_USED/COMPLETED");
         run(parent, need.id(), key, "\"2\"", "{\"mode\":\"S\",\"needVersionId\":\"%s\"}".formatted(need.versionId()))
                 .andExpect(status().isConflict());
         run(parent, need.id(), null, "\"2\"", b(need)).andExpect(status().isBadRequest());

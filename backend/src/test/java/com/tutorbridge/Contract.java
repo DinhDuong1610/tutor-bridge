@@ -129,7 +129,10 @@ public final class Contract {
         if (mediaKey == null) {
             return List.of(operation.template() + " " + statusKey + " does not declare content type " + actual);
         }
-        if (!content.get(mediaKey).has("schema")) {
+        // Bytes such as readAssignedEvidence (format: binary) have no JSON to validate; the declared media
+        // type, checked above, is all the contract says about them.
+        boolean json = actual.isCompatibleWith(MediaType.APPLICATION_JSON) || actual.getSubtype().endsWith("+json");
+        if (!content.get(mediaKey).has("schema") || !json) {
             return List.of();
         }
         Schema schema = schemas.getSchema(SchemaLocation.of(

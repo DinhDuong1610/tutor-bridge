@@ -81,12 +81,13 @@ class TutorVerificationRepository {
                 .params(revision, profileId).update(), "Only a locked DRAFT version is submitted");
     }
 
+    /** {@code assignedTo} null when no verifier is there yet (decision 4 of TB-13). */
     @Transactional(propagation = Propagation.MANDATORY)
-    void insertVerification(UUID id, UUID profileId, String scope, String evidenceKey) {
+    void insertVerification(UUID id, UUID profileId, String scope, String evidenceKey, UUID assignedTo) {
         jdbc.sql("""
-                insert into tutor_verifications(id, profile_id, scope, status, evidence_key, revision)
-                values (?, ?, ?, 'PENDING', ?, 1)
-                """).params(id, profileId, scope, evidenceKey).update();
+                insert into tutor_verifications(id, profile_id, scope, status, evidence_key, assigned_to, revision)
+                values (?, ?, ?, 'PENDING', ?, ?, 1)
+                """).params(id, profileId, scope, evidenceKey, assignedTo).update();
     }
 
     /**

@@ -8,6 +8,8 @@ import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Comparator;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionOperations;
@@ -29,22 +31,32 @@ import org.springframework.util.IdGenerator;
  *
  * <p>Running it again for the same email replaces the secret and the password and raises the account epoch,
  * which ends every earlier session of that admin.
+ *
+ * <p>Then, in a second transaction, the PENDING verifications nobody has are shared out by turns among
+ * every verifier (decision 4, Đính 23/11/2026 on #13). A second transaction, so it takes its locks in the
+ * order of the verification commands (INV-16): the first one already holds the VERIFY row. If it fails, the
+ * account stays as set up and running the command again assigns them.
  */
 @Service
 public class AdminAccounts {
 
     private static final String DISPLAY_NAME = "Quản trị viên";
 
+    /** The admin's account id and how many waiting verifications were assigned. */
+    public record Result(UUID accountId, int assigned) {}
+
     private final AdminMfaRepository admins;
+    private final VerifierRotation rotation;
     private final AccountSecrets secrets;
     private final PasswordHasher hasher;
     private final TransactionOperations transactions;
     private final Clock clock;
     private final IdGenerator ids;
 
-    AdminAccounts(AdminMfaRepository admins, AccountSecrets secrets, PasswordHasher hasher,
+    AdminAccounts(AdminMfaRepository admins, VerifierRotation rotation, AccountSecrets secrets, PasswordHasher hasher,
             TransactionOperations transactions, Clock clock, IdGenerator ids) {
         this.admins = admins;
+        this.rotation = rotation;
         this.secrets = secrets;
         this.hasher = hasher;
         this.transactions = transactions;
@@ -52,8 +64,34 @@ public class AdminAccounts {
         this.ids = ids;
     }
 
-    /** The admin's account id. Refuses before writing anything when an input is wrong. */
-    public UUID setUp(String rawEmail, String password, Path enrollmentFile) {
+    /** Refuses before writing anything when an input is wrong. */
+    public Result setUp(String rawEmail, String password, Path enrollmentFile) {
+        UUID id = setUpAccount(rawEmail, password, enrollmentFile);
+        return new Result(id, assignWaiting());
+    }
+
+    /** The versions, then their verifications, then the VERIFY rows; oldest submission first. */
+    int assignWaiting() {
+        Integer assigned = transactions.execute(status -> {
+            List<AdminMfaRepository.Waiting> waiting = admins.lockWaiting(admins.lockVersionsWaitingForAVerifier());
+            VerifierRotation.Turns turns = rotation.lock();
+            int count = 0;
+            for (AdminMfaRepository.Waiting w : waiting.stream()
+                    .sorted(Comparator.comparing(AdminMfaRepository.Waiting::submittedAt)
+                            .thenComparing(w -> w.id().toString()))
+                    .toList()) {
+                UUID verifier = turns.next(w.tutorId());
+                if (verifier != null) {
+                    admins.assign(w.id(), verifier);
+                    count++;
+                }
+            }
+            return count;
+        });
+        return assigned == null ? 0 : assigned;
+    }
+
+    private UUID setUpAccount(String rawEmail, String password, Path enrollmentFile) {
         String email = AccountSecrets.normalizeEmail(rawEmail);
         if (!email.matches("[^@\\s]+@[^@\\s]+\\.[^@\\s]+")) {
             throw new IllegalArgumentException("admin-setup: the email is not an email address");

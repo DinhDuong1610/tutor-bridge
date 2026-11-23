@@ -5,6 +5,7 @@ import java.sql.SQLException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -167,6 +168,46 @@ class AdminMfaRepository {
                 insert into admin_assignments (account_id, capability, granted_by, granted_at) values (?, 'VERIFY', ?, ?)
                 on conflict (account_id, capability) do update set revoked_at = null""")
                 .params(accountId, accountId, at(now)).update();
+    }
+
+    // ---------------------------------------------------------------- waiting verifications (decision 4)
+
+    record Waiting(UUID id, UUID tutorId, Instant submittedAt) {}
+
+    /**
+     * The versions of the PENDING verifications nobody has, FOR SHARE by id: the versions before their
+     * verifications (INV-16), as the V11 guard reads them when assigned_to is written.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    List<UUID> lockVersionsWaitingForAVerifier() {
+        return jdbc.sql("""
+                select p.id from tutor_profiles p
+                where p.status = 'PENDING' and exists(select 1 from tutor_verifications v
+                    where v.profile_id = p.id and v.status = 'PENDING' and v.assigned_to is null)
+                order by p.id for share""").query(UUID.class).list();
+    }
+
+    /** Then the verifications, FOR UPDATE by id; one assigned meanwhile is no longer returned. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    List<Waiting> lockWaiting(List<UUID> versions) {
+        if (versions.isEmpty()) {
+            return List.of();
+        }
+        return jdbc.sql("""
+                select v.id, p.tutor_id, v.submitted_at from tutor_verifications v
+                join tutor_profiles p on p.id = v.profile_id
+                where v.profile_id in (:versions) and v.status = 'PENDING' and v.assigned_to is null
+                order by v.id for update of v""")
+                .param("versions", versions)
+                .query((rs, n) -> new Waiting(rs.getObject(1, UUID.class), rs.getObject(2, UUID.class),
+                        rs.getObject(3, OffsetDateTime.class).toInstant()))
+                .list();
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    void assign(UUID verificationId, UUID verifierId) {
+        jdbc.sql("update tutor_verifications set assigned_to = ? where id = ? and assigned_to is null")
+                .params(verifierId, verificationId).update();
     }
 
     private static Locked locked(ResultSet rs, int n) throws SQLException {

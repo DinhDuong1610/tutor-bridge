@@ -36,6 +36,7 @@ import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -592,6 +593,50 @@ class MatchingRunsHttpTest extends HttpTest {
         assertThat(runsOf(need)).isZero();
         assertThat(jdbc.sql("select count(*) from command_receipts where actor_id = ? and command_type = ?")
                 .params(parent.accountId(), "CREATE_MATCHING_RUN").query(Integer.class).single()).isZero();
+    }
+
+    @Test
+    void TX03_ADR_0007_a_need_row_held_past_the_lock_timeout_is_503_and_the_same_key_works_afterwards()
+            throws Exception {
+        Actor parent = newActor(Actor.Role.PARENT);
+        LocalDate start = farCycle();
+        Need need = need(parent, start, 200000, 60, 1, daily(start, 18, 22, "AVAILABLE"));
+        tutor("Cô Lan Thử", 150000, 60, daily(start, 18, 22, "AVAILABLE"));
+        String key = UUID.randomUUID().toString();
+        try (Connection edit = DriverManager.getConnection(
+                PostgresTestSupport.jdbcUrl(), "tutorbridge_app", PostgresTestSupport.APP_PASSWORD)) {
+            edit.setAutoCommit(false);
+            // An edit of the need that holds its row longer than the 5 second lock_timeout (Codex, #215).
+            try (var hold = edit.prepareStatement("select 1 from tutorbridge.learning_needs where id = ? for update")) {
+                hold.setObject(1, need.id());
+                hold.executeQuery();
+            }
+            // On its own thread and bounded, so a run that waited without limit fails here instead of hanging.
+            CompletableFuture<MockHttpServletResponse> busy = Concurrently.supply(() -> {
+                try {
+                    return run(parent, need.id(), key, "\"2\"", b(need)).andReturn().getResponse();
+                } catch (Exception e) {
+                    throw new IllegalStateException(e);
+                }
+            });
+            try {
+                MockHttpServletResponse answer = busy.get(15, TimeUnit.SECONDS);
+                assertThat(answer.getStatus()).isEqualTo(503);
+                assertThat((String) JsonPath.read(answer.getContentAsString(), "$.code")).isEqualTo("SERVICE_BUSY");
+            } finally {
+                edit.rollback();
+            }
+        }
+        // All of it rolled back: no run, no receipt, no event.
+        assertThat(runsOf(need)).isZero();
+        assertThat(jdbc.sql("select count(*) from command_receipts where actor_id = ?").param(parent.accountId())
+                .query(Integer.class).single()).isZero();
+        assertThat(jdbc.sql("select count(*) from audit_events where actor_id = ?").param(parent.accountId())
+                .query(Integer.class).single()).isZero();
+        // #83: the client resends with the same key once the row is free, and that makes the run.
+        String body = body(run(parent, need.id(), key, "\"2\"", b(need)).andExpect(status().isAccepted()));
+        assertThat(runsOf(need)).isOne();
+        assertThat(eventsOf(body)).containsExactly("MATCHING_FALLBACK_USED/COMPLETED");
     }
 
     // ---------------------------------------------------------------- idempotency

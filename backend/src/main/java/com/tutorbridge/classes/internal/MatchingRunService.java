@@ -29,6 +29,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionOperations;
@@ -42,7 +43,8 @@ import org.springframework.util.IdGenerator;
  * as {@link NeedService} takes the need row, INV-16), then the owner, the replay, the revision and the
  * confirmed version; then the run, its candidates and their sessions, and the receipt result commit
  * together (INV-21). No resource lock: a suggestion holds nothing (INV-13), and a calendar version never
- * changes once written. No outside I/O inside (INV-18). Mode S answers a FAILED run while OP-11 is open
+ * changes once written. Every lock wait is bounded by the 5 second lock_timeout of ADR-0007; past it,
+ * all rolls back and the answer is 503 SERVICE_BUSY. No outside I/O inside (INV-18). Mode S answers a FAILED run while OP-11 is open
  * (Q1); mode B needs the parent's explicit choice (Q2, INV-38).
  *
  * <p>A need or a run that is not the caller's own, or does not exist, answers the same 404 (INV-06).
@@ -87,6 +89,7 @@ public class MatchingRunService {
             BigDecimal a, BigDecimal score) {}
 
     private final MatchingRepository runs;
+    private final ResourceLocks locks;
     private final Parties parties;
     private final CommandReceipts receipts;
     private final AuditEvents audit;
@@ -94,9 +97,10 @@ public class MatchingRunService {
     private final Clock clock;
     private final IdGenerator ids;
 
-    MatchingRunService(MatchingRepository runs, Parties parties, CommandReceipts receipts, AuditEvents audit,
-            TransactionOperations transactions, Clock clock, IdGenerator ids) {
+    MatchingRunService(MatchingRepository runs, ResourceLocks locks, Parties parties, CommandReceipts receipts,
+            AuditEvents audit, TransactionOperations transactions, Clock clock, IdGenerator ids) {
         this.runs = runs;
+        this.locks = locks;
         this.parties = parties;
         this.receipts = receipts;
         this.audit = audit;
@@ -115,47 +119,61 @@ public class MatchingRunService {
         payload.put("needVersionId", input.needVersionId().toString());
         payload.put("fallbackExplicitlyChosen", input.fallbackExplicitlyChosen());
         payload.put("precondition", expected.version());
-        return transactions.execute(status -> {
-            Receipt receipt = receipts.begin(actor.accountId(), COMMAND, key.value(), payload);
-            NeedVersion need = runs.lockNeedShared(needId).orElseThrow(MatchingRunService::needNotFound);
-            if (!parties.isOwnStudent(actor.accountId(), need.studentId())) {
-                throw needNotFound();
+        try {
+            return transactions.execute(status -> createInTransaction(actor, needId, key, expected, input, payload));
+        } catch (DataAccessException e) {
+            // TX03: the receipt or the need row waited past lock_timeout (ADR-0007). All of it rolled back;
+            // the client resends with the same key (#83). Not retried here: waiting again would pass the bound.
+            if (ResourceLocks.timedOut(e)) {
+                throw ResourceLocks.busy();
             }
-            if (receipt.replay()) {
-                // INV-22: the owner is checked again above; the answer is the stored run.
-                return read(runs.findRun(receipt.resultId()).orElseThrow());
+            throw e;
+        }
+    }
+
+    private MatchingRun createInTransaction(Actor actor, UUID needId, IdempotencyKey key,
+            WritePrecondition.Expected expected, Input input, Map<String, Object> payload) {
+        // Bounds the waits below, the receipt's and the need row's, as every TX of classes (ADR-0007).
+        locks.limitWait();
+        Receipt receipt = receipts.begin(actor.accountId(), COMMAND, key.value(), payload);
+        NeedVersion need = runs.lockNeedShared(needId).orElseThrow(MatchingRunService::needNotFound);
+        if (!parties.isOwnStudent(actor.accountId(), need.studentId())) {
+            throw needNotFound();
+        }
+        if (receipt.replay()) {
+            // INV-22: the owner is checked again above; the answer is the stored run.
+            return read(runs.findRun(receipt.resultId()).orElseThrow());
+        }
+        if (need.revision() != expected.version()) {
+            throw WritePrecondition.stale();
+        }
+        if (!"CONFIRMED".equals(need.status()) || !need.versionId().equals(input.needVersionId())) {
+            throw versionChanged();
+        }
+        Instant now = clock.instant();
+        UUID runId = ids.generateId();
+        if ("S".equals(input.mode())) {
+            // Q1: OP-11 is open, so S cannot rank; a FAILED run, not an empty one (AC-UC05-04).
+            runs.insertRun(runId, need.versionId(), "S", ALGORITHM_S, "FAILED", AI_RANKING_UNAVAILABLE, now,
+                    now.plus(RUN_LIFETIME));
+            audit.record(actor.accountId(), receipt.id(), "MATCHING_AI_UNAVAILABLE", "MATCHING_RUN", runId,
+                    "FAILED");
+        } else {
+            runs.insertRun(runId, need.versionId(), "B", ALGORITHM_B, "COMPLETED", null, now,
+                    now.plus(RUN_LIFETIME));
+            List<Passed> ranked = rank(need, now);
+            for (int i = 0; i < ranked.size(); i++) {
+                Passed p = ranked.get(i);
+                runs.insertCandidate(runId, new CandidateRow(p.tutor().tutorId(), p.tutor().profileVersionId(),
+                        p.calendarId(), i + 1, p.e(), p.a(), p.score(), p.price()), p.sessions());
             }
-            if (need.revision() != expected.version()) {
-                throw WritePrecondition.stale();
-            }
-            if (!"CONFIRMED".equals(need.status()) || !need.versionId().equals(input.needVersionId())) {
-                throw versionChanged();
-            }
-            Instant now = clock.instant();
-            UUID runId = ids.generateId();
-            if ("S".equals(input.mode())) {
-                // Q1: OP-11 is open, so S cannot rank; a FAILED run, not an empty one (AC-UC05-04).
-                runs.insertRun(runId, need.versionId(), "S", ALGORITHM_S, "FAILED", AI_RANKING_UNAVAILABLE, now,
-                        now.plus(RUN_LIFETIME));
-                audit.record(actor.accountId(), receipt.id(), "MATCHING_AI_UNAVAILABLE", "MATCHING_RUN", runId,
-                        "FAILED");
-            } else {
-                runs.insertRun(runId, need.versionId(), "B", ALGORITHM_B, "COMPLETED", null, now,
-                        now.plus(RUN_LIFETIME));
-                List<Passed> ranked = rank(need, now);
-                for (int i = 0; i < ranked.size(); i++) {
-                    Passed p = ranked.get(i);
-                    runs.insertCandidate(runId, new CandidateRow(p.tutor().tutorId(), p.tutor().profileVersionId(),
-                            p.calendarId(), i + 1, p.e(), p.a(), p.score(), p.price()), p.sessions());
-                }
-                // BR03, INV-38: B is used only on the parent's choice, and that use is its own event, empty
-                // or not. A replay returns above, so it never records a second one.
-                audit.record(actor.accountId(), receipt.id(), FALLBACK_USED, "MATCHING_RUN", runId, "COMPLETED");
-            }
-            receipts.succeed(receipt.id(), RESULT_TYPE, runId);
-            // The answer is read back as getMatchingRun reads it, so both always say the same.
-            return read(runs.findRun(runId).orElseThrow());
-        });
+            // BR03, INV-38: B is used only on the parent's choice, and that use is its own event, empty
+            // or not. A replay returns above, so it never records a second one.
+            audit.record(actor.accountId(), receipt.id(), FALLBACK_USED, "MATCHING_RUN", runId, "COMPLETED");
+        }
+        receipts.succeed(receipt.id(), RESULT_TYPE, runId);
+        // The answer is read back as getMatchingRun reads it, so both always say the same.
+        return read(runs.findRun(runId).orElseThrow());
     }
 
     public MatchingRun get(Actor actor, UUID runId) {

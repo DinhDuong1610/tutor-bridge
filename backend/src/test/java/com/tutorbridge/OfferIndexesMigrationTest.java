@@ -27,6 +27,7 @@ class OfferIndexesMigrationTest extends IntegrationTest {
     private static String url;
     private static UUID tutor;
     private static UUID need;
+    private static UUID student;
 
     @BeforeAll
     static void a_database_with_offers_moved_from_v17_to_the_latest_version() throws SQLException {
@@ -66,14 +67,25 @@ class OfferIndexesMigrationTest extends IntegrationTest {
                            case when n %% 20 = 0 then null else 'OFFER_EXPIRED' end
                     from generate_series(1, %d) n
                     """.formatted(OFFERS_PER_TUTOR, TUTORS, TUTORS * OFFERS_PER_TUTOR));
+            // The needs of those offers, 5 per child, as listOffers of a parent reads them through V13.
+            statement.execute("""
+                    insert into tutorbridge.learning_needs(id, student_id, status)
+                    select md5('need' || k)::uuid, md5('student' || (k / 5))::uuid, 'CLOSED'
+                    from generate_series(0, %d) k
+                    """.formatted(TUTORS));
             ResultSet any = statement.executeQuery("select tutor_id, need_id from tutorbridge.class_offers limit 1");
             any.next();
             tutor = any.getObject(1, UUID.class);
             need = any.getObject(2, UUID.class);
+            ResultSet owner = statement.executeQuery(
+                    "select student_id from tutorbridge.learning_needs where id = '" + need + "'");
+            owner.next();
+            student = owner.getObject(1, UUID.class);
         }
         migrate("latest");
         try (Connection migrator = migrator()) {
             migrator.createStatement().execute("analyze class_offers");
+            migrator.createStatement().execute("analyze learning_needs");
         }
     }
 
@@ -116,6 +128,19 @@ class OfferIndexesMigrationTest extends IntegrationTest {
                 order by o.sent_at desc, o.id desc
                 limit 21""", need);
         assertThat(plan).anyMatch(line -> line.contains("class_offers_need_order"));
+        assertThat(plan).noneMatch(line -> line.contains("Seq Scan"));
+    }
+
+    @Test
+    void listOffers_reads_a_parents_offers_through_the_needs_of_their_children() throws SQLException {
+        // The where of OfferRepository.listByStudents: the children's needs through V13, their offers through V18.
+        List<String> plan = explain("""
+                select o.id from class_offers o join learning_needs n on n.id = o.need_id
+                where n.student_id = any(array[?, '00000000-0000-0000-0000-000000000000'::uuid])
+                order by o.sent_at desc, o.id desc
+                limit 21""", student);
+        assertThat(plan).anyMatch(line -> line.contains("class_offers_need_order"));
+        assertThat(plan).anyMatch(line -> line.contains("learning_needs_student_order"));
         assertThat(plan).noneMatch(line -> line.contains("Seq Scan"));
     }
 

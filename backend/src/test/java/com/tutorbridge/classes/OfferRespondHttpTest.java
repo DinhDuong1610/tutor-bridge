@@ -247,6 +247,84 @@ class OfferRespondHttpTest extends HttpTest {
         assertThat(events("OFFER_REJECTED", offer) + events("OFFER_CANCELLED", offer)).isOne();
     }
 
+    // ---------------------------------------------------------------- INV-01: access lost while waiting
+
+    /**
+     * Codex's case on #235: the answer waits on the offer row, the account is locked and that commits,
+     * then the row is released. Nothing may change: no state, no event, no receipt.
+     */
+    private void lockedWhileWaiting(boolean asParent, String action, String code) throws Exception {
+        Scenario s = fx.scenario();
+        UUID offer = sent(s);
+        Actor who = asParent ? s.parent() : tutorOf(s);
+        CompletableFuture<Integer> answer;
+        try (Connection hold = DriverManager.getConnection(
+                PostgresTestSupport.jdbcUrl(), "tutorbridge_app", PostgresTestSupport.APP_PASSWORD)) {
+            hold.setAutoCommit(false);
+            try (var lock = hold.prepareStatement("select 1 from tutorbridge.class_offers where id = ? for update")) {
+                lock.setObject(1, offer);
+                lock.executeQuery();
+            }
+            answer = Concurrently.supply(() -> statusOf(() -> fx.respond(who, action, offer,
+                    UUID.randomUUID().toString(), "\"1\"", reason(code))));
+            await().atMost(Duration.ofSeconds(4)).pollInterval(Duration.ofMillis(20)).until(() -> fx.count("""
+                    select count(*) from pg_stat_activity
+                    where wait_event_type = 'Lock' and query like 'select 1 from class_offers where id = $1 for update%'
+                    """) == 1);
+            try (var lockAccount = hold.prepareStatement("update tutorbridge.accounts set status = 'LOCKED' where id = ?")) {
+                lockAccount.setObject(1, who.accountId());
+                lockAccount.executeUpdate();
+            }
+            hold.commit();
+        }
+
+        assertThat(answer.get(10, TimeUnit.SECONDS)).isEqualTo(404);
+        assertThat(stateOf(offer)).isEqualTo("PENDING/-/1");
+        assertThat(events("OFFER_CANCELLED", offer) + events("OFFER_REJECTED", offer)).isZero();
+        assertThat(fx.count("select count(*) from command_receipts where actor_id = ? and command_type in "
+                + "('REJECT_OFFER', 'CANCEL_OFFER')", who.accountId())).isZero();
+    }
+
+    @Test
+    void INV_01_a_parent_locked_while_the_cancel_waits_changes_nothing() throws Exception {
+        lockedWhileWaiting(true, "cancel", "OTHER");
+    }
+
+    @Test
+    void INV_01_a_tutor_locked_while_the_reject_waits_changes_nothing() throws Exception {
+        lockedWhileWaiting(false, "reject", "DECLINED");
+    }
+
+    @Test
+    void INV_22_a_replay_by_a_parent_locked_since_the_cancel_is_404() throws Exception {
+        Scenario s = fx.scenario();
+        UUID offer = sent(s);
+        String key = UUID.randomUUID().toString();
+        String first = body(fx.respond(s.parent(), "cancel", offer, key, "\"1\"", reason("OTHER"))
+                .andExpect(status().isOk()));
+        // Answered again unchanged while the parent may still act.
+        assertThat(body(fx.respond(s.parent(), "cancel", offer, key, "\"1\"", reason("OTHER"))
+                .andExpect(status().isOk()))).isEqualTo(first);
+        jdbc.sql("update accounts set status = 'LOCKED' where id = ?").param(s.parent().accountId()).update();
+
+        fx.respond(s.parent(), "cancel", offer, key, "\"1\"", reason("OTHER"))
+                .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("OFFER_NOT_FOUND"));
+    }
+
+    @Test
+    void BR06_INV_20_a_send_replayed_after_the_cancel_still_answers_the_sent_offer() throws Exception {
+        Scenario s = fx.scenario();
+        String key = UUID.randomUUID().toString();
+        String json = OfferHttpFixture.input(s.need(), s.candidate());
+        String sentBody = body(fx.send(s.parent(), s.need().id(), key, "\"2\"", json).andExpect(status().isCreated()));
+        UUID offer = UUID.fromString(com.jayway.jsonpath.JsonPath.read(sentBody, "$.id"));
+        fx.respond(s.parent(), "cancel", offer, UUID.randomUUID().toString(), "\"1\"", reason("OTHER"))
+                .andExpect(status().isOk());
+
+        assertThat(body(fx.send(s.parent(), s.need().id(), key, "\"2\"", json).andExpect(status().isCreated())))
+                .isEqualTo(sentBody);
+    }
+
     @FunctionalInterface
     private interface Request {
         org.springframework.test.web.servlet.ResultActions perform() throws Exception;

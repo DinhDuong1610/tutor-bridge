@@ -283,6 +283,12 @@ public class OfferService {
             return view(offers.find(receipt.resultId()).orElseThrow());
         }
         OfferRepository.Row offer = offers.lock(offerId).orElseThrow(OfferService::offerNotFound);
+        // INV-01 (Codex, #235): checked again once the offer is held, under FOR SHARE, so an account locked
+        // while this waited is refused, and one locked from now on waits for this answer. Offer, then child,
+        // then account: the order TX05 takes them in.
+        if (!lockAccess(actor, offer)) {
+            throw offerNotFound();
+        }
         if (offer.revision() != expected.version()) {
             throw WritePrecondition.stale();
         }
@@ -340,6 +346,12 @@ public class OfferService {
                 offer.goalSnapshot(), offer.durationMinutes(), offer.frequencyPer7Days(), offer.cycleStartDate(),
                 offer.rateVnd60(), offer.priceVndSession(), offer.schedule(), offer.sentAt(), offer.expiresAt(), null,
                 null);
+    }
+
+    private boolean lockAccess(Actor actor, OfferRepository.Row offer) {
+        return actor.role() == Actor.Role.TUTOR
+                ? offer.tutorId().equals(actor.accountId()) && parties.lockActiveTutor(actor.accountId())
+                : parties.lockOwnStudent(actor.accountId(), offer.studentId());
     }
 
     private boolean mayRead(Actor actor, OfferRepository.Row offer) {

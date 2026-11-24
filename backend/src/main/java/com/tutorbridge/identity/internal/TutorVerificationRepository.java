@@ -85,9 +85,10 @@ class TutorVerificationRepository {
     @Transactional(propagation = Propagation.MANDATORY)
     void insertVerification(UUID id, UUID profileId, String scope, String evidenceKey, UUID assignedTo) {
         jdbc.sql("""
-                insert into tutor_verifications(id, profile_id, scope, status, evidence_key, assigned_to, revision)
-                values (?, ?, ?, 'PENDING', ?, ?, 1)
-                """).params(id, profileId, scope, evidenceKey, assignedTo).update();
+                insert into tutor_verifications(id, profile_id, scope, status, evidence_key, assigned_to, assigned_at,
+                                                revision)
+                values (?, ?, ?, 'PENDING', ?, ?, case when ?::uuid is null then null else clock_timestamp() end, 1)
+                """).params(id, profileId, scope, evidenceKey, assignedTo, assignedTo).update();
     }
 
     /**

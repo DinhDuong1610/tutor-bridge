@@ -16,7 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Who gets the next verification (OP-28 (4), Đính 21/11/2026 on #98): the ADMINs that are ACTIVE and hold
  * VERIFY, by turns. The turn goes to the one assigned least recently, one never assigned first, ties by
- * account id; for a fixed group of verifiers that is plain round robin, with no "next" column to keep.
+ * account id; for a fixed group of verifiers that is plain round robin. The time is V17's assigned_at
+ * (Đính 24/11/2026 on #13), not submitted_at: admin-setup gives out records long after they were sent.
  *
  * <p>The VERIFY rows are locked FOR UPDATE, last in the lock order of the verification commands (INV-16;
  * see docs/handoff/TB-13.md), so two assignments run in turn and the second sees the first. The times are
@@ -66,8 +67,8 @@ class VerifierRotation {
         }
         Map<UUID, Instant> last = new HashMap<>();
         jdbc.sql("""
-                select v.assigned_to, max(v.submitted_at) from tutor_verifications v
-                where v.assigned_to in (:verifiers) group by v.assigned_to""")
+                select v.assigned_to, max(v.assigned_at) from tutor_verifications v
+                where v.assigned_to in (:verifiers) and v.assigned_at is not null group by v.assigned_to""")
                 .param("verifiers", verifiers)
                 .query(rs -> {
                     last.put(rs.getObject(1, UUID.class), rs.getObject(2, OffsetDateTime.class).toInstant());

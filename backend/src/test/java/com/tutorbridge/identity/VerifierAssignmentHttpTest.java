@@ -105,13 +105,16 @@ class VerifierAssignmentHttpTest extends HttpTest {
                 .query(UUID.class).optional().orElse(null);
     }
 
+    /** A record sent at {@code submitted}; one already assigned was given out at that same time. */
     private UUID waiting(Actor tutor, String profileStatus, OffsetDateTime submitted, Actor assignedTo) {
         UUID profile = version(tutor, "PENDING");
         UUID id = UUID.randomUUID();
         jdbc.sql("""
-                insert into tutor_verifications(id, profile_id, scope, status, evidence_key, assigned_to, submitted_at)
-                values (?, ?, 'MATH8_ALGEBRA', 'PENDING', ?, ?, ?)
-                """).params(id, profile, "0".repeat(64), assignedTo == null ? null : assignedTo.accountId(), submitted)
+                insert into tutor_verifications(id, profile_id, scope, status, evidence_key, assigned_to, submitted_at,
+                                                assigned_at)
+                values (?, ?, 'MATH8_ALGEBRA', 'PENDING', ?, ?, ?, ?)
+                """).params(id, profile, "0".repeat(64), assignedTo == null ? null : assignedTo.accountId(), submitted,
+                        assignedTo == null ? null : submitted)
                 .update();
         if (!"PENDING".equals(profileStatus)) {
             jdbc.sql("update tutor_profiles set status = ? where id = ?").params(profileStatus, profile).update();
@@ -218,5 +221,9 @@ class VerifierAssignmentHttpTest extends HttpTest {
         assertThat(assignee(w3)).isEqualTo(result.accountId());
         assertThat(assignee(alreadyHis)).as("an assigned record keeps its verifier").isEqualTo(existing.accountId());
         assertThat(assignee(retired)).as("a superseded record waits for nothing (OP-24)").isNull();
+        // Codex's review of #219: the turn follows the assignments just made, not when the records were
+        // sent. The new verifier got the last one, so the next submission goes to the existing one.
+        assertThat(submit(ready())).isEqualTo(existing.accountId());
+        assertThat(submit(ready())).isEqualTo(result.accountId());
     }
 }

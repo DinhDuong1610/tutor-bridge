@@ -206,7 +206,10 @@ class AdminMfaRepository {
 
     @Transactional(propagation = Propagation.MANDATORY)
     void assign(UUID verificationId, UUID verifierId) {
-        jdbc.sql("update tutor_verifications set assigned_to = ? where id = ? and assigned_to is null")
+        // clock_timestamp(), not now(): the records of one batch keep the order they were given in (V17).
+        jdbc.sql("""
+                update tutor_verifications set assigned_to = ?, assigned_at = clock_timestamp()
+                where id = ? and assigned_to is null""")
                 .params(verifierId, verificationId).update();
     }
 

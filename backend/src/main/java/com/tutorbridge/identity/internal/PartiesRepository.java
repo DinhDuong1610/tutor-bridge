@@ -66,6 +66,25 @@ class PartiesRepository implements Parties {
 
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
+    public boolean lockOwnStudent(UUID parentId, UUID studentId) {
+        boolean student = jdbc.sql("select 1 from students where id = ? and parent_id = ? for share")
+                .params(studentId, parentId).query((rs, n) -> 1).optional().isPresent();
+        return student && lockActive(parentId, "PARENT");
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public boolean lockActiveTutor(UUID tutorId) {
+        return lockActive(tutorId, "TUTOR");
+    }
+
+    private boolean lockActive(UUID accountId, String role) {
+        return jdbc.sql("select status from accounts where id = ? and role = ? for share")
+                .params(accountId, role).query(String.class).optional().filter("ACTIVE"::equals).isPresent();
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
     public Optional<UUID> lockAgreementParties(UUID tutorId, UUID profileId, int rateVnd60, UUID studentId) {
         Optional<UUID> parentId = jdbc.sql("select parent_id from students where id = ? for share")
                 .param(studentId).query(UUID.class).optional();

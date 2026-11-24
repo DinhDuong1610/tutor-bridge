@@ -134,6 +134,121 @@ class OfferSendHttpTest extends HttpTest {
     }
 
     @Test
+    void BR06_INV_20_a_replay_after_the_offer_changed_answers_what_the_send_answered() throws Exception {
+        Scenario s = fx.scenario();
+        String key = UUID.randomUUID().toString();
+        String json = input(s.need(), s.candidate());
+        String first = body(fx.send(s.parent(), s.need().id(), key, "\"2\"", json).andExpect(status().isCreated()));
+        UUID offer = UUID.fromString(JsonPath.read(first, "$.id"));
+        // What a cancel does to the row (TX06, PR 2); the job and an accept change it the same way.
+        jdbc.sql("""
+                update class_offers set state = 'CANCELLED', revision = 2, concluded_at = now(),
+                       reason_code = 'PARENT_CANCELLED' where id = ?""").param(offer).update();
+
+        String again = body(fx.send(s.parent(), s.need().id(), key, "\"2\"", json)
+                .andExpect(status().isCreated()).andExpect(header().string("ETag", "\"1\"")));
+
+        assertThat(again).isEqualTo(first);
+        // The replay does not touch the offer, which reads as it is now.
+        fx.read(s.parent(), offer).andExpect(jsonPath("$.state").value("CANCELLED"))
+                .andExpect(jsonPath("$.revision").value(2));
+        assertThat(offersOf(s)).isOne();
+    }
+
+    @Test
+    void INV_22_a_replay_by_a_parent_locked_since_the_send_is_404() throws Exception {
+        Scenario s = fx.scenario();
+        String key = UUID.randomUUID().toString();
+        String json = input(s.need(), s.candidate());
+        fx.send(s.parent(), s.need().id(), key, "\"2\"", json).andExpect(status().isCreated());
+        // Only the account is locked; the session the test signs with stays valid.
+        jdbc.sql("update accounts set status = 'LOCKED' where id = ?").param(s.parent().accountId()).update();
+
+        fx.send(s.parent(), s.need().id(), key, "\"2\"", json)
+                .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("NEED_NOT_FOUND"));
+    }
+
+    /** The parent is checked after the wait for the need, so a lock committed meanwhile is seen. */
+    @Test
+    void INV_01_a_parent_locked_while_the_send_waits_for_the_need_sends_nothing() throws Exception {
+        Scenario s = fx.scenario();
+        CompletableFuture<Integer> sent;
+        try (Connection edit = DriverManager.getConnection(
+                PostgresTestSupport.jdbcUrl(), "tutorbridge_app", PostgresTestSupport.APP_PASSWORD)) {
+            edit.setAutoCommit(false);
+            try (var hold = edit.prepareStatement("select 1 from tutorbridge.learning_needs where id = ? for update")) {
+                hold.setObject(1, s.need().id());
+                hold.executeQuery();
+            }
+            sent = Concurrently.supply(() -> {
+                try {
+                    return fx.send(s).andReturn().getResponse().getStatus();
+                } catch (Exception e) {
+                    throw new IllegalStateException(e);
+                }
+            });
+            await().atMost(Duration.ofSeconds(4)).pollInterval(Duration.ofMillis(20)).until(() -> fx.count("""
+                    select count(*) from pg_stat_activity
+                    where wait_event_type = 'Lock' and query like 'select 1 from learning_needs where id = $1 for update%'
+                    """) == 1);
+            // The parent's account is locked, committed while the send waits.
+            try (var lock = edit.prepareStatement("update tutorbridge.accounts set status = 'LOCKED' where id = ?")) {
+                lock.setObject(1, s.parent().accountId());
+                lock.executeUpdate();
+            }
+            edit.commit();
+        }
+
+        assertThat(sent.get(10, TimeUnit.SECONDS)).isEqualTo(404);
+        assertThat(offersOf(s)).isZero();
+        assertThat(fx.count("select count(*) from command_receipts where actor_id = ? and command_type = 'SEND_OFFER'",
+                s.parent().accountId())).isZero();
+    }
+
+    @Test
+    void INV_01_locking_the_parent_waits_for_a_send_that_already_checked_them() throws Exception {
+        Scenario s = fx.scenario();
+        // An overdue pending offer of the pair, held by another transaction: the send checks the parent, then
+        // waits on that row before it writes (TX04, lockPending).
+        UUID overdue = fx.overdueOffer(s);
+        CompletableFuture<Integer> sent;
+        CompletableFuture<Void> locked;
+        try (Connection hold = DriverManager.getConnection(
+                PostgresTestSupport.jdbcUrl(), "tutorbridge_app", PostgresTestSupport.APP_PASSWORD)) {
+            hold.setAutoCommit(false);
+            try (var row = hold.prepareStatement("select 1 from tutorbridge.class_offers where id = ? for update")) {
+                row.setObject(1, overdue);
+                row.executeQuery();
+            }
+            sent = Concurrently.supply(() -> {
+                try {
+                    return fx.send(s).andReturn().getResponse().getStatus();
+                } catch (Exception e) {
+                    throw new IllegalStateException(e);
+                }
+            });
+            await().atMost(Duration.ofSeconds(4)).pollInterval(Duration.ofMillis(20)).until(() -> fx.count("""
+                    select count(*) from pg_stat_activity
+                    where wait_event_type = 'Lock' and query like 'select id, expires_at from class_offers%'
+                    """) == 1);
+            // Locking the parent now waits on the send's FOR SHARE instead of slipping in under it.
+            locked = Concurrently.run(() -> jdbc.sql("update accounts set status = 'LOCKED' where id = ?")
+                    .param(s.parent().accountId()).update());
+            await().atMost(Duration.ofSeconds(4)).pollInterval(Duration.ofMillis(20)).until(() -> fx.count("""
+                    select count(*) from pg_stat_activity
+                    where wait_event_type = 'Lock' and query like 'update accounts set status%'
+                    """) == 1);
+            assertThat(locked).isNotDone();
+            hold.commit();
+        }
+
+        // The send was checked first, so it goes through; the lock comes after it.
+        assertThat(sent.get(10, TimeUnit.SECONDS)).isEqualTo(201);
+        locked.get(10, TimeUnit.SECONDS);
+        assertThat(offersOf(s)).isEqualTo(2);
+    }
+
+    @Test
     void AC_UC06_04_a_second_send_to_the_same_tutor_with_another_key_is_409_and_adds_nothing() throws Exception {
         Scenario s = fx.scenario();
         fx.send(s).andExpect(status().isCreated());

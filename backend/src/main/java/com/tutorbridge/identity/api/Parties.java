@@ -58,6 +58,17 @@ public interface Parties {
     boolean isOwnStudent(UUID parentId, UUID studentId);
 
     /**
+     * {@link #isOwnStudent} under FOR SHARE on the student and the parent account, so a lock or a deletion
+     * of that account waits for the caller's transaction, and one committed while the caller waited for an
+     * earlier lock is seen here (TB-18, Codex on #235). Takes the student, then the account, as
+     * {@link #lockAgreementParties} does.
+     */
+    boolean lockOwnStudent(UUID parentId, UUID studentId);
+
+    /** {@link #isActiveTutor} under FOR SHARE on the account, for the same reason as {@link #lockOwnStudent}. */
+    boolean lockActiveTutor(UUID tutorId);
+
+    /**
      * Locks both accounts and the profile against change until the transaction ends, then rechecks
      * them. Returns the parent account, or empty when the agreement can no longer be made.
      */

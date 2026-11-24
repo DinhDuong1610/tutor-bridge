@@ -118,12 +118,15 @@ public class OfferService {
         Receipt receipt = receipts.begin(actor.accountId(), SEND, key.value(), payload);
         // TX04: the need first (INV-16), FOR UPDATE as TX05 takes it, so update, confirm and a second send wait.
         NeedRepository.Row need = needs.lock(needId).orElseThrow(OfferService::needNotFound);
-        if (!parties.isOwnStudent(actor.accountId(), need.studentId())) {
+        // The child and the parent's account under FOR SHARE: a lock of the account committed while this
+        // send waited for the need is seen, and one after this point waits for the send (INV-01).
+        if (!parties.lockOwnStudent(actor.accountId(), need.studentId())) {
             throw needNotFound();
         }
         if (receipt.replay()) {
-            // INV-22: the owner is checked again above; the answer is the offer as it is now.
-            return view(offers.find(receipt.resultId()).orElseThrow());
+            // INV-22: the owner is checked again above. BR06: the answer is the one the send gave, not the
+            // offer as it is now, which a cancel, an answer or the deadline may have changed (Codex, #234).
+            return asSent(view(offers.find(receipt.resultId()).orElseThrow()));
         }
         if (need.revision() != expected.version()) {
             throw WritePrecondition.stale();
@@ -242,6 +245,17 @@ public class OfferService {
         if (offers.expire(offerId, now)) {
             outbox.publish("OFFER", offerId, "OFFER_EXPIRED", Map.of("offerId", offerId), "OFFER_EXPIRED:" + offerId);
         }
+    }
+
+    /**
+     * What sendOffer answered: the stored terms, which never change, as the new PENDING offer at revision 1
+     * with no reason and no class. A send always answers that, since its deadline is still ahead.
+     */
+    private static Offer asSent(Offer offer) {
+        return new Offer(offer.id(), offer.needId(), offer.needVersionId(), 1, "PENDING", offer.tutorId(),
+                offer.goalSnapshot(), offer.durationMinutes(), offer.frequencyPer7Days(), offer.cycleStartDate(),
+                offer.rateVnd60(), offer.priceVndSession(), offer.schedule(), offer.sentAt(), offer.expiresAt(), null,
+                null);
     }
 
     private boolean mayRead(Actor actor, OfferRepository.Row offer) {

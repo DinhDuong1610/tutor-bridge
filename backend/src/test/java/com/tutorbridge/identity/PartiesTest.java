@@ -78,6 +78,31 @@ class PartiesTest extends IntegrationTest {
         assertThatThrownBy(() -> parties.ownStudentIds(parent)).isInstanceOf(IllegalStateException.class);
     }
 
+    // ---------------------------------------------------------------- lockOwnStudent, lockActiveTutor (TB-18)
+
+    @Autowired
+    private org.springframework.transaction.support.TransactionTemplate tx;
+
+    @Test
+    void the_locking_checks_answer_as_the_plain_ones_do() {
+        UUID parent = newAccount();
+        UUID own = student(parent);
+        UUID otherFamily = student(newAccount());
+        UUID active = tutor("Cô Lan Thử", "ACTIVE");
+        UUID locked = tutor("Thầy Nam Thử", "LOCKED");
+
+        tx.executeWithoutResult(status -> {
+            assertThat(parties.lockOwnStudent(parent, own)).isTrue();
+            assertThat(parties.lockOwnStudent(parent, otherFamily)).isFalse();
+            assertThat(parties.lockOwnStudent(parent, UUID.randomUUID())).isFalse();
+            assertThat(parties.lockActiveTutor(active)).isTrue();
+            assertThat(parties.lockActiveTutor(locked)).isFalse();
+            assertThat(parties.lockActiveTutor(parent)).isFalse();
+        });
+        jdbc.sql("update accounts set status = 'LOCKED' where id = ?").param(parent).update();
+        tx.executeWithoutResult(status -> assertThat(parties.lockOwnStudent(parent, own)).isFalse());
+    }
+
     // ---------------------------------------------------------------- matchableTutors (TB-17, BR01)
 
     private UUID tutor(String displayName, String status) {

@@ -235,6 +235,25 @@ class VerificationDecisionsHttpTest extends HttpTest {
     }
 
     @Test
+    void INV_22_a_replay_after_VERIFY_was_revoked_is_403_and_shows_nothing_of_the_first_answer() throws Exception {
+        Actor me = verifier();
+        UUID submitted = version(newActor(Actor.Role.TUTOR), 1, "PENDING", false);
+        UUID id = record(submitted, me);
+        String key = UUID.randomUUID().toString();
+        decide(me, id, key, "\"1\"", body(submitted, "NEEDS_INFO")).andExpect(status().isOk());
+        String after = recordRow(id);
+        jdbc.sql("update admin_assignments set revoked_at = now() where account_id = ?").param(me.accountId())
+                .update();
+
+        String replay = decide(me, id, key, "\"1\"", body(submitted, "NEEDS_INFO"))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("ACCESS_DENIED"))
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(replay).doesNotContain(id.toString(), submitted.toString());
+        assertThat(recordRow(id)).isEqualTo(after);
+    }
+
+    @Test
     void the_same_key_with_another_body_is_409_and_changes_nothing() throws Exception {
         Actor me = verifier();
         UUID submitted = version(newActor(Actor.Role.TUTOR), 1, "PENDING", false);

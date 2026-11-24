@@ -89,10 +89,14 @@ public class VerificationDecisions {
         }
         Receipt receipt = receipts.begin(me, DECIDE, key.value(), payload);
         if (receipt.replay()) {
-            // INV-22: still assigned to the caller. INV-20: the first answer follows from the same payload,
-            // so a later decision on the record does not change what a retry of this one gets.
+            // INV-22: the caller's rights now, as for a new decision: still assigned, then VERIFY (locked
+            // last, as below; Codex's review of #220). INV-20: the first answer follows from the same
+            // payload, so a later decision on the record does not change what a retry of this one gets.
             if (!verifications.isAssigned(verificationId, me)) {
                 throw notFound();
+            }
+            if (!verifications.lockVerify(me)) {
+                throw accessDenied();
             }
             return answer(verificationId, me, decision, precondition.version() + 1);
         }

@@ -198,6 +198,27 @@ final class OfferHttpFixture {
         return send(s.parent(), s.need().id(), UUID.randomUUID().toString(), "\"2\"", input(s.need(), s.candidate()));
     }
 
+    /** rejectOffer or cancelOffer ({@code action} "reject" or "cancel"). */
+    ResultActions respond(Actor actor, String action, UUID offerId, String key, String ifMatch, String json)
+            throws Exception {
+        MockHttpServletRequestBuilder request = post("/api/v1/offers/" + offerId + "/" + action)
+                .contentType(MediaType.APPLICATION_JSON).content(json);
+        if (actor != null) {
+            request.with(as.apply(actor));
+        }
+        if (key != null) {
+            request.header("Idempotency-Key", key);
+        }
+        if (ifMatch != null) {
+            request.header("If-Match", ifMatch);
+        }
+        return mvc.perform(request).andExpect(Contract.matches());
+    }
+
+    static String reason(String code) {
+        return "{\"reasonCode\":\"" + code + "\"}";
+    }
+
     ResultActions read(Actor actor, UUID offerId) throws Exception {
         MockHttpServletRequestBuilder request = get("/api/v1/offers/" + offerId);
         if (actor != null) {

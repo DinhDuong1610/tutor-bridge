@@ -25,6 +25,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
@@ -33,8 +34,9 @@ import org.springframework.transaction.support.TransactionOperations;
 import org.springframework.util.IdGenerator;
 
 /**
- * sendOffer (TX04), getOffer and listOffers (TX06) of UC06, TB-18. A pending offer reserves nothing
- * (INV-13): acceptOffer checks everything again at its commit (TX05).
+ * sendOffer (TX04), getOffer, listOffers, rejectOffer and cancelOffer (TX06) of UC06, TB-18, and the
+ * expiry of pending offers (Q1). A pending offer reserves nothing (INV-13): acceptOffer checks everything
+ * again at its commit (TX05).
  */
 @Service
 public class OfferService {
@@ -48,6 +50,29 @@ public class OfferService {
     /** {@code OfferInput}; {@code acceptUnchangedTerms} is checked by the controller. */
     public record Input(UUID needVersionId, UUID matchingRunId, UUID tutorId, UUID profileVersionId,
             UUID tutorCalendarVersionId, UUID studentCalendarVersionId, List<MatchingRunService.Window> schedule) {}
+
+    /**
+     * TX06: who ends a PENDING offer, as which state, and with which reason codes (Q5). The tutor rejects,
+     * the parent cancels; an expiry is the system's (Q1).
+     */
+    public enum Response {
+        REJECT(Actor.Role.TUTOR, "REJECT_OFFER", "REJECTED", "OFFER_REJECTED", Set.of("NOT_AVAILABLE", "DECLINED", "OTHER")),
+        CANCEL(Actor.Role.PARENT, "CANCEL_OFFER", "CANCELLED", "OFFER_CANCELLED", Set.of("PARENT_CANCELLED", "OTHER"));
+
+        private final Actor.Role role;
+        private final String command;
+        private final String state;
+        private final String event;
+        private final Set<String> reasons;
+
+        Response(Actor.Role role, String command, String state, String event, Set<String> reasons) {
+            this.role = role;
+            this.command = command;
+            this.state = state;
+            this.event = event;
+            this.reasons = reasons;
+        }
+    }
 
     static final String SEND = "SEND_OFFER";
     static final String RESULT_TYPE = "OFFER";
@@ -217,6 +242,65 @@ public class OfferService {
         return view(offers.find(offerId).orElseThrow());
     }
 
+    /**
+     * rejectOffer by the recipient tutor, cancelOffer by the parent (TX06). Only a PENDING offer at the
+     * revision of If-Match, before its deadline, ends; a final one stays as it is (no silent reversal).
+     */
+    public Offer respond(Actor actor, Response response, UUID offerId, IdempotencyKey key,
+            WritePrecondition.Expected expected, String reasonCode, boolean hasReasonText) {
+        requireRole(actor, response.role);
+        // Before the receipt, so a refused body leaves nothing.
+        if (hasReasonText) {
+            // Q4 (#231): Lát 1 keeps the code only; free text before an agreement may carry contacts (BR07).
+            throw invalid("reason", "Chưa nhận lý do dạng chữ. Hãy chọn một lý do có sẵn.");
+        }
+        if (!response.reasons.contains(reasonCode)) {
+            throw invalid("reasonCode", "Lý do này không dùng được cho thao tác này.");
+        }
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("offerId", offerId.toString());
+        payload.put("reasonCode", reasonCode);
+        payload.put("precondition", expected.version());
+        try {
+            return transactions.execute(status ->
+                    respondInTransaction(actor, response, offerId, key, expected, reasonCode, payload));
+        } catch (DataAccessException e) {
+            if (ResourceLocks.timedOut(e)) {
+                throw ResourceLocks.busy();
+            }
+            throw e;
+        }
+    }
+
+    private Offer respondInTransaction(Actor actor, Response response, UUID offerId, IdempotencyKey key,
+            WritePrecondition.Expected expected, String reasonCode, Map<String, Object> payload) {
+        locks.limitWait();
+        Receipt receipt = receipts.begin(actor.accountId(), response.command, key.value(), payload);
+        // AC-UC06-01: only the recipient tutor or the parent of the child; anyone else learns nothing (INV-06).
+        offers.find(offerId).filter(o -> mayRead(actor, o)).orElseThrow(OfferService::offerNotFound);
+        if (receipt.replay()) {
+            // INV-22: the actor is checked again above; the answer is the offer as it is now.
+            return view(offers.find(receipt.resultId()).orElseThrow());
+        }
+        OfferRepository.Row offer = offers.lock(offerId).orElseThrow(OfferService::offerNotFound);
+        if (offer.revision() != expected.version()) {
+            throw WritePrecondition.stale();
+        }
+        Instant now = clock.instant().truncatedTo(ChronoUnit.MICROS);
+        if ("EXPIRED".equals(offer.state()) || ("PENDING".equals(offer.state()) && !offer.expiresAt().isAfter(now))) {
+            throw new ApiException(HttpStatus.CONFLICT, "OFFER_EXPIRED", "Đề nghị đã hết hạn.");
+        }
+        if (!"PENDING".equals(offer.state())) {
+            throw new ApiException(HttpStatus.CONFLICT, "OFFER_NOT_PENDING",
+                    "Đề nghị đã kết thúc nên không đổi được nữa.");
+        }
+        offers.conclude(offerId, response.state, reasonCode, now);
+        // Read by the notifications of TB-21 after commit; ids only (INV-63).
+        outbox.publish("OFFER", offerId, response.event, Map.of("offerId", offerId), response.event + ":" + offerId);
+        receipts.succeed(receipt.id(), RESULT_TYPE, offerId);
+        return view(offers.find(offerId).orElseThrow());
+    }
+
     public Offer get(Actor actor, UUID offerId) {
         requireParticipant(actor);
         return transactions.execute(status -> {
@@ -331,6 +415,10 @@ public class OfferService {
     }
 
     private static ApiException notFromRun(String field, String message) {
+        return invalid(field, message);
+    }
+
+    private static ApiException invalid(String field, String message) {
         return new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "VALIDATION_FAILED", "Dữ liệu chưa hợp lệ.",
                 List.of(new FieldProblem(field, message)));
     }

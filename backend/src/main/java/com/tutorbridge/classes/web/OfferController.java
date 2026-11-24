@@ -10,6 +10,7 @@ import com.tutorbridge.platform.api.WritePrecondition;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.time.Instant;
 import java.util.List;
@@ -25,7 +26,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** sendOffer, listOffers, getOffer (UC06, TX04, TX06, TB-18). The service checks the owner and the recipient. */
+/**
+ * sendOffer, listOffers, getOffer, rejectOffer, cancelOffer (UC06, TX04, TX06, TB-18). The service checks
+ * the owner and the recipient.
+ */
 @RestController
 class OfferController {
 
@@ -45,6 +49,10 @@ class OfferController {
                     schedule.stream().map(w -> new MatchingRunService.Window(w.start(), w.end())).toList());
         }
     }
+
+    /** {@code ReasonInput}; the service refuses {@code reason} for now (#18 Q4, #231). */
+    record ReasonInput(@NotNull @Pattern(regexp = "NOT_AVAILABLE|DECLINED|PARENT_CANCELLED|OTHER") String reasonCode,
+            @Size(max = 500) String reason) {}
 
     private final OfferService offers;
 
@@ -68,6 +76,24 @@ class OfferController {
     @GetMapping("/api/v1/offers/{offerId}")
     ResponseEntity<OfferService.Offer> get(@AuthenticationPrincipal Actor actor, @PathVariable UUID offerId) {
         return withEtag(HttpStatus.OK, offers.get(actor, offerId));
+    }
+
+    @PostMapping("/api/v1/offers/{offerId}/reject")
+    ResponseEntity<OfferService.Offer> reject(@AuthenticationPrincipal Actor actor, @PathVariable UUID offerId,
+            IdempotencyKey key, WritePrecondition.Expected expected, @Valid @RequestBody ReasonInput input) {
+        return respond(actor, OfferService.Response.REJECT, offerId, key, expected, input);
+    }
+
+    @PostMapping("/api/v1/offers/{offerId}/cancel")
+    ResponseEntity<OfferService.Offer> cancel(@AuthenticationPrincipal Actor actor, @PathVariable UUID offerId,
+            IdempotencyKey key, WritePrecondition.Expected expected, @Valid @RequestBody ReasonInput input) {
+        return respond(actor, OfferService.Response.CANCEL, offerId, key, expected, input);
+    }
+
+    private ResponseEntity<OfferService.Offer> respond(Actor actor, OfferService.Response response, UUID offerId,
+            IdempotencyKey key, WritePrecondition.Expected expected, ReasonInput input) {
+        return withEtag(HttpStatus.OK,
+                offers.respond(actor, response, offerId, key, expected, input.reasonCode(), input.reason() != null));
     }
 
     private static ResponseEntity<OfferService.Offer> withEtag(HttpStatus status, OfferService.Offer offer) {

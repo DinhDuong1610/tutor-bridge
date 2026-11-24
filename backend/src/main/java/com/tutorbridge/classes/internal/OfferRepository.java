@@ -134,6 +134,42 @@ class OfferRepository {
                 .optional();
     }
 
+    /**
+     * The offer row under FOR UPDATE for TX06, then read again with its need. Only the offer is locked: TX05
+     * takes the need and then the offer, so waiting on the offer alone cannot close a cycle with it.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    Optional<Row> lock(UUID offerId) {
+        boolean exists = jdbc.sql("select 1 from class_offers where id = ? for update").param(offerId)
+                .query((rs, n) -> 1).optional().isPresent();
+        return exists ? find(offerId) : Optional.empty();
+    }
+
+    /** TX06: a PENDING offer ends as REJECTED or CANCELLED with its reason. False when it was no longer PENDING. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    boolean conclude(UUID offerId, String state, String reasonCode, Instant now) {
+        return jdbc.sql("""
+                update class_offers
+                set state = ?, revision = revision + 1, concluded_at = ?, reason_code = ?
+                where id = ? and state = 'PENDING'
+                """).params(state, at(now), reasonCode, offerId).update() == 1;
+    }
+
+    /**
+     * Up to {@code limit} PENDING offers past their deadline, oldest deadline first, locked. Rows another
+     * transaction holds (a reject, a cancel, an accept) are skipped; the next run finds them if still due.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    List<UUID> lockOverdue(Instant now, int limit) {
+        return jdbc.sql("""
+                select id from class_offers
+                where state = 'PENDING' and expires_at <= ?
+                order by expires_at
+                limit ?
+                for update skip locked
+                """).params(at(now), limit).query(UUID.class).list();
+    }
+
     /** A PENDING offer past its deadline becomes EXPIRED (TB-18 Q1). False when it was no longer PENDING. */
     @Transactional(propagation = Propagation.MANDATORY)
     boolean expire(UUID offerId, Instant now) {

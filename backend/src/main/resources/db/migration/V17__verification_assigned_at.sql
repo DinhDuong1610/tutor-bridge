@@ -11,7 +11,16 @@ ALTER TABLE tutor_verifications ADD COLUMN assigned_at timestamptz;
 
 -- Rows assigned before V17 get the best time known for them. Only test data on dev: no code assigned a
 -- verification before TB-13.
+-- verification_guard (V5, replaced in V11) checks every updated row against today's state, so it refuses
+-- rows that were valid when written and are closed now: a verification of a RETIRED version (OP-24), and a
+-- VERIFIED one whose reviewer lost VERIFY or is no longer ACTIVE (Codex and Huy on #223). This backfill
+-- changes no decision field (status, reviewer, version), only the new column, so only this trigger is
+-- off, and only around it. Flyway runs the script in one transaction: the trigger is on again in the same
+-- commit, and a failure rolls both back. The ALTER takes a short ACCESS EXCLUSIVE lock; the table is small
+-- in R0.
+ALTER TABLE tutor_verifications DISABLE TRIGGER verification_guard;
 UPDATE tutor_verifications SET assigned_at = submitted_at WHERE assigned_to IS NOT NULL;
+ALTER TABLE tutor_verifications ENABLE TRIGGER verification_guard;
 
 -- A time without a verifier means nothing. The reverse is allowed, since code on V16 still assigns
 -- without the time.

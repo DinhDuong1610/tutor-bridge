@@ -7,7 +7,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.List;
+import java.sql.Statement;
 import java.util.UUID;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
@@ -19,8 +19,14 @@ import org.springframework.dao.DataIntegrityViolationException;
  */
 class VerificationAssignedAtMigrationTest extends IntegrationTest {
 
+    /**
+     * Upgrading a V16 database whose history the guard of V11 would refuse today (Codex and Huy on #223): a
+     * verification of a RETIRED version, and a VERIFIED one whose reviewer lost VERIFY afterwards. Each row
+     * is written in an order V16 accepts. After the upgrade the guard is on again and still closes them.
+     */
     @Test
-    void rows_assigned_before_v17_get_their_submission_time_and_unassigned_ones_none() throws SQLException {
+    void rows_assigned_before_v17_get_their_submission_time_even_when_the_guard_would_refuse_them_today()
+            throws SQLException {
         String database = "tb_assigned_" + UUID.randomUUID().toString().replace("-", "");
         try (Connection admin = DriverManager.getConnection(
                 PostgresTestSupport.POSTGRES.getJdbcUrl(),
@@ -36,42 +42,56 @@ class VerificationAssignedAtMigrationTest extends IntegrationTest {
 
         migrate(url, "16");
         UUID verifier = UUID.randomUUID();
-        UUID tutor = UUID.randomUUID();
-        UUID profile = UUID.randomUUID();
         UUID assigned = UUID.randomUUID();
         UUID waiting = UUID.randomUUID();
+        UUID retired = UUID.randomUUID();
+        UUID verified = UUID.randomUUID();
         try (Connection migrator = migrator(url)) {
-            var statement = migrator.createStatement();
+            Statement statement = migrator.createStatement();
             statement.execute("insert into accounts(id, role, status) values ('" + verifier + "', 'ADMIN', 'ACTIVE')");
-            statement.execute("insert into accounts(id, role, status) values ('" + tutor + "', 'TUTOR', 'ACTIVE')");
             statement.execute("""
-                    insert into tutor_profiles(id, tutor_id, version, status, description, experience_months, rate_vnd_60)
-                    values ('%s', '%s', 1, 'PENDING', '%s', 12, 180000)""".formatted(profile, tutor, "d".repeat(60)));
-            for (UUID id : List.of(assigned, waiting)) {
-                String to = id.equals(assigned) ? "'" + verifier + "'" : "null";
-                statement.execute("""
-                        insert into tutor_verifications(id, profile_id, scope, status, evidence_key, assigned_to,
-                                                        submitted_at)
-                        values ('%s', '%s', 'MATH8_ALGEBRA', 'PENDING', '%s', %s, '2026-11-20T02:00:00Z')"""
-                        .formatted(id, profile, "0".repeat(64), to));
-            }
+                    insert into admin_assignments(account_id, capability, granted_by) values ('%s', 'VERIFY', '%s')"""
+                    .formatted(verifier, verifier));
+            UUID pending = version(statement, "PENDING");
+            insert(statement, assigned, pending, "PENDING", verifier, null);
+            insert(statement, waiting, pending, "PENDING", null, null);
+            // OP-24: asked for more information, then replaced by a newer version.
+            UUID replaced = version(statement, "PENDING");
+            insert(statement, retired, replaced, "PENDING", verifier, "Thiếu bằng cấp.");
+            statement.execute("update tutor_profiles set status = 'RETIRED' where id = '" + replaced + "'");
+            // Verified while the reviewer held VERIFY, which was revoked later.
+            insert(statement, verified, version(statement, "APPROVED"), "VERIFIED", verifier, "Đủ minh chứng.");
+            statement.execute("update admin_assignments set revoked_at = now() where account_id = '" + verifier + "'");
         }
         migrate(url, "latest");
 
         try (Connection migrator = migrator(url)) {
             ResultSet rows = migrator.createStatement().executeQuery("""
                     select id, assigned_at = submitted_at as backfilled, assigned_at is null as none
-                    from tutor_verifications where id in ('%s', '%s')""".formatted(assigned, waiting));
+                    from tutor_verifications where id in ('%s', '%s', '%s', '%s')"""
+                    .formatted(assigned, waiting, retired, verified));
             int seen = 0;
             while (rows.next()) {
                 seen++;
-                if (rows.getObject("id", UUID.class).equals(assigned)) {
-                    assertThat(rows.getBoolean("backfilled")).as("assigned: submission time").isTrue();
-                } else {
+                if (rows.getObject("id", UUID.class).equals(waiting)) {
                     assertThat(rows.getBoolean("none")).as("nobody has it, so no time").isTrue();
+                } else {
+                    assertThat(rows.getBoolean("backfilled")).as(rows.getString("id")).isTrue();
                 }
             }
-            assertThat(seen).isEqualTo(2);
+            assertThat(seen).isEqualTo(4);
+
+            ResultSet trigger = migrator.createStatement().executeQuery(
+                    "select tgenabled from pg_trigger where tgname = 'verification_guard'");
+            assertThat(trigger.next()).isTrue();
+            assertThat(trigger.getString(1)).as("the guard is on again").isEqualTo("O");
+            Statement later = migrator.createStatement();
+            assertThatThrownBy(() -> later.execute(
+                    "update tutor_verifications set reason = 'Muộn.' where id = '" + retired + "'"))
+                    .hasMessageContaining("retired profile version is closed");
+            assertThatThrownBy(() -> later.execute(
+                    "update tutor_verifications set scope = 'MATH8_ALGEBRA' where id = '" + verified + "'"))
+                    .hasMessageContaining("assigned independent reviewer");
         }
     }
 
@@ -97,6 +117,28 @@ class VerificationAssignedAtMigrationTest extends IntegrationTest {
 
         assertThat(jdbc.sql("select assigned_at is null from tutor_verifications where id = ?").param(record)
                 .query(Boolean.class).single()).isTrue();
+    }
+
+    private static UUID version(Statement statement, String status) throws SQLException {
+        UUID tutor = UUID.randomUUID();
+        UUID id = UUID.randomUUID();
+        statement.execute("insert into accounts(id, role, status) values ('" + tutor + "', 'TUTOR', 'ACTIVE')");
+        statement.execute("""
+                insert into tutor_profiles(id, tutor_id, version, status, description, experience_months, rate_vnd_60)
+                values ('%s', '%s', 1, '%s', '%s', 12, 180000)""".formatted(id, tutor, status, "d".repeat(60)));
+        return id;
+    }
+
+    /** A record as V16 code or a verifier left it; a reason means {@code verifier} decided it. */
+    private static void insert(Statement statement, UUID id, UUID profile, String status, UUID verifier,
+            String reason) throws SQLException {
+        String to = verifier == null ? "null" : "'" + verifier + "'";
+        String decided = reason == null ? "null, null, null" : "'" + reason + "', " + to + ", now()";
+        statement.execute("""
+                insert into tutor_verifications(id, profile_id, scope, status, evidence_key, assigned_to, reason,
+                                                reviewed_by, reviewed_at, submitted_at)
+                values ('%s', '%s', 'MATH8_ALGEBRA', '%s', '%s', %s, %s, '2026-11-20T02:00:00Z')"""
+                .formatted(id, profile, status, "0".repeat(64), to, decided));
     }
 
     private UUID account(String role) {

@@ -30,6 +30,23 @@ public interface Parties {
      */
     List<PublicTutor> publicTutorsByProfile(Collection<UUID> profileIds);
 
+    /**
+     * This tutor as parents may find them now (sendOffer, TB-18 Q2): the same filters as
+     * {@link #matchableTutors} without the rate bound, with the current APPROVED profile version. Empty when
+     * the tutor is no longer matchable.
+     */
+    Optional<PublicTutor> currentPublicTutor(UUID tutorId);
+
+    /** Most children one parent's lists read (listOffers, TB-18 Q6); more is refused, never cut short. */
+    int MAX_OWN_STUDENTS = 50;
+
+    /**
+     * The students of this parent account while it is an ACTIVE parent, otherwise none. At most
+     * {@link #MAX_OWN_STUDENTS} (INV-81): a parent with more fails with an IllegalStateException rather than
+     * see part of their offers, until UC02 sets a bound (TB-18 Q6).
+     */
+    List<UUID> ownStudentIds(UUID parentId);
+
     boolean isActiveTutor(UUID accountId);
 
     /**

@@ -32,6 +32,25 @@ class PartiesRepository implements Parties {
     }
 
     @Override
+    public Optional<PublicTutor> currentPublicTutor(UUID tutorId) {
+        return tutors.findCurrent(tutorId);
+    }
+
+    @Override
+    public List<UUID> ownStudentIds(UUID parentId) {
+        List<UUID> ids = jdbc.sql("""
+                select s.id from students s join accounts a on a.id = s.parent_id
+                where s.parent_id = ? and a.role = 'PARENT' and a.status = 'ACTIVE'
+                order by s.id
+                limit ?
+                """).params(parentId, MAX_OWN_STUDENTS + 1).query(UUID.class).list();
+        if (ids.size() > MAX_OWN_STUDENTS) {
+            throw new IllegalStateException("A parent has more than " + MAX_OWN_STUDENTS + " students");
+        }
+        return ids;
+    }
+
+    @Override
     public boolean isActiveTutor(UUID accountId) {
         return jdbc.sql("select count(*) from accounts where id = ? and role = 'TUTOR' and status = 'ACTIVE'")
                 .param(accountId).query(Integer.class).single() == 1;

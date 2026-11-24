@@ -3,7 +3,7 @@ import type { components } from "@tutorbridge/api-client";
 import { CryptoDigestAlgorithm, digest } from "expo-crypto";
 import { api, API_BASE_URL } from "@/shared/api/client";
 import { newCommandKey } from "@/shared/api/command";
-import { call } from "@/shared/api/errors";
+import { ApiError, call, UnknownOutcomeError } from "@/shared/api/errors";
 
 export type MediaType = components["schemas"]["EvidenceUploadInput"]["mediaType"];
 export type EvidenceRecord = components["schemas"]["TutorEvidenceRecord"];
@@ -48,6 +48,29 @@ export function isOwnContentUrl(uploadUrl: string, uploadId: string): boolean {
 
 /** The file never reached a usable state; the row shows the approved "Lỗi" text. */
 export class UploadRefused extends Error {}
+
+/** GS03 "Lỗi": the file itself was not accepted (kind, size, or the server refused it). */
+export const REFUSED =
+  "Không nhận được tệp này. Kiểm tra định dạng (PDF, JPEG, PNG) và dung lượng (tối đa 5 MB) rồi tải lại.";
+/** Q15 (b) (Đính, 23/11/2026 on #14): the file may be fine, the network or the server failed. */
+export const NOT_UPLOADED = "Chưa tải được tệp này. Kiểm tra kết nối rồi tải lại.";
+/** The common 403 and 429 sentences of `04-trang-thai-cau-chu.md`. */
+export const FORBIDDEN = "Bạn không còn quyền xem nội dung này.";
+export const RATE_LIMITED = "Bạn thao tác quá nhanh. Vui lòng đợi một lúc rồi thử lại.";
+
+/**
+ * The sentence on the row of a file whose upload failed (Q15 (b)), so a tutor never goes checking a file that
+ * was not wrong. A 401 ends the session as for every command, so its row is never read.
+ */
+export function uploadFailureMessage(error: unknown): string {
+  if (error instanceof UnknownOutcomeError) return NOT_UPLOADED;
+  if (error instanceof ApiError) {
+    if (error.kind === "forbidden") return FORBIDDEN;
+    if (error.kind === "rate-limited") return RATE_LIMITED;
+    if (error.problem.status >= 500) return NOT_UPLOADED;
+  }
+  return REFUSED;
+}
 
 /**
  * createEvidenceUpload, uploadEvidenceContent, completeEvidenceUpload for one file. Each step is its own

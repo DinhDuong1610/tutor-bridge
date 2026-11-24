@@ -14,7 +14,7 @@ import { colors, spacing, typography } from "@/shared/ui/theme";
 import { useSaveTutorProfile, useTutorProfile, type ProfileRevision, type TutorProfileData } from "../../tutor-profile/api";
 import { useSubmitTutorProfile } from "../api";
 import { APPROVED, deriveEvidenceMode, describeFile, NEEDS_INFO, NOT_SENT, REJECTED, WAITING } from "../derive";
-import { isAcceptable, MAX_FILES, useUploadEvidence, type PickedFile, type Sha256 } from "../upload";
+import { isAcceptable, MAX_FILES, REFUSED, uploadFailureMessage, useUploadEvidence, type PickedFile, type Sha256 } from "../upload";
 
 type Props = {
   onBack: () => void;
@@ -29,8 +29,6 @@ type Props = {
 const TITLE = "Minh chứng và xác minh";
 const RULES =
   "PDF, JPEG hoặc PNG; mỗi tệp tối đa 5 MB; tối đa 10 tệp mỗi lần gửi. Chỉ người xác minh được giao xem tệp gốc; phụ huynh không thấy.";
-const REFUSED =
-  "Không nhận được tệp này. Kiểm tra định dạng (PDF, JPEG, PNG) và dung lượng (tối đa 5 MB) rồi tải lại.";
 const STALE = "Dữ liệu đã thay đổi từ lúc bạn mở. Tải lại để xem bản mới; phần bạn đã nhập hợp lệ được giữ lại.";
 
 type Row = { key: number; name: string; detail: string; state: FileState; id?: string; errorMessage?: string };
@@ -104,9 +102,10 @@ function Evidence({
     try {
       const record = await upload.mutateAsync({ file, onChecking: () => update(key, { state: "checking" }) });
       update(key, record.state === "READY" ? { state: "ready", id: record.id } : record.state === "QUARANTINED" ? { state: "checking" } : { state: "error", errorMessage: REFUSED });
-    } catch {
-      // Refused, expired or no answer: the server expires an unfinished upload, the tutor picks the file again.
-      update(key, { state: "error", errorMessage: REFUSED });
+    } catch (error) {
+      // The server expires an unfinished upload; the tutor picks the file again. The sentence says whether
+      // the file or the connection failed (Q15 (b) on #14).
+      update(key, { state: "error", errorMessage: uploadFailureMessage(error) });
     }
   };
 

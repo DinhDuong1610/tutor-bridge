@@ -146,6 +146,51 @@ describe("GS03 Minh chứng và kết quả xác minh", () => {
     expect(server.unexpected).toEqual([]);
   });
 
+  const REFUSED_TEXT = "Không nhận được tệp này. Kiểm tra định dạng (PDF, JPEG, PNG) và dung lượng (tối đa 5 MB) rồi tải lại.";
+  const NOT_UPLOADED_TEXT = "Chưa tải được tệp này. Kiểm tra kết nối rồi tải lại.";
+
+  it.each([
+    ["the network fails", () => { throw new TypeError("Network request failed"); }, NOT_UPLOADED_TEXT],
+    ["the server fails (5xx)", () => problem(503, "SERVICE_BUSY", "Hệ thống đang bận. Vui lòng gửi lại cùng thao tác."), NOT_UPLOADED_TEXT],
+    ["the tutor goes too fast (429)", () => problem(429, "RATE_LIMITED", "Quá nhiều yêu cầu."), "Bạn thao tác quá nhanh. Vui lòng đợi một lúc rồi thử lại."],
+    ["access was lost (403)", () => problem(403, "ACCESS_DENIED", "Không có quyền."), "Bạn không còn quyền xem nội dung này."],
+    ["the server refuses the file (422)", () => problem(422, "VALIDATION_FAILED", "Dữ liệu không hợp lệ."), REFUSED_TEXT],
+  ])("Q15 when %s while uploading, the row says so", async (_case, answer, text) => {
+    server = mockApi({
+      "GET /me/tutor-profile": () => withEtag(DRAFT),
+      "GET /me/tutor-profile/verification": noVerification,
+      ...uploadRoutes(),
+      "POST /me/tutor-profile/evidence-uploads": answer,
+    });
+    await renderEvidence();
+    await screen.findByText("Chưa gửi duyệt");
+
+    await press("Tải minh chứng");
+
+    expect(await screen.findByText("Lỗi")).toBeOnTheScreen();
+    expect(screen.getByText(text)).toBeOnTheScreen();
+    for (const other of [REFUSED_TEXT, NOT_UPLOADED_TEXT].filter((t) => t !== text)) {
+      expect(screen.queryByText(other)).toBeNull();
+    }
+    expect(sent(server, "PUT", "/content")).toEqual([]);
+  });
+
+  it("Q15 a file the server checks and refuses at the last step keeps the file sentence", async () => {
+    server = mockApi({
+      "GET /me/tutor-profile": () => withEtag(DRAFT),
+      "GET /me/tutor-profile/verification": noVerification,
+      ...uploadRoutes(),
+      "POST /me/tutor-profile/evidence-uploads/{uploadId}/complete": () =>
+        json(200, { id: UPLOAD_ID, state: "FAILED", expiresAt: "2026-11-22T10:00:00Z" }),
+    });
+    await renderEvidence();
+    await screen.findByText("Chưa gửi duyệt");
+
+    await press("Tải minh chứng");
+
+    expect(await screen.findByText(REFUSED_TEXT)).toBeOnTheScreen();
+  });
+
   it("FR-07 asks first, then sends the draft with If-Match and the ready files, and shows it waiting", async () => {
     let submitted = false;
     server = mockApi({

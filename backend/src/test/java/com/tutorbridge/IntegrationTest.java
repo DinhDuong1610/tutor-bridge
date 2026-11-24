@@ -29,6 +29,7 @@ public abstract class IntegrationTest {
                 "tutorbridge.identity.keys.email-digest", TEST_KEYS[0],
                 "tutorbridge.identity.keys.email-encryption", TEST_KEYS[1],
                 "tutorbridge.identity.keys.link-token", TEST_KEYS[2],
+                "tutorbridge.identity.keys.admin-mfa", TEST_KEYS[3],
                 "tutorbridge.identity.terms-versions", TERMS_VERSION,
                 "tutorbridge.identity.evidence.dir", EVIDENCE_DIR.toString());
     }
@@ -71,7 +72,7 @@ public abstract class IntegrationTest {
         byte[] key = new byte[32];
         new java.security.SecureRandom().nextBytes(key);
         return java.util.Base64.getEncoder().encodeToString(key);
-    }).limit(3).toArray(String[]::new);
+    }).limit(4).toArray(String[]::new);
 
     protected UUID newAccount() {
         UUID id = UUID.randomUUID();

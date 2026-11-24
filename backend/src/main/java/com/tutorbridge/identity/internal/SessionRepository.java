@@ -25,6 +25,8 @@ class SessionRepository {
 
     static final Duration IDLE = Duration.ofHours(24);
     static final Duration ABSOLUTE = Duration.ofDays(7);
+    static final Duration ADMIN_IDLE = Duration.ofMinutes(30);
+    static final Duration ADMIN_ABSOLUTE = Duration.ofHours(12);
 
     record Login(UUID accountId, String role, String status, long authEpoch, String passwordHash, String hashPolicy) {}
 
@@ -125,6 +127,35 @@ class SessionRepository {
                 for share of a
                 """).params(id, tokenDigest, at(now.plus(ABSOLUTE)), at(now), at(now), deviceLabel, accountId,
                         authEpoch).update() == 1;
+    }
+
+    /**
+     * An ADMIN session after its second factor (TB-13): 12 hours absolute and {@code admin_mfa_verified_at}
+     * set, the only kind of ADMIN session {@code resolve} accepts. Fails with no row when the account changed
+     * since the challenge was issued: status or epoch moved.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    boolean insertAdminSession(UUID id, UUID accountId, long authEpoch, String tokenDigest, String deviceLabel,
+            Instant now) {
+        return jdbc.sql("""
+                insert into auth_sessions (id, account_id, token_digest, expires_at, issued_epoch, created_at,
+                                           last_seen_at, device_label, admin_mfa_verified_at)
+                select ?, a.id, ?, ?, a.auth_epoch, ?, ?, ?, ?
+                from accounts a where a.id = ? and a.role = 'ADMIN' and a.status = 'ACTIVE' and a.auth_epoch = ?
+                for share of a
+                """).params(id, tokenDigest, at(now.plus(ADMIN_ABSOLUTE)), at(now), at(now), deviceLabel, at(now),
+                        accountId, authEpoch).update() == 1;
+    }
+
+    record AdminSession(Instant mfaVerifiedAt, Instant createdAt, Instant lastSeenAt) {}
+
+    /** The MFA time and lifetimes of one session; empty when it has no completed second factor. */
+    Optional<AdminSession> findAdminSession(UUID sessionId) {
+        return jdbc.sql("""
+                select admin_mfa_verified_at, created_at, last_seen_at from auth_sessions
+                where id = ? and admin_mfa_verified_at is not null""").param(sessionId)
+                .query((rs, n) -> new AdminSession(instant(rs, 1), instant(rs, 2), instant(rs, 3)))
+                .optional();
     }
 
     /** The same rules as V5 {@code valid_session}, with time from the application clock. */

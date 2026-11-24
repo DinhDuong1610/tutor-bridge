@@ -45,8 +45,8 @@ const notFound = (code: string) => () => problem(404, code, "Không tìm thấy.
 
 async function renderProfile() {
   const handlers = { onBack: jest.fn(), onNext: jest.fn() };
-  await renderScreen(<TutorProfileScreen {...handlers} />, { session: fakeSession("TUTOR") });
-  return handlers;
+  const { queryClient } = await renderScreen(<TutorProfileScreen {...handlers} />, { session: fakeSession("TUTOR") });
+  return { ...handlers, queryClient };
 }
 
 const puts = (server: ReturnType<typeof mockApi>) => server.requests.filter((r) => r.method === "PUT");
@@ -200,6 +200,100 @@ describe("GS02 Hồ sơ chuyên môn và học phí", () => {
 
     await waitFor(() => expect(puts(server)).toHaveLength(1));
     expect(puts(server)[0].headers.get("If-Match")).toBe('"5"');
+  });
+
+  describe("the screen follows newer data while it is open (Codex review of #209)", () => {
+    type Answers = { profile: TutorProfile; verification: Record<string, unknown> | null };
+    const serve = (answers: Answers) =>
+      mockApi({
+        "GET /me/tutor-profile": () => withEtag(answers.profile),
+        "GET /me/tutor-profile/verification": () =>
+          answers.verification ? json(200, answers.verification) : problem(404, "TUTOR_VERIFICATION_NOT_FOUND", "Không tìm thấy."),
+        "PUT /me/tutor-profile": () => withEtag({ ...answers.profile, status: "DRAFT", revision: answers.profile.revision + 1 }),
+      });
+    const readAgain = (client: { invalidateQueries: () => Promise<void> }) =>
+      act(async () => {
+        await client.invalidateQueries();
+      });
+
+    it("a waiting version that turns NEEDS_INFO opens for editing, with the reason", async () => {
+      const answers: Answers = { profile: { ...DRAFT, status: "PENDING" }, verification: verification() };
+      server = serve(answers);
+      const { queryClient } = await renderProfile();
+      expect(await screen.findByText("Đang chờ xác minh")).toBeOnTheScreen();
+      expect(screen.queryByLabelText("Mô tả cách dạy")).toBeNull();
+
+      answers.verification = verification({ state: "NEEDS_INFO", reason: "Ảnh bằng cấp bị mờ.", decidedAt: "2026-11-20T08:00:00Z" });
+      await readAgain(queryClient);
+
+      expect(await screen.findByText("Người xác minh cần thêm thông tin. Lý do: Ảnh bằng cấp bị mờ.")).toBeOnTheScreen();
+      await type("Kinh nghiệm liên quan (tháng)", "25");
+      await press("Lưu nháp");
+      await waitFor(() => expect(puts(server)).toHaveLength(1));
+      expect(puts(server)[0].headers.get("If-Match")).toBe('"5"');
+    });
+
+    it("a draft sent from GS03 or another device becomes read-only", async () => {
+      const answers: Answers = { profile: DRAFT, verification: null };
+      server = serve(answers);
+      const { queryClient } = await renderProfile();
+      expect(await screen.findByLabelText("Mô tả cách dạy")).toBeOnTheScreen();
+
+      answers.profile = { ...DRAFT, status: "PENDING", revision: 6 };
+      answers.verification = verification();
+      await readAgain(queryClient);
+
+      expect(await screen.findByText("Đang chờ xác minh")).toBeOnTheScreen();
+      expect(screen.queryByLabelText("Mô tả cách dạy")).toBeNull();
+      expect(screen.queryByRole("button", { name: "Lưu nháp" })).toBeNull();
+    });
+
+    it("a draft sent elsewhere while the tutor is typing locks the screen, as the server would refuse the save", async () => {
+      const answers: Answers = { profile: DRAFT, verification: null };
+      server = serve(answers);
+      const { queryClient } = await renderProfile();
+      await screen.findByLabelText("Mô tả cách dạy");
+      await type("Kinh nghiệm liên quan (tháng)", "30");
+
+      answers.profile = { ...DRAFT, status: "PENDING", revision: 6 };
+      answers.verification = verification();
+      await readAgain(queryClient);
+
+      expect(await screen.findByText("Đang chờ xác minh")).toBeOnTheScreen();
+      expect(screen.queryByRole("button", { name: "Lưu nháp" })).toBeNull();
+    });
+
+    it("INV-23 a newer revision never replaces what the tutor typed, nor the ETag it was typed against", async () => {
+      const answers: Answers = { profile: DRAFT, verification: null };
+      server = serve(answers);
+      const { queryClient } = await renderProfile();
+      await screen.findByLabelText("Mô tả cách dạy");
+      await type("Kinh nghiệm liên quan (tháng)", "30");
+
+      answers.profile = { ...DRAFT, revision: 6, experienceMonths: 40 };
+      await readAgain(queryClient);
+
+      expect(screen.getByLabelText("Kinh nghiệm liên quan (tháng)")).toHaveDisplayValue("30");
+      await press("Lưu nháp");
+      await waitFor(() => expect(puts(server)).toHaveLength(1));
+      expect(puts(server)[0].headers.get("If-Match")).toBe('"5"');
+    });
+
+    it("with nothing typed, a newer revision becomes the form and the ETag of the next save", async () => {
+      const answers: Answers = { profile: DRAFT, verification: null };
+      server = serve(answers);
+      const { queryClient } = await renderProfile();
+      await screen.findByLabelText("Mô tả cách dạy");
+
+      answers.profile = { ...DRAFT, revision: 6, experienceMonths: 40 };
+      await readAgain(queryClient);
+
+      await waitFor(() => expect(screen.getByLabelText("Kinh nghiệm liên quan (tháng)")).toHaveDisplayValue("40"));
+      await type("Kinh nghiệm liên quan (tháng)", "41");
+      await press("Lưu nháp");
+      await waitFor(() => expect(puts(server)).toHaveLength(1));
+      expect(puts(server)[0].headers.get("If-Match")).toBe('"6"');
+    });
   });
 
   it("shows why a version was rejected and lets the tutor save the next one", async () => {

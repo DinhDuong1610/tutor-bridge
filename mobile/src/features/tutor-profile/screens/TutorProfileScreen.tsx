@@ -17,12 +17,11 @@ import { colors, radius, spacing, typography } from "@/shared/ui/theme";
 import {
   useSaveTutorProfile,
   useTutorProfile,
-  type OwnVerification,
   type ProfileRevision,
   type TutorProfile,
   type TutorProfileData,
 } from "../api";
-import { deriveProfileMode, STATUS_LABELS } from "../derive";
+import { deriveProfileMode, STATUS_LABELS, type ProfileMode } from "../derive";
 import { formatThousands, SUBJECT_LABEL, tutorProfileSchema, type TutorProfileForm, type TutorProfileFormInput } from "../schemas";
 
 type Props = {
@@ -43,7 +42,7 @@ export function TutorProfileScreen({ onBack, onNext }: Props) {
   const query = useTutorProfile();
   return (
     <QueryScreen title={TITLE} onBack={onBack} query={query}>
-      {(loaded) => <ProfileForm initial={loaded} onReload={query.refetch} onNext={onNext} />}
+      {(loaded) => <ProfileForm latest={loaded} onReload={query.refetch} onNext={onNext} />}
     </QueryScreen>
   );
 }
@@ -57,23 +56,33 @@ function toFormValues(profile: TutorProfile | null): TutorProfileFormInput {
 }
 
 function ProfileForm({
-  initial,
+  latest,
   onReload,
   onNext,
 }: {
-  initial: TutorProfileData;
+  /** The query's newest answer, every render. */
+  latest: TutorProfileData;
   onReload: () => Promise<{ isSuccess: boolean; data?: TutorProfileData }>;
   onNext: () => void;
 }) {
   // The revision the form was filled from, as in PH02: a background refetch must not replace it, or the
   // new ETag would let old values overwrite a newer save (Codex review of #138). It moves only to the
   // server's answer after a save, or to the latest revision on "Tải lại".
-  const [base, setBase] = useState<ProfileRevision | null>(initial.profile);
-  const [verification, setVerification] = useState<OwnVerification | null>(initial.verification);
-  const mode = deriveProfileMode({ profile: base, verification });
+  const [base, setBase] = useState<ProfileRevision | null>(latest.profile);
+  const [seenEtag, setSeenEtag] = useState<string | null>(latest.profile?.etag ?? null);
+  // Locked or open, labels and the verifier's answer follow the newest data, so a verification that turns
+  // NEEDS_INFO, or a version sent from GS03 or another device, changes the screen while it is open. The form
+  // and the ETag it saves with stay on `base` (Codex review of #209).
+  // A saved version never disappears: an answer without one (a read that raced the save) keeps `base`.
+  const newest = deriveProfileMode({ profile: latest.profile ?? base, verification: latest.verification });
+  const mode: ProfileMode =
+    newest.kind === "edit" ? { ...newest, profile: base?.data ?? null, etag: base?.etag ?? null } : newest;
+  // The form follows `base`. A field the user has changed keeps what they typed; the others take the base's
+  // values, also after "Tải lại" (Huy's review of #138).
   const form = useForm<TutorProfileFormInput, unknown, TutorProfileForm>({
     resolver: zodResolver(tutorProfileSchema),
-    defaultValues: toFormValues(base?.data ?? null),
+    values: toFormValues(base?.data ?? null),
+    resetOptions: { keepDirtyValues: true },
   });
   const save = useSaveTutorProfile();
   const otherErrors = useServerErrors(save.error, form.setError, FIELDS);
@@ -82,20 +91,24 @@ function ProfileForm({
   const values = useWatch({ control: form.control });
   const loadedValues = toFormValues(base?.data ?? null);
   const hasChanges = FIELDS.some((name) => (values[name] ?? "").trim() !== loadedValues[name]);
+  // A newer revision from the server becomes the base only while nothing typed would be lost and no save is
+  // pending; otherwise the old ETag stays, and a save answers 412 with "Tải lại" (INV-23). Read once per new
+  // ETag, during render, as React adjusts state from a changed input.
+  const newestEtag = latest.profile?.etag ?? null;
+  if (newestEtag !== seenEtag) {
+    setSeenEtag(newestEtag);
+    const safe = !hasChanges && save.state !== "sending" && save.state !== "unknown";
+    if (latest.profile && newestEtag !== (base?.etag ?? null) && safe) setBase(latest.profile);
+  }
   // Set by the button that started the save: "Tiếp" goes on to GS03 once it is confirmed.
   const nextAfterSave = useRef(false);
-  // The changed fields keep what the user typed; untouched ones take the server's newer value, so
-  // saving again cannot send back a value another device has replaced (Huy's review of #138).
+  // The changed fields keep what the user typed; untouched ones take the server's newer value (the form's
+  // `keepDirtyValues`), so saving again cannot send back a value another device has replaced (Huy's review
+  // of #138).
   const reload = async () => {
     const result = await onReload();
     if (result.isSuccess && result.data) {
-      const typed = form.getValues();
-      const latest = toFormValues(result.data.profile?.data ?? null);
-      const next = { ...latest };
-      for (const name of FIELDS) if (typed[name].trim() !== loadedValues[name]) next[name] = typed[name];
       setBase(result.data.profile);
-      setVerification(result.data.verification);
-      form.reset(next);
       save.reset();
     }
   };

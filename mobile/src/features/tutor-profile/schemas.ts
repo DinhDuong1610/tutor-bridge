@@ -18,10 +18,23 @@ export function scopeLabel(scope: string | null | undefined): string {
   return !scope || scope === SUBJECT ? SUBJECT_LABEL : scope;
 }
 
-/** "250.000" or "250 000" as typed or shown; only digits are kept. Anything else is not a whole number. */
-function wholeNumber(value: string): number | null {
-  const digits = value.trim().replace(/[.\s]/g, "");
-  return /^\d+$/.test(digits) ? Number(digits) : null;
+/** Digits only, as months are typed ("24"). "0.5" is not a number of months: it is refused, never read as 5. */
+function plainNumber(value: string): number | null {
+  const typed = value.trim();
+  return /^\d+$/.test(typed) ? Number(typed) : null;
+}
+
+/**
+ * A price as typed or shown: digits only ("250000"), or thousands grouped by one "." or one space each three
+ * digits ("250.000", "1 500 000"). Anything else, "1.5" or "25.00" included, is refused, never read as
+ * another number (Codex review of #209).
+ */
+function priceNumber(value: string): number | null {
+  const typed = value.trim();
+  if (/^\d+$/.test(typed)) return Number(typed);
+  return /^\d{1,3}(\.\d{3})+$/.test(typed) || /^\d{1,3}( \d{3})+$/.test(typed)
+    ? Number(typed.replace(/[. ]/g, ""))
+    : null;
 }
 
 /** 250000 → "250.000", as in the approved copy. */
@@ -44,7 +57,7 @@ export const tutorProfileSchema = z.object({
     }
   }).transform((value) => value.trim()),
   experienceMonths: z.string().transform((value, ctx) => {
-    const months = wholeNumber(value);
+    const months = plainNumber(value);
     if (months === null || months > EXPERIENCE_MAX) {
       ctx.addIssue({ code: "custom", message: "Kinh nghiệm cần từ 0 đến 600 tháng." });
       return z.NEVER;
@@ -52,7 +65,7 @@ export const tutorProfileSchema = z.object({
     return months;
   }),
   rateVnd60: z.string().transform((value, ctx) => {
-    const rate = wholeNumber(value);
+    const rate = priceNumber(value);
     if (rate === null || rate < 1 || !Number.isSafeInteger(rate)) {
       ctx.addIssue({ code: "custom", message: "Học phí phải là số nguyên lớn hơn 0." });
       return z.NEVER;

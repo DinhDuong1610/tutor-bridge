@@ -11,6 +11,8 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * What a verifier reads of the verifications assigned to them (TB-13, OP-28): tutor_verifications with the
@@ -119,6 +121,87 @@ class AssignedVerificationRepository {
                 join tutor_evidence_uploads u on u.id = e.upload_id
                 where v.id = ? and v.assigned_to = ? and u.id = ? and u.state = 'READY'
                 """).params(verificationId, verifierId, evidenceId).query(StoredEvidence.class).optional();
+    }
+
+    // ---------------------------------------------------------------- decideVerification (VerificationDecisions)
+
+    /** The verifier's own account, FOR SHARE, first in the lock order (INV-16). */
+    @Transactional(propagation = Propagation.MANDATORY)
+    boolean lockActiveAdmin(UUID accountId) {
+        return jdbc.sql("select 1 from accounts where id = ? and role = 'ADMIN' and status = 'ACTIVE' for share")
+                .param(accountId).query((rs, n) -> 1).optional().isPresent();
+    }
+
+    record Target(UUID profileId, UUID tutorId) {}
+
+    /** Which version and tutor a record is about, read without a lock to know what to lock next. */
+    Optional<Target> findTarget(UUID verificationId) {
+        return jdbc.sql("""
+                select v.profile_id, p.tutor_id from tutor_verifications v join tutor_profiles p on p.id = v.profile_id
+                where v.id = ?""").param(verificationId).query(Target.class).optional();
+    }
+
+    record Version(UUID id, int version, String status, boolean current) {}
+
+    /** The record's version and the tutor's current approved one, FOR UPDATE by version (INV-16). */
+    @Transactional(propagation = Propagation.MANDATORY)
+    List<Version> lockVersions(UUID tutorId, UUID profileId) {
+        return jdbc.sql("""
+                select id, version, status, current from tutor_profiles where tutor_id = ? and (id = ? or current)
+                order by version for update""").params(tutorId, profileId).query(Version.class).list();
+    }
+
+    record Locked(UUID id, UUID profileId, UUID assignedTo, String status, long revision) {}
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    Optional<Locked> lockVerification(UUID verificationId) {
+        return jdbc.sql("""
+                select id, profile_id, assigned_to, status, revision from tutor_verifications where id = ? for update""")
+                .param(verificationId).query(Locked.class).optional();
+    }
+
+    /** The VERIFY row, FOR SHARE and last (INV-16): a revocation waits for this decision, or this sees it. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    boolean lockVerify(UUID accountId) {
+        return jdbc.sql("""
+                select 1 from admin_assignments where account_id = ? and capability = 'VERIFY' and revoked_at is null
+                for share""").param(accountId).query((rs, n) -> 1).optional().isPresent();
+    }
+
+    /** Whether the record is still assigned to this verifier, for a replay (INV-22). */
+    boolean isAssigned(UUID verificationId, UUID verifierId) {
+        return jdbc.sql("select exists(select 1 from tutor_verifications where id = ? and assigned_to = ?)")
+                .params(verificationId, verifierId).query(Boolean.class).single();
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    void decide(UUID verificationId, String status, String scope, String reason, UUID reviewer, Instant now,
+            long revision) {
+        int updated = jdbc.sql("""
+                update tutor_verifications
+                set status = ?, scope = ?, reason = ?, reviewed_by = ?, reviewed_at = ?, revision = ?
+                where id = ? and revision = ?""")
+                .params(status, scope, reason, reviewer, at(now), revision, verificationId, revision - 1).update();
+        if (updated != 1) {
+            throw new IllegalStateException("Only the locked revision is decided");
+        }
+    }
+
+    /** OP-24 (1): the old current version stops being shown; it stays APPROVED for the record. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    void retireCurrent(UUID profileId) {
+        jdbc.sql("update tutor_profiles set current = false, revision = revision + 1 where id = ? and current")
+                .param(profileId).update();
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    void settleVersion(UUID profileId, String status, boolean current) {
+        int updated = jdbc.sql("""
+                update tutor_profiles set status = ?, current = ?, revision = revision + 1
+                where id = ? and status = 'PENDING'""").params(status, current, profileId).update();
+        if (updated != 1) {
+            throw new IllegalStateException("Only a locked PENDING version is settled");
+        }
     }
 
     private static Row row(ResultSet rs, int n) throws SQLException {

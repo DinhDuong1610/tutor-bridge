@@ -312,6 +312,42 @@ class OfferRespondHttpTest extends HttpTest {
     }
 
     @Test
+    void INV_22_a_tutor_locked_while_the_replay_waits_for_its_receipt_reads_nothing() throws Exception {
+        Scenario s = fx.scenario();
+        UUID offer = sent(s);
+        String key = UUID.randomUUID().toString();
+        fx.respond(tutorOf(s), "reject", offer, key, "\"1\"", reason("DECLINED")).andExpect(status().isOk());
+        CompletableFuture<Integer> replay;
+        try (Connection hold = DriverManager.getConnection(
+                PostgresTestSupport.jdbcUrl(), "tutorbridge_app", PostgresTestSupport.APP_PASSWORD)) {
+            hold.setAutoCommit(false);
+            // Codex's case on #235: the replay waits on its own receipt while the tutor is still ACTIVE.
+            try (var lock = hold.prepareStatement("""
+                    select 1 from tutorbridge.command_receipts
+                    where actor_id = ? and command_type = 'REJECT_OFFER' and idempotency_key = ? for update""")) {
+                lock.setObject(1, tutorOf(s).accountId());
+                lock.setString(2, key);
+                lock.executeQuery();
+            }
+            replay = Concurrently.supply(() -> statusOf(() -> fx.respond(tutorOf(s), "reject", offer, key, "\"1\"",
+                    reason("DECLINED"))));
+            await().atMost(Duration.ofSeconds(4)).pollInterval(Duration.ofMillis(20)).until(() -> fx.count("""
+                    select count(*) from pg_stat_activity
+                    where wait_event_type = 'Lock' and query like '%from command_receipts%'
+                      and query not like '%pg_stat_activity%'
+                    """) == 1);
+            try (var lockAccount = hold.prepareStatement("update tutorbridge.accounts set status = 'LOCKED' where id = ?")) {
+                lockAccount.setObject(1, tutorOf(s).accountId());
+                lockAccount.executeUpdate();
+            }
+            hold.commit();
+        }
+
+        assertThat(replay.get(10, TimeUnit.SECONDS)).isEqualTo(404);
+        assertThat(stateOf(offer)).isEqualTo("REJECTED/DECLINED/2");
+    }
+
+    @Test
     void BR06_INV_20_a_send_replayed_after_the_cancel_still_answers_the_sent_offer() throws Exception {
         Scenario s = fx.scenario();
         String key = UUID.randomUUID().toString();

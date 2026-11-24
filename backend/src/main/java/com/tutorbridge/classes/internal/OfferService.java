@@ -277,17 +277,19 @@ public class OfferService {
         locks.limitWait();
         Receipt receipt = receipts.begin(actor.accountId(), response.command, key.value(), payload);
         // AC-UC06-01: only the recipient tutor or the parent of the child; anyone else learns nothing (INV-06).
+        // Checked before the lock too, so a stranger never waits on someone else's offer.
         offers.find(offerId).filter(o -> mayRead(actor, o)).orElseThrow(OfferService::offerNotFound);
-        if (receipt.replay()) {
-            // INV-22: the actor is checked again above; the answer is the offer as it is now.
-            return view(offers.find(receipt.resultId()).orElseThrow());
-        }
         OfferRepository.Row offer = offers.lock(offerId).orElseThrow(OfferService::offerNotFound);
         // INV-01 (Codex, #235): checked again once the offer is held, under FOR SHARE, so an account locked
-        // while this waited is refused, and one locked from now on waits for this answer. Offer, then child,
-        // then account: the order TX05 takes them in.
+        // while this waited, on the receipt or on the offer, is refused, and one locked from now on waits for
+        // this answer. Offer, then child, then account: the order TX05 takes them in.
         if (!lockAccess(actor, offer)) {
             throw offerNotFound();
+        }
+        if (receipt.replay()) {
+            // INV-22: after the check under lock above (Codex, #235 round 2). The offer this command ended is
+            // final, so as it is now it is what the command answered.
+            return view(offers.find(receipt.resultId()).orElseThrow());
         }
         if (offer.revision() != expected.version()) {
             throw WritePrecondition.stale();

@@ -64,13 +64,15 @@ class OfferRepository {
         return list("o.tutor_id = :owner", tutorId, after, limit);
     }
 
-    /** The offers of these students' needs, newest first; each need is read through V18. */
+    /**
+     * The offers of these students' needs, newest first: the needs through V13, their offers through V18
+     * (OfferIndexesMigrationTest checks the plan of this very filter on the joined need).
+     */
     List<Row> listByStudents(Collection<UUID> studentIds, Cursor after, int limit) {
         if (studentIds.isEmpty()) {
             return List.of();
         }
-        return list("o.need_id in (select l.id from learning_needs l where l.student_id = any(:owner))",
-                studentIds.toArray(UUID[]::new), after, limit);
+        return list("n.student_id = any(:owner)", studentIds.toArray(UUID[]::new), after, limit);
     }
 
     private List<Row> list(String owner, Object ownerValue, Cursor after, int limit) {

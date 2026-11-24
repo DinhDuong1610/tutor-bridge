@@ -313,11 +313,17 @@ class OfferSendHttpTest extends HttpTest {
         jdbc.sql("update accounts set status = 'LOCKED' where id = ?").param(locked.candidate().tutor().id()).update();
         fx.send(locked).andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("OFFER_TERMS_CHANGED"));
 
+        // The same version with another rate, which only a direct write can make: the quoted price is checked.
+        Scenario repriced = fx.scenario();
+        jdbc.sql("update tutor_profiles set rate_vnd_60 = 130000 where id = ?")
+                .param(repriced.candidate().tutor().profileId()).update();
+        fx.send(repriced).andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("OFFER_TERMS_CHANGED"));
+
         Scenario child = fx.scenario();
         fx.calendar("STUDENT", child.need().studentId(), child.need().start());
         fx.send(child).andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("OFFER_TERMS_CHANGED"));
 
-        assertThat(offersOf(replaced) + offersOf(locked) + offersOf(child)).isZero();
+        assertThat(offersOf(replaced) + offersOf(locked) + offersOf(repriced) + offersOf(child)).isZero();
     }
 
     @Test

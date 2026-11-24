@@ -42,7 +42,7 @@ class AdminAccountsTest extends IntegrationTest {
         String email = "quan-tri-" + UUID.randomUUID() + "@example.test";
         Path file = fileFor(email);
 
-        UUID id = accounts.setUp(email, PASSWORD, file);
+        UUID id = accounts.setUp(email, PASSWORD, file).accountId();
 
         assertThat(jdbc.sql("select role || ':' || status from accounts where id = ?").param(id).query(String.class)
                 .single()).isEqualTo("ADMIN:ACTIVE");
@@ -61,13 +61,13 @@ class AdminAccountsTest extends IntegrationTest {
     @Test
     void running_it_again_replaces_the_secret_and_ends_the_old_sessions() throws IOException {
         String email = "quan-tri-" + UUID.randomUUID() + "@example.test";
-        UUID id = accounts.setUp(email, PASSWORD, fileFor(email));
+        UUID id = accounts.setUp(email, PASSWORD, fileFor(email)).accountId();
         String first = Files.readString(fileFor(email)).strip();
         signIn(email, first);
         long epoch = jdbc.sql("select auth_epoch from accounts where id = ?").param(id).query(Long.class).single();
 
         Path second = fileFor(email + ".2");
-        assertThat(accounts.setUp(email, PASSWORD + "-moi", second)).isEqualTo(id);
+        assertThat(accounts.setUp(email, PASSWORD + "-moi", second).accountId()).isEqualTo(id);
 
         assertThat(secretOf(Files.readString(second))).isNotEqualTo(secretOf(first));
         assertThat(jdbc.sql("select auth_epoch from accounts where id = ?").param(id).query(Long.class).single())
@@ -108,7 +108,7 @@ class AdminAccountsTest extends IntegrationTest {
     @Test
     void INV_18_the_file_gets_its_name_only_after_the_commit_and_a_refused_run_leaves_no_staged_file() throws Exception {
         String email = "quan-tri-" + UUID.randomUUID() + "@example.test";
-        UUID id = accounts.setUp(email, PASSWORD, fileFor(email));
+        UUID id = accounts.setUp(email, PASSWORD, fileFor(email)).accountId();
         Path second = fileFor(email + ".lan-2");
 
         java.util.concurrent.CompletableFuture<UUID> reset;
@@ -117,7 +117,7 @@ class AdminAccountsTest extends IntegrationTest {
                 com.tutorbridge.PostgresTestSupport.APP_PASSWORD)) {
             gate.setAutoCommit(false);
             gate.createStatement().execute("select 1 from admin_mfa_enrollments where account_id = '" + id + "' for update");
-            reset = com.tutorbridge.Concurrently.supply(() -> accounts.setUp(email, PASSWORD, second));
+            reset = com.tutorbridge.Concurrently.supply(() -> accounts.setUp(email, PASSWORD, second).accountId());
             org.awaitility.Awaitility.await().atMost(java.time.Duration.ofSeconds(10))
                     .pollInterval(java.time.Duration.ofMillis(20)).until(() -> jdbc.sql("""
                             select count(*) from pg_stat_activity

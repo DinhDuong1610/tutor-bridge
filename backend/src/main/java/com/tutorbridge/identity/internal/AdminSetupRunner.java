@@ -1,7 +1,6 @@
 package com.tutorbridge.identity.internal;
 
 import java.nio.file.Path;
-import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -58,9 +57,10 @@ class AdminSetupRunner implements ApplicationRunner {
             if (output.isBlank()) {
                 throw new IllegalArgumentException("admin-setup: name the file with --tutorbridge.admin-setup.output");
             }
-            UUID id = accounts.setUp(email, password, Path.of(output));
+            AdminAccounts.Result result = accounts.setUp(email, password, Path.of(output));
             LOG.info("admin-setup: ADMIN {} has a new password, TOTP enrollment and VERIFY; scan the URI in {} "
-                    + "with an authenticator app, then delete the file", id, output);
+                    + "with an authenticator app, then delete the file; {} waiting verifications assigned",
+                    result.accountId(), output, result.assigned());
         } catch (IllegalArgumentException e) {
             LOG.error(e.getMessage());
             code = 2;

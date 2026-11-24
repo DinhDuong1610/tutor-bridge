@@ -105,6 +105,22 @@ class AssignedVerificationRepository {
                 """).param(profileId).query(Evidence.class).list();
     }
 
+    record StoredEvidence(String objectKey, int sizeBytes) {}
+
+    /**
+     * One READY evidence file of the version a record assigned to the verifier was submitted with. Any other
+     * case, another version's file included, is simply missing (INV-06). The key stays in this module.
+     */
+    Optional<StoredEvidence> findAssignedEvidence(UUID verificationId, UUID verifierId, UUID evidenceId) {
+        return jdbc.sql("""
+                select u.object_key, u.size_bytes
+                from tutor_verifications v
+                join tutor_profile_evidence e on e.profile_id = v.profile_id
+                join tutor_evidence_uploads u on u.id = e.upload_id
+                where v.id = ? and v.assigned_to = ? and u.id = ? and u.state = 'READY'
+                """).params(verificationId, verifierId, evidenceId).query(StoredEvidence.class).optional();
+    }
+
     private static Row row(ResultSet rs, int n) throws SQLException {
         return new Row(rs.getObject("id", UUID.class), rs.getObject("profile_id", UUID.class), rs.getInt("version"),
                 rs.getString("display_name"), rs.getObject("assigned_to", UUID.class), rs.getString("status"),

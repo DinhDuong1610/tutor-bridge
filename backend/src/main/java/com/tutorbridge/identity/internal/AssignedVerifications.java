@@ -4,6 +4,10 @@ import com.tutorbridge.platform.api.Actor;
 import com.tutorbridge.platform.api.ApiException;
 import com.tutorbridge.platform.api.Cursor;
 import com.tutorbridge.platform.api.Page;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.nio.file.NoSuchFileException;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -11,7 +15,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 /**
- * UC03 for the verifier (TB-13, OP-28): listAssignedVerifications (AD03) and getAssignedVerification (AD04).
+ * UC03 for the verifier (TB-13, OP-28): listAssignedVerifications (AD03), getAssignedVerification (AD04) and
+ * readAssignedEvidence.
  *
  * <p>Only an ADMIN who holds VERIFY reads here; anyone else gets 403 before any record is looked at. Among
  * the records, the caller sees only those assigned to them; one assigned to someone else, or no longer to
@@ -36,10 +41,15 @@ public class AssignedVerifications {
     /** {@code AssignedVerificationDetail}. */
     public record Detail(Verification verification, SubmittedProfile profile, List<Evidence> evidence) {}
 
-    private final AssignedVerificationRepository verifications;
+    /** The bytes of one evidence file; the caller closes them. */
+    public record EvidenceContent(InputStream bytes, int sizeBytes) {}
 
-    AssignedVerifications(AssignedVerificationRepository verifications) {
+    private final AssignedVerificationRepository verifications;
+    private final ObjectStore store;
+
+    AssignedVerifications(AssignedVerificationRepository verifications, ObjectStore store) {
         this.verifications = verifications;
+        this.store = store;
     }
 
     /** {@code status} is PENDING, VERIFIED, REJECTED or null for all; the controller checks the value. */
@@ -65,6 +75,28 @@ public class AssignedVerifications {
                         p.rateVnd60()),
                 verifications.evidenceOf(p.id()).stream()
                         .map(e -> new Evidence(e.id(), e.mediaType(), e.sizeBytes())).toList());
+    }
+
+    /**
+     * readAssignedEvidence. The permission is checked by one query, and the file is opened only after it,
+     * outside any transaction (INV-18). A file missing from the store is the same 404, without its key.
+     */
+    public EvidenceContent readEvidence(Actor actor, UUID verificationId, UUID evidenceId) {
+        requireVerifier(actor);
+        AssignedVerificationRepository.StoredEvidence found = verifications
+                .findAssignedEvidence(verificationId, actor.accountId(), evidenceId)
+                .orElseThrow(AssignedVerifications::evidenceNotFound);
+        try {
+            return new EvidenceContent(store.open(found.objectKey()), found.sizeBytes());
+        } catch (NoSuchFileException e) {
+            throw evidenceNotFound();
+        } catch (IOException e) {
+            throw new UncheckedIOException("evidence store unavailable", e);
+        }
+    }
+
+    private static ApiException evidenceNotFound() {
+        return new ApiException(HttpStatus.NOT_FOUND, "EVIDENCE_NOT_FOUND", "Không tìm thấy minh chứng.");
     }
 
     private void requireVerifier(Actor actor) {

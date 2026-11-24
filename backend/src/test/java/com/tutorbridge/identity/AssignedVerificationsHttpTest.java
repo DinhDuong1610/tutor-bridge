@@ -20,7 +20,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 /**
- * listAssignedVerifications (AD03) and getAssignedVerification (AD04) of TB-13, as OP-28 shaped them on #98:
+ * listAssignedVerifications (AD03), getAssignedVerification (AD04) and readAssignedEvidence of TB-13, as OP-28 shaped them on #98:
  * only an ADMIN with VERIFY, only the records assigned to them, oldest submission first; another
  * verifier's record is 404 as if it did not exist (INV-06), and no email or evidence key is ever sent
  * (AC-UC03-03).
@@ -254,6 +254,81 @@ class AssignedVerificationsHttpTest extends HttpTest {
         call(get(LIST + "/" + theirs), other).andExpect(status().isOk());
     }
 
+    // ---------------------------------------------------------------- readAssignedEvidence
+
+    /** A submitted version with one READY file whose bytes are in the test ObjectStore. */
+    private record Submitted(UUID verification, UUID upload, byte[] bytes) {}
+
+    private Submitted submittedWithFile(Actor tutor, Actor assignedTo, int version) throws Exception {
+        UUID profile = version(tutor, version, "DRAFT");
+        UUID upload = UUID.randomUUID();
+        String key = UUID.randomUUID().toString();
+        byte[] bytes = ("%PDF-1.4 minh chung " + upload).getBytes(java.nio.charset.StandardCharsets.US_ASCII);
+        jdbc.sql("""
+                insert into tutor_evidence_uploads(id, owner_id, object_key, media_type, size_bytes, sha256, state,
+                                                   expires_at)
+                values (?, ?, ?, 'application/pdf', ?, ?, 'READY', now() + interval '15 minutes')
+                """).params(upload, tutor.accountId(), key, bytes.length, "c".repeat(64)).update();
+        jdbc.sql("insert into tutor_profile_evidence(profile_id, upload_id) values (?, ?)").params(profile, upload)
+                .update();
+        jdbc.sql("update tutor_profiles set status = 'PENDING' where id = ?").param(profile).update();
+        java.nio.file.Path file = evidenceDir().resolve("objects").resolve(key);
+        java.nio.file.Files.createDirectories(file.getParent());
+        java.nio.file.Files.write(file, bytes);
+        return new Submitted(verification(profile, "PENDING", null, assignedTo, T0), upload, bytes);
+    }
+
+    private static String evidencePath(UUID verification, UUID upload) {
+        return LIST + "/" + verification + "/evidence/" + upload;
+    }
+
+    @Test
+    void the_assigned_verifier_downloads_the_exact_bytes_as_an_attachment() throws Exception {
+        Actor me = verifier();
+        Submitted s = submittedWithFile(tutor("Cô Lan"), me, 1);
+
+        byte[] body = call(get(evidencePath(s.verification(), s.upload())), me).andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", "application/octet-stream"))
+                .andExpect(header().string("Content-Disposition", "attachment"))
+                .andExpect(header().string("Cache-Control", "private, no-store"))
+                .andExpect(header().string("X-Content-Type-Options", "nosniff"))
+                .andReturn().getResponse().getContentAsByteArray();
+        assertThat(body).isEqualTo(s.bytes());
+    }
+
+    @Test
+    void INV_06_a_file_of_another_version_another_verifier_or_missing_bytes_are_the_same_404() throws Exception {
+        Actor me = verifier();
+        Actor other = verifier();
+        Actor tutor = tutor("Cô Lan");
+        Submitted mine = submittedWithFile(tutor, me, 1);
+        Submitted theirs = submittedWithFile(tutor("Thầy Minh"), other, 1);
+        Submitted gone = submittedWithFile(tutor("Cô Hoa"), me, 1);
+        String goneKey = jdbc.sql("select object_key from tutor_evidence_uploads where id = ?").param(gone.upload())
+                .query(String.class).single();
+        java.nio.file.Files.delete(evidenceDir().resolve("objects").resolve(goneKey));
+
+        String missing = call(get(evidencePath(mine.verification(), UUID.randomUUID())), me)
+                .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("EVIDENCE_NOT_FOUND"))
+                .andReturn().getResponse().getContentAsString();
+        List<String> paths = List.of(
+                // Another tutor's file, asked through my own record.
+                evidencePath(mine.verification(), theirs.upload()),
+                // The other verifier's record.
+                evidencePath(theirs.verification(), theirs.upload()),
+                // Mine, but the bytes are gone from the store.
+                evidencePath(gone.verification(), gone.upload()));
+        for (String path : paths) {
+            String body = call(get(path), me).andExpect(status().isNotFound())
+                    .andReturn().getResponse().getContentAsString();
+            for (String field : List.of("$.type", "$.title", "$.status", "$.code")) {
+                Object got = JsonPath.read(body, field);
+                assertThat(got).as(path + " " + field).isEqualTo(JsonPath.read(missing, field));
+            }
+            assertThat(body).doesNotContain(goneKey);
+        }
+    }
+
     // ---------------------------------------------------------------- who may read
 
     @Test
@@ -270,6 +345,8 @@ class AssignedVerificationsHttpTest extends HttpTest {
         for (Actor caller : List.of(newActor(Actor.Role.PARENT), newActor(Actor.Role.TUTOR), revoked, support)) {
             call(get(LIST), caller).andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
             call(get(LIST + "/" + id), caller).andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+            call(get(evidencePath(id, UUID.randomUUID())), caller).andExpect(status().isForbidden())
                     .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
         }
     }

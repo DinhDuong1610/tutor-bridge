@@ -1,6 +1,7 @@
 package com.tutorbridge.identity;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.tutorbridge.IntegrationTest;
 import com.tutorbridge.identity.api.Parties;
@@ -48,6 +49,58 @@ class PartiesTest extends IntegrationTest {
         jdbc.sql("update accounts set status = 'LOCKED' where id = ?").param(parent).update();
 
         assertThat(parties.isOwnStudent(parent, own)).isFalse();
+    }
+
+    // ---------------------------------------------------------------- ownStudentIds (TB-18 Q6)
+
+    @Test
+    void Q6_a_parent_gets_only_their_own_students_and_none_once_no_longer_active() {
+        UUID parent = newAccount();
+        UUID first = student(parent);
+        UUID second = student(parent);
+        student(newAccount());
+
+        assertThat(parties.ownStudentIds(parent)).containsExactlyInAnyOrder(first, second);
+        assertThat(parties.ownStudentIds(newAccount())).isEmpty();
+        jdbc.sql("update accounts set status = 'LOCKED' where id = ?").param(parent).update();
+        assertThat(parties.ownStudentIds(parent)).isEmpty();
+    }
+
+    @Test
+    void Q6_INV_81_fifty_students_are_read_and_more_are_refused_rather_than_cut_short() {
+        UUID parent = newAccount();
+        for (int i = 0; i < Parties.MAX_OWN_STUDENTS; i++) {
+            student(parent);
+        }
+        assertThat(parties.ownStudentIds(parent)).hasSize(Parties.MAX_OWN_STUDENTS);
+
+        student(parent);
+        assertThatThrownBy(() -> parties.ownStudentIds(parent)).isInstanceOf(IllegalStateException.class);
+    }
+
+    // ---------------------------------------------------------------- lockOwnStudent, lockActiveTutor (TB-18)
+
+    @Autowired
+    private org.springframework.transaction.support.TransactionTemplate tx;
+
+    @Test
+    void the_locking_checks_answer_as_the_plain_ones_do() {
+        UUID parent = newAccount();
+        UUID own = student(parent);
+        UUID otherFamily = student(newAccount());
+        UUID active = tutor("Cô Lan Thử", "ACTIVE");
+        UUID locked = tutor("Thầy Nam Thử", "LOCKED");
+
+        tx.executeWithoutResult(status -> {
+            assertThat(parties.lockOwnStudent(parent, own)).isTrue();
+            assertThat(parties.lockOwnStudent(parent, otherFamily)).isFalse();
+            assertThat(parties.lockOwnStudent(parent, UUID.randomUUID())).isFalse();
+            assertThat(parties.lockActiveTutor(active)).isTrue();
+            assertThat(parties.lockActiveTutor(locked)).isFalse();
+            assertThat(parties.lockActiveTutor(parent)).isFalse();
+        });
+        jdbc.sql("update accounts set status = 'LOCKED' where id = ?").param(parent).update();
+        tx.executeWithoutResult(status -> assertThat(parties.lockOwnStudent(parent, own)).isFalse());
     }
 
     // ---------------------------------------------------------------- matchableTutors (TB-17, BR01)
@@ -163,5 +216,26 @@ class PartiesTest extends IntegrationTest {
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> parties.publicTutorsByProfile(
                         java.util.stream.Stream.generate(UUID::randomUUID).limit(6).toList()))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    // ---------------------------------------------------------------- currentPublicTutor (TB-18 Q2)
+
+    @Test
+    void Q2_the_current_public_tutor_is_the_current_approved_version_of_an_active_named_tutor() {
+        UUID tutor = tutor("Cô Lan Thử", "ACTIVE");
+        profile(tutor, 1, "APPROVED", false, 100000);
+        UUID current = profile(tutor, 2, "APPROVED", true, 120000);
+        UUID locked = tutor("Thầy Nam Thử", "LOCKED");
+        profile(locked, 1, "APPROVED", true, 100000);
+        UUID superseded = tutor("Cô Mai Thử", "ACTIVE");
+        profile(superseded, 1, "APPROVED", false, 100000);
+
+        assertThat(parties.currentPublicTutor(tutor)).hasValueSatisfying(t -> {
+            assertThat(t.profileVersionId()).isEqualTo(current);
+            assertThat(t.rateVnd60()).isEqualTo(120000);
+        });
+        assertThat(parties.currentPublicTutor(locked)).isEmpty();
+        assertThat(parties.currentPublicTutor(superseded)).isEmpty();
+        assertThat(parties.currentPublicTutor(UUID.randomUUID())).isEmpty();
     }
 }

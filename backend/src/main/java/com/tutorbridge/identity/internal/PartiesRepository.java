@@ -32,6 +32,25 @@ class PartiesRepository implements Parties {
     }
 
     @Override
+    public Optional<PublicTutor> currentPublicTutor(UUID tutorId) {
+        return tutors.findCurrent(tutorId);
+    }
+
+    @Override
+    public List<UUID> ownStudentIds(UUID parentId) {
+        List<UUID> ids = jdbc.sql("""
+                select s.id from students s join accounts a on a.id = s.parent_id
+                where s.parent_id = ? and a.role = 'PARENT' and a.status = 'ACTIVE'
+                order by s.id
+                limit ?
+                """).params(parentId, MAX_OWN_STUDENTS + 1).query(UUID.class).list();
+        if (ids.size() > MAX_OWN_STUDENTS) {
+            throw new IllegalStateException("A parent has more than " + MAX_OWN_STUDENTS + " students");
+        }
+        return ids;
+    }
+
+    @Override
     public boolean isActiveTutor(UUID accountId) {
         return jdbc.sql("select count(*) from accounts where id = ? and role = 'TUTOR' and status = 'ACTIVE'")
                 .param(accountId).query(Integer.class).single() == 1;
@@ -43,6 +62,25 @@ class PartiesRepository implements Parties {
                 select count(*) from students s join accounts a on a.id = s.parent_id
                 where s.id = ? and s.parent_id = ? and a.role = 'PARENT' and a.status = 'ACTIVE'
                 """).params(studentId, parentId).query(Integer.class).single() == 1;
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public boolean lockOwnStudent(UUID parentId, UUID studentId) {
+        boolean student = jdbc.sql("select 1 from students where id = ? and parent_id = ? for share")
+                .params(studentId, parentId).query((rs, n) -> 1).optional().isPresent();
+        return student && lockActive(parentId, "PARENT");
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public boolean lockActiveTutor(UUID tutorId) {
+        return lockActive(tutorId, "TUTOR");
+    }
+
+    private boolean lockActive(UUID accountId, String role) {
+        return jdbc.sql("select status from accounts where id = ? and role = ? for share")
+                .params(accountId, role).query(String.class).optional().filter("ACTIVE"::equals).isPresent();
     }
 
     @Override

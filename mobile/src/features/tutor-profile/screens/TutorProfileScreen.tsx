@@ -23,7 +23,7 @@ import {
   type TutorProfileData,
 } from "../api";
 import { deriveProfileMode, STATUS_LABELS } from "../derive";
-import { formatThousands, tutorProfileSchema, type TutorProfileForm, type TutorProfileFormInput } from "../schemas";
+import { formatThousands, SUBJECT_LABEL, tutorProfileSchema, type TutorProfileForm, type TutorProfileFormInput } from "../schemas";
 
 type Props = {
   onBack: () => void;
@@ -215,7 +215,7 @@ function Subject() {
   return (
     <View style={styles.group}>
       <Text style={styles.label}>Môn và khối</Text>
-      <Text style={styles.body}>Toán 8, đại số</Text>
+      <Text style={styles.body}>{SUBJECT_LABEL}</Text>
       <Text style={styles.caption}>Thí điểm hiện chỉ nhận môn này.</Text>
     </View>
   );

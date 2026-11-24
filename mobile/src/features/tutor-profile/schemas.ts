@@ -7,6 +7,16 @@ export const DESCRIPTION_MAX = 3000;
 export const EXPERIENCE_MAX = 600;
 /** Fixed by the contract (`subject: const MATH8_ALGEBRA`): shown as text, never an input (GS02). */
 export const SUBJECT = "MATH8_ALGEBRA";
+/** The subject as GS02 and GS03 write it (approved frames). */
+export const SUBJECT_LABEL = "Toán 8, đại số";
+
+/**
+ * The scope a tutor reads. A verification that is still waiting carries the subject code of its version
+ * (`MATH8_ALGEBRA`), not text; only a verifier's decision writes words. Never show the code.
+ */
+export function scopeLabel(scope: string | null | undefined): string {
+  return !scope || scope === SUBJECT ? SUBJECT_LABEL : scope;
+}
 
 /** "250.000" or "250 000" as typed or shown; only digits are kept. Anything else is not a whole number. */
 function wholeNumber(value: string): number | null {

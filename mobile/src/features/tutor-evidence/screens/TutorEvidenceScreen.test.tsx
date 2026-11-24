@@ -195,11 +195,13 @@ describe("GS03 Minh chứng và kết quả xác minh", () => {
     let submitted = false;
     server = mockApi({
       "GET /me/tutor-profile": () => withEtag(submitted ? { ...DRAFT, status: "PENDING", revision: 6 } : DRAFT),
-      "GET /me/tutor-profile/verification": () => (submitted ? json(200, verification()) : noVerification()),
+      // A waiting verification carries the subject code of its version, as the backend sends it.
+      "GET /me/tutor-profile/verification": () =>
+        submitted ? json(200, verification({ scope: "MATH8_ALGEBRA" })) : noVerification(),
       ...uploadRoutes(),
       "POST /me/tutor-profile/submit": () => {
         submitted = true;
-        return json(201, { id: VERIFICATION_ID, profileVersionId: DRAFT.id, assignedTo: null, status: "PENDING", scope: "Toán 8, đại số", revision: 1 });
+        return json(201, { id: VERIFICATION_ID, profileVersionId: DRAFT.id, assignedTo: null, status: "PENDING", scope: "MATH8_ALGEBRA", revision: 1 });
       },
     });
     await renderEvidence();
@@ -222,6 +224,8 @@ describe("GS03 Minh chứng và kết quả xác minh", () => {
     expect(await screen.findByText("Đã gửi hồ sơ đi xác minh.")).toBeOnTheScreen();
     expect(screen.getByText("Đang chờ xác minh")).toBeOnTheScreen();
     expect(screen.getByText("Người xác minh sẽ kiểm tra phạm vi Toán 8, đại số. Kết quả hiện ở đây và trong Thông báo.")).toBeOnTheScreen();
+    // The code is never shown to the tutor (found on an iPhone against the real backend, 24/11/2026).
+    expect(screen.queryByText(/MATH8_ALGEBRA/)).toBeNull();
     const [request] = sent(server, "POST", "/submit");
     expect(request.headers.get("If-Match")).toBe('"5"');
     expect(await request.json()).toEqual({ profileVersionId: DRAFT.id, evidenceUploadIds: [UPLOAD_ID] });
@@ -259,7 +263,7 @@ describe("GS03 Minh chứng và kết quả xác minh", () => {
       ...uploadRoutes(),
       "PUT /me/tutor-profile": () => withEtag(next),
       "POST /me/tutor-profile/submit": () =>
-        json(201, { id: VERIFICATION_ID, profileVersionId: next.id, assignedTo: null, status: "PENDING", scope: "Toán 8, đại số", revision: 1 }),
+        json(201, { id: VERIFICATION_ID, profileVersionId: next.id, assignedTo: null, status: "PENDING", scope: "MATH8_ALGEBRA", revision: 1 }),
     });
     await renderEvidence();
 
@@ -297,7 +301,7 @@ describe("GS03 Minh chứng và kết quả xác minh", () => {
           revision = 6; // the profile changed elsewhere meanwhile
           return problem(412, "PRECONDITION_FAILED", "Dữ liệu đã thay đổi.");
         }
-        return json(201, { id: VERIFICATION_ID, profileVersionId: DRAFT.id, assignedTo: null, status: "PENDING", scope: "Toán 8, đại số", revision: 1 });
+        return json(201, { id: VERIFICATION_ID, profileVersionId: DRAFT.id, assignedTo: null, status: "PENDING", scope: "MATH8_ALGEBRA", revision: 1 });
       },
     });
     await renderEvidence();
@@ -343,7 +347,7 @@ describe("GS03 Minh chứng và kết quả xác minh", () => {
         return withEtag(next);
       },
       "POST /me/tutor-profile/submit": () =>
-        json(201, { id: VERIFICATION_ID, profileVersionId: next.id, assignedTo: null, status: "PENDING", scope: "Toán 8, đại số", revision: 1 }),
+        json(201, { id: VERIFICATION_ID, profileVersionId: next.id, assignedTo: null, status: "PENDING", scope: "MATH8_ALGEBRA", revision: 1 }),
     });
     await renderEvidence();
     await screen.findByText("Cần bổ sung");
@@ -383,7 +387,7 @@ describe("GS03 Minh chứng và kết quả xác minh", () => {
           ? problem(422, "VALIDATION_FAILED", "Dữ liệu chưa hợp lệ.", [{ path: "evidenceUploadIds[0]", message: "Minh chứng này không dùng được. Vui lòng chọn lại." }])
           : submits === 2
             ? problem(422, "VALIDATION_FAILED", "Dữ liệu chưa hợp lệ.", [{ path: "evidenceUploadIds[0]", message: "Tệp này cũng không dùng được." }])
-            : json(201, { id: VERIFICATION_ID, profileVersionId: DRAFT.id, assignedTo: null, status: "PENDING", scope: "Toán 8, đại số", revision: 1 }),
+            : json(201, { id: VERIFICATION_ID, profileVersionId: DRAFT.id, assignedTo: null, status: "PENDING", scope: "MATH8_ALGEBRA", revision: 1 }),
     });
     await renderEvidence();
     await screen.findByText("Chưa gửi duyệt");
@@ -423,7 +427,7 @@ describe("GS03 Minh chứng và kết quả xác minh", () => {
       "POST /me/tutor-profile/submit": () =>
         ++calls === 1
           ? problem(503, "TEMPORARILY_UNAVAILABLE", "Hệ thống đang bận.")
-          : json(201, { id: VERIFICATION_ID, profileVersionId: DRAFT.id, assignedTo: null, status: "PENDING", scope: "Toán 8, đại số", revision: 1 }),
+          : json(201, { id: VERIFICATION_ID, profileVersionId: DRAFT.id, assignedTo: null, status: "PENDING", scope: "MATH8_ALGEBRA", revision: 1 }),
     });
     await renderEvidence();
     await screen.findByText("Chưa gửi duyệt");

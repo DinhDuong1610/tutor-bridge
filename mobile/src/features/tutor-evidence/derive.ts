@@ -1,6 +1,7 @@
 import type { IconName } from "@/shared/ui/Icon";
 import type { StatusTone } from "@/shared/ui/StatusLabel";
 import type { TutorProfile, TutorProfileData } from "../tutor-profile/api";
+import { scopeLabel } from "../tutor-profile/schemas";
 
 type Label = { label: string; tone: StatusTone; icon: IconName };
 
@@ -51,7 +52,7 @@ export function deriveEvidenceMode({ profile, verification }: TutorProfileData):
       if (ofNewest?.state === "NEEDS_INFO") {
         return { kind: "collect", draft: null, needsInfo: { profile: newest, etag: profile.etag, reason: ofNewest.reason ?? "" } };
       }
-      return { kind: "waiting", scope: ofNewest?.scope ?? "Toán 8, đại số" };
+      return { kind: "waiting", scope: scopeLabel(ofNewest?.scope) };
     case "APPROVED":
       return { kind: "verified", scope: ofNewest?.state === "VERIFIED" ? ofNewest.scope : null };
     default:

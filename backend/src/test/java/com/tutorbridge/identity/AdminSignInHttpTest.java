@@ -231,6 +231,59 @@ class AdminSignInHttpTest extends IntegrationTest {
         assertThat(sessionCount(admin.id())).isEqualTo(1);
     }
 
+    /**
+     * Two challenges of one admin with the same code: only the step check in useStep keeps the second from
+     * opening a session, since lock() locks the challenge alone. A connection holds the enrollment row, so
+     * both tries are seen waiting at that update before it is released (Huy's review of #217).
+     */
+    @Test
+    void INV_20_two_challenges_with_the_same_code_at_once_give_one_session() throws Exception {
+        Admin admin = admin("ACTIVE", true);
+        JsonNode first = challengeOk(admin.email());
+        JsonNode second = challengeOk(admin.email());
+        String code = currentCode(admin);
+
+        List<Integer> statuses;
+        try (java.sql.Connection gate = java.sql.DriverManager.getConnection(
+                com.tutorbridge.PostgresTestSupport.jdbcUrl(), "tutorbridge_app",
+                com.tutorbridge.PostgresTestSupport.APP_PASSWORD)) {
+            gate.setAutoCommit(false);
+            gate.createStatement().execute(
+                    "select 1 from admin_mfa_enrollments where account_id = '" + admin.id() + "' for update");
+            var one = Concurrently.supply(() -> statusOf(first, code));
+            var two = Concurrently.supply(() -> statusOf(second, code));
+            org.awaitility.Awaitility.await().atMost(java.time.Duration.ofSeconds(10))
+                    .pollInterval(java.time.Duration.ofMillis(20)).until(() -> jdbc.sql("""
+                            select count(*) from pg_stat_activity
+                            where wait_event_type = 'Lock' and query like 'update admin_mfa_enrollments set last_used_step%'""")
+                            .query(Integer.class).single() == 2);
+            gate.commit();
+            statuses = List.of(one.get(10, java.util.concurrent.TimeUnit.SECONDS),
+                    two.get(10, java.util.concurrent.TimeUnit.SECONDS));
+        }
+
+        assertThat(statuses).containsExactlyInAnyOrder(200, 401);
+        assertThat(sessionCount(admin.id())).isEqualTo(1);
+    }
+
+    private int statusOf(JsonNode challenge, String code) {
+        try {
+            return mfa(challenge, code).andReturn().getResponse().getStatus();
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    @Test
+    void a_deleted_admin_with_the_right_password_counts_as_a_failed_sign_in_like_loginAccount() throws Exception {
+        Admin deleted = admin("DELETED", true);
+
+        problem(adminLogin(deleted.email(), PASSWORD), 401);
+
+        assertThat(jdbc.sql("select count(*) from auth_login_failures where scope = 'ACCOUNT' and subject_digest = ?")
+                .param(secrets.emailDigest(deleted.email())).query(Integer.class).single()).isEqualTo(1);
+    }
+
     @Test
     void INV_63_no_password_challenge_code_or_secret_reaches_the_log(CapturedOutput output) throws Exception {
         Admin admin = admin("ACTIVE", true);

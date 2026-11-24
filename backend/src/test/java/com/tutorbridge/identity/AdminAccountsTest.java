@@ -105,6 +105,61 @@ class AdminAccountsTest extends IntegrationTest {
                 .query(Integer.class).single()).isZero();
     }
 
+    @Test
+    void INV_18_the_file_gets_its_name_only_after_the_commit_and_a_refused_run_leaves_no_staged_file() throws Exception {
+        String email = "quan-tri-" + UUID.randomUUID() + "@example.test";
+        UUID id = accounts.setUp(email, PASSWORD, fileFor(email));
+        Path second = fileFor(email + ".lan-2");
+
+        java.util.concurrent.CompletableFuture<UUID> reset;
+        try (java.sql.Connection gate = java.sql.DriverManager.getConnection(
+                com.tutorbridge.PostgresTestSupport.jdbcUrl(), "tutorbridge_app",
+                com.tutorbridge.PostgresTestSupport.APP_PASSWORD)) {
+            gate.setAutoCommit(false);
+            gate.createStatement().execute("select 1 from admin_mfa_enrollments where account_id = '" + id + "' for update");
+            reset = com.tutorbridge.Concurrently.supply(() -> accounts.setUp(email, PASSWORD, second));
+            org.awaitility.Awaitility.await().atMost(java.time.Duration.ofSeconds(10))
+                    .pollInterval(java.time.Duration.ofMillis(20)).until(() -> jdbc.sql("""
+                            select count(*) from pg_stat_activity
+                            where wait_event_type = 'Lock' and query like 'select 1 from admin_mfa_enrollments%'""")
+                            .query(Integer.class).single() == 1);
+            // The transaction is open and waiting: the URI is staged, but not under its name yet.
+            assertThat(Files.exists(second)).isFalse();
+            assertThat(staged()).hasSize(1);
+            gate.commit();
+        }
+        assertThat(reset.get(10, java.util.concurrent.TimeUnit.SECONDS)).isEqualTo(id);
+        assertThat(Files.readString(second)).startsWith("otpauth://totp/");
+        assertThat(staged()).isEmpty();
+
+        // A transaction that refuses removes what it staged.
+        String parent = "phu-huynh-" + UUID.randomUUID() + "@example.test";
+        UUID parentId = UUID.randomUUID();
+        jdbc.sql("insert into accounts (id, role, status, email_digest, email_ciphertext) values (?, 'PARENT', 'ACTIVE', ?, ?)")
+                .params(parentId, secrets.emailDigest(parent), secrets.encryptEmail(parentId, parent)).update();
+        assertThatThrownBy(() -> accounts.setUp(parent, PASSWORD, fileFor(parent)))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThat(staged()).isEmpty();
+    }
+
+    @Test
+    void a_folder_that_does_not_exist_is_refused_before_anything_is_written() {
+        String email = "quan-tri-" + UUID.randomUUID() + "@example.test";
+        Path nowhere = evidenceDir().resolve("khong-co-" + UUID.randomUUID()).resolve("uri.txt");
+
+        assertThatThrownBy(() -> accounts.setUp(email, PASSWORD, nowhere))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("does not exist");
+        assertThat(jdbc.sql("select count(*) from accounts where email_digest = ?").param(secrets.emailDigest(email))
+                .query(Integer.class).single()).isZero();
+    }
+
+    /** Files this command staged in the test folder and did not move or delete. */
+    private static java.util.List<Path> staged() throws IOException {
+        try (var files = Files.list(evidenceDir())) {
+            return files.filter(f -> f.getFileName().toString().startsWith(".admin-setup-")).toList();
+        }
+    }
+
     private void signIn(String email, String uri) {
         signIn(email, uri, PASSWORD);
     }

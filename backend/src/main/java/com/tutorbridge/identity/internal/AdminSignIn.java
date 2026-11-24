@@ -78,8 +78,10 @@ public class AdminSignIn {
         Optional<SessionRepository.Login> found = sessions.findLogin(emailDigest);
         boolean passwordMatches = hasher.matches(password, found.map(SessionRepository.Login::passwordHash).orElse(null));
         SessionRepository.Login login = found.orElse(null);
-        // Q17 points 1 and 4: none of these may tell whether the email is an admin or has MFA.
-        if (!passwordMatches || !"ADMIN".equals(login.role()) || !mfa.hasLiveEnrollment(login.accountId())) {
+        // Q17 points 1 and 4: none of these may tell whether the email is an admin or has MFA. A DELETED
+        // account counts as a failure too, as in loginAccount (Huy's review of #217).
+        if (!passwordMatches || !"ADMIN".equals(login.role()) || !mfa.hasLiveEnrollment(login.accountId())
+                || !("ACTIVE".equals(login.status()) || "LOCKED".equals(login.status()))) {
             throttle.failed(attempt);
             throw signInFailed();
         }
@@ -88,9 +90,6 @@ public class AdminSignIn {
         if ("LOCKED".equals(login.status())) {
             throw new ApiException(HttpStatus.FORBIDDEN, "ACCOUNT_LOCKED",
                     "Tài khoản đang bị tạm khóa nên chưa đăng nhập được.");
-        }
-        if (!"ACTIVE".equals(login.status())) {
-            throw signInFailed();
         }
 
         String newHash = PasswordHasher.POLICY.equals(login.hashPolicy()) ? null : hasher.hash(password);

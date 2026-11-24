@@ -102,6 +102,22 @@ class AdminMfaRepository {
 
     record AccountRole(UUID id, String role) {}
 
+    /** Which account the email belongs to, without a lock, to know which enrollment to lock first. */
+    Optional<UUID> findAccountId(String emailDigest) {
+        return jdbc.sql("select id from accounts where email_digest = ?").param(emailDigest).query(UUID.class)
+                .optional();
+    }
+
+    /**
+     * The enrollment before the account, the order completeMfa takes them in (INV-16: challenge, enrollment,
+     * account), so resetting an admin while they sign in waits instead of deadlocking (Huy's review of #217).
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    void lockEnrollment(UUID accountId) {
+        jdbc.sql("select 1 from admin_mfa_enrollments where account_id = ? for update").param(accountId)
+                .query((rs, n) -> 1).list();
+    }
+
     @Transactional(propagation = Propagation.MANDATORY)
     Optional<AccountRole> findAccountRole(String emailDigest) {
         return jdbc.sql("select id, role from accounts where email_digest = ? for update").param(emailDigest)

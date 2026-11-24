@@ -24,7 +24,8 @@ import org.springframework.util.IdGenerator;
  * the commit the temporary file is moved to its name. A refused or failed transaction deletes the temporary
  * file, so no secret is left that no account uses. If the move fails after the commit, the temporary file
  * is deleted too: the account then has a secret nobody holds, so nobody can sign in with it, and running the
- * command again gives a new one.
+ * command again gives a new one. Only a process killed between the commit and the rename leaves the staged
+ * file behind, with the secret in use; {@link AdminSetupRunner} tells the operator to delete it and run again.
  *
  * <p>Running it again for the same email replaces the secret and the password and raises the account epoch,
  * which ends every earlier session of that admin.

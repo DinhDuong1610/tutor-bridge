@@ -23,6 +23,10 @@ import org.springframework.stereotype.Component;
  *
  * The password comes from the environment, never the command line, which shells keep in their history.
  * The log names the account and the file, never the secret or the URI.
+ *
+ * <p>If the run stops half way, for instance the process is killed after the commit and before the rename,
+ * a hidden {@code .admin-setup-*.tmp} file may stay in the output folder. It holds the secret the account
+ * now uses: delete it, then run the command again, which replaces the secret (Huy's review of #217).
  */
 @Component
 @ConditionalOnProperty(prefix = "tutorbridge.admin-setup", name = "email")

@@ -3,6 +3,7 @@ package com.tutorbridge.platform.api;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
+import org.springframework.util.IdGenerator;
 
 /**
  * The in-app inbox of UC15 (TX30, TB-21): a module's outbox handler puts one notification per event and
@@ -13,9 +14,11 @@ import org.springframework.stereotype.Component;
 public class Notifications {
 
     private final JdbcClient jdbc;
+    private final IdGenerator ids;
 
-    public Notifications(JdbcClient jdbc) {
+    public Notifications(JdbcClient jdbc, IdGenerator ids) {
         this.jdbc = jdbc;
+        this.ids = ids;
     }
 
     /**
@@ -30,7 +33,7 @@ public class Notifications {
                                           target_version)
                 values (?, ?, ?, ?, ?, ?, ?)
                 on conflict (recipient_id, event_id) do nothing
-                """).params(UUID.randomUUID(), recipientId, eventId, eventType, targetType, targetId, targetVersion)
+                """).params(ids.generateId(), recipientId, eventId, eventType, targetType, targetId, targetVersion)
                 .update() == 1;
     }
 }

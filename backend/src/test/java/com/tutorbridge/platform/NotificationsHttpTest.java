@@ -118,6 +118,22 @@ class NotificationsHttpTest extends HttpTest {
                 .single()).isTrue();
     }
 
+    @Autowired
+    org.springframework.jdbc.core.simple.JdbcClient jdbcClient;
+
+    @Test
+    void a_notification_takes_its_id_from_the_id_generator_of_the_platform() {
+        Actor tutor = newActor(Actor.Role.TUTOR);
+        UUID fixed = UUID.randomUUID();
+        Notifications withFixedIds = new Notifications(jdbcClient, () -> fixed);
+
+        assertThat(withFixedIds.deliver(tutor.accountId(), UUID.randomUUID(), "OFFER_SENT", "OFFER", UUID.randomUUID(),
+                "1")).isTrue();
+
+        assertThat(jdbc.sql("select id from notifications where recipient_id = ?").param(tutor.accountId())
+                .query(UUID.class).single()).isEqualTo(fixed);
+    }
+
     @Test
     void AC_UC15_02_delivering_the_same_event_to_the_same_member_again_adds_nothing() {
         Actor tutor = newActor(Actor.Role.TUTOR);

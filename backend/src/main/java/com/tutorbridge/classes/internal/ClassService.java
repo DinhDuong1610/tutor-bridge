@@ -1,6 +1,5 @@
 package com.tutorbridge.classes.internal;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.tutorbridge.identity.api.Parties;
 import com.tutorbridge.platform.api.Actor;
 import com.tutorbridge.platform.api.ApiException;
@@ -19,11 +18,7 @@ import org.springframework.transaction.support.TransactionOperations;
 @Service
 public class ClassService {
 
-    /**
-     * {@code Class}: the agreement as TX05 fixed it, and its effective goal. Without one the two goal fields
-     * are left out, as the contract has them optional and not nullable.
-     */
-    @JsonInclude(JsonInclude.Include.NON_NULL)
+    /** {@code Class}: the agreement as TX05 fixed it, and its effective goal (both required). */
     public record ClassView(UUID id, UUID studentId, UUID tutorId, long revision, String state, int priceVndSession,
             int durationMinutes, UUID effectiveGoalVersionId, String goal) {}
 
@@ -45,6 +40,13 @@ public class ClassService {
         requireParticipant(actor);
         return transactions.execute(status -> {
             ClassRepository.Row row = readable(actor, classId);
+            if (row.effectiveGoalVersionId() == null) {
+                // The contract requires the effective goal, and TX05 writes the first one EFFECTIVE (BR05;
+                // one_effective_goal). A class without one breaks that invariant: answer a server error,
+                // never a Class without its goal (Codex on #240). Should #19 Q1 make the first goal wait,
+                // the contract changes first (contract-change).
+                throw new IllegalStateException("Class " + classId + " has no effective goal");
+            }
             return new ClassView(row.id(), row.studentId(), row.tutorId(), row.revision(), row.state(),
                     row.priceVndSession(), row.durationMinutes(), row.effectiveGoalVersionId(), row.goal());
         });

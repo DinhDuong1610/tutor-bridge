@@ -176,6 +176,23 @@ class ClassHttpTest extends HttpTest {
         assertThat(classIds).allMatch(id -> id.equals(mine.created().id().toString()));
     }
 
+    @Test
+    void a_class_without_an_effective_goal_is_a_server_error_never_a_class_without_its_goal() throws Exception {
+        Made m = aClass();
+        UUID classId = m.created().id();
+        // Not something TX05 writes today (the first goal is EFFECTIVE, #19 Q1): the invariant broken by hand.
+        jdbc.sql("update class_goal_versions set status = 'SUPERSEDED' where class_id = ?").param(classId).update();
+
+        // Contract.matches() is left out: the contract lists no 500 for getClass.
+        String body = mvc.perform(get("/api/v1/classes/" + classId).with(sessions().as(m.parent())))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.code").value("INTERNAL_ERROR"))
+                .andReturn().getResponse().getContentAsString();
+        assertThat(body).doesNotContain(classId.toString()).doesNotContain("priceVndSession");
+        // The sessions do not depend on the goal.
+        sessionsOf(m.parent(), classId, "").andExpect(status().isOk());
+    }
+
     // ---------------------------------------------------------------- AC-UC07-04, AC-UC02-02: nobody else
 
     @Test

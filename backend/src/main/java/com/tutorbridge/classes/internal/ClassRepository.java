@@ -13,7 +13,10 @@ import org.springframework.stereotype.Repository;
 @Repository
 class ClassRepository {
 
-    /** One class with its effective goal, when it has one (#19 Q1 may make the first goal wait). */
+    /**
+     * One class with its effective goal. A left join, so a class whose goal is not EFFECTIVE is still found
+     * and the service can tell that broken invariant apart from a class the caller may not read.
+     */
     record Row(UUID id, UUID studentId, UUID tutorId, long revision, String state, int priceVndSession,
             int durationMinutes, UUID effectiveGoalVersionId, String goal) {}
 

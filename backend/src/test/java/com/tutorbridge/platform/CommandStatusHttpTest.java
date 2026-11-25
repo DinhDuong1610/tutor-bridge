@@ -48,7 +48,7 @@ class CommandStatusHttpTest extends HttpTest {
         String studentId = body(mvc.perform(post("/api/v1/students").header(IdempotencyKey.HEADER, key)
                         .with(sessions().as(parent)).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"displayName\":\"Minh\",\"grade\":8,\"shortGoal\":\"\"}"))
-                .andExpect(status().isCreated())).get("id").asString();
+                .andExpect(Contract.matches()).andExpect(status().isCreated())).get("id").asString();
 
         JsonNode found = body(find(parent, key, "CREATE_STUDENT").andExpect(status().isOk())
                 .andExpect(header().string("ETag", "\"2\""))
@@ -71,7 +71,7 @@ class CommandStatusHttpTest extends HttpTest {
         String needId = body(mvc.perform(post("/api/v1/students/" + student + "/needs")
                         .header(IdempotencyKey.HEADER, key).with(sessions().as(parent))
                         .contentType(MediaType.APPLICATION_JSON).content("{\"goal\":\"" + GOAL + "\"}"))
-                .andExpect(status().isCreated())).get("id").asString();
+                .andExpect(Contract.matches()).andExpect(status().isCreated())).get("id").asString();
 
         JsonNode found = body(find(parent, key, "CREATE_NEED_DRAFT").andExpect(status().isOk()));
 

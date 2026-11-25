@@ -7,7 +7,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
-import com.jayway.jsonpath.JsonPath;
 import com.tutorbridge.Contract;
 import com.tutorbridge.HttpTest;
 import com.tutorbridge.platform.api.Actor;
@@ -231,9 +230,11 @@ class AuthorizationMatrixHttpTest extends HttpTest {
                 cases.add(DynamicTest.dynamicTest("role " + role + (hidden ? ": same 404 as an unknown id" : ": 403"),
                         () -> {
                     Map<String, String> vars = op.setup().make(owner(op));
+                    String before = fingerprint(vars);
                     Actor caller = newActor(role);
                     MockHttpServletResponse answer = send(op.request().build(vars), caller);
                     String what = op.id() + " as " + role + ": " + answer.getContentAsString();
+                    assertThat(fingerprint(vars)).as(what + ": the owner's data is unchanged").isEqualTo(before);
                     if (!hidden) {
                         assertThat(answer.getStatus()).as(what).isEqualTo(403);
                         return;
@@ -242,8 +243,7 @@ class AuthorizationMatrixHttpTest extends HttpTest {
                     unknown.put(op.idName(), UUID.randomUUID().toString());
                     MockHttpServletResponse none = send(op.request().build(unknown), caller);
                     assertThat(answer.getStatus()).as(what).isEqualTo(404);
-                    assertThat(none.getStatus()).as(what).isEqualTo(404);
-                    assertThat(code(answer)).as(what).isEqualTo(code(none));
+                    assertThat(problem(answer)).as(what).isEqualTo(problem(none));
                 }));
             }
         }
@@ -251,6 +251,7 @@ class AuthorizationMatrixHttpTest extends HttpTest {
             cases.add(DynamicTest.dynamicTest("another member with the owner's id: same 404 as an unknown id", () -> {
                 Actor owner = owner(op);
                 Map<String, String> vars = op.setup().make(owner);
+                String before = fingerprint(vars);
                 Actor other = newActor(owner.role());
                 Map<String, String> unknown = new HashMap<>(vars);
                 unknown.put(op.idName(), UUID.randomUUID().toString());
@@ -259,8 +260,9 @@ class AuthorizationMatrixHttpTest extends HttpTest {
                 MockHttpServletResponse none = send(op.request().build(unknown), other);
 
                 assertThat(theirs.getStatus()).as(op.id() + ": " + theirs.getContentAsString()).isEqualTo(404);
-                assertThat(none.getStatus()).as(op.id() + ": " + none.getContentAsString()).isEqualTo(404);
-                assertThat(code(theirs)).as(op.id()).isEqualTo(code(none));
+                // The whole problem, not only its code: nothing in it may tell the id exists (INV-06).
+                assertThat(problem(theirs)).as(op.id()).isEqualTo(problem(none));
+                assertThat(fingerprint(vars)).as(op.id() + ": the owner's data is unchanged").isEqualTo(before);
             }));
         }
         if (op.leak()) {
@@ -426,7 +428,49 @@ class AuthorizationMatrixHttpTest extends HttpTest {
         return mvc.perform(request).andExpect(Contract.matches()).andReturn().getResponse();
     }
 
-    private static String code(MockHttpServletResponse answer) throws Exception {
-        return JsonPath.read(answer.getContentAsString(), "$.code");
+    /** A problem as the client reads it, without its traceId, which differs on every answer. */
+    private static String problem(MockHttpServletResponse answer) throws Exception {
+        return answer.getStatus() + " " + answer.getContentAsString().replaceAll("\"traceId\":\"[^\"]*\",?", "");
+    }
+
+    /**
+     * What a refused request must leave as it was: each of the owner's rows the matrix made, with its revision
+     * or state, and how many versions or runs hang off them (a save or a replace adds one).
+     */
+    private String fingerprint(Map<String, String> vars) {
+        List<String> parts = new ArrayList<>();
+        String owner = vars.get("owner");
+        if (owner != null) {
+            parts.add(one("select status || '/' || coalesce(display_name, '') from accounts where id = ?::uuid", owner));
+            parts.add(one("select count(*)::text from tutor_profiles where tutor_id = ?::uuid", owner));
+            parts.add(one("select count(*)::text from tutor_evidence_uploads where owner_id = ?::uuid", owner));
+            parts.add(one("select count(*)::text from calendars where owner_id = ?::uuid", owner));
+            parts.add(one("select count(*)::text from students where parent_id = ?::uuid", owner));
+        }
+        if (vars.containsKey("student")) {
+            String student = vars.get("student");
+            parts.add(one("select display_name || '/' || revision from students where id = ?::uuid", student));
+            parts.add(one("select count(*)::text from calendars where owner_id = ?::uuid", student));
+            parts.add(one("select count(*)::text from learning_needs where student_id = ?::uuid", student));
+        }
+        if (vars.containsKey("need")) {
+            parts.add(one("select status || '/' || revision from learning_needs where id = ?::uuid", vars.get("need")));
+        }
+        if (vars.containsKey("needVersion")) {
+            parts.add(one("select count(*)::text from matching_runs where need_version_id = ?::uuid",
+                    vars.get("needVersion")));
+        }
+        if (vars.containsKey("session")) {
+            parts.add(one("select coalesce(revoked_at::text, 'live') from auth_sessions where id = ?::uuid",
+                    vars.get("session")));
+        }
+        if (vars.containsKey("upload")) {
+            parts.add(one("select state from tutor_evidence_uploads where id = ?::uuid", vars.get("upload")));
+        }
+        return String.join(" | ", parts);
+    }
+
+    private String one(String sql, String id) {
+        return jdbc.sql(sql).param(id).query(String.class).optional().orElse("none");
     }
 }

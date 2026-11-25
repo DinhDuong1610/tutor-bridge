@@ -63,14 +63,18 @@ class OfferNotificationDelayTest extends HttpTest {
             // The 201 comes after the commit: from here the clock of AC-UC15-04 runs.
             long committed = System.nanoTime();
 
-            await().atMost(Duration.ofSeconds(10)).pollInterval(Duration.ofMillis(50)).until(() -> fx.count(
-                    "select count(*) from notifications where recipient_id = ? and target_id = ?",
-                    s.candidate().tutor().id(), offer) == 1);
+            // Both in one wait (Codex, #237): the dispatcher commits the notification, then marks the event
+            // delivered in a second commit, so a check of the second right after seeing the first could race.
+            await().atMost(Duration.ofSeconds(10)).pollInterval(Duration.ofMillis(50)).untilAsserted(() -> {
+                assertThat(fx.count("select count(*) from notifications where recipient_id = ? and target_id = ?",
+                        s.candidate().tutor().id(), offer)).isOne();
+                assertThat(fx.count(
+                        "select count(*) from outbox_events where aggregate_id = ? and delivered_at is not null",
+                        offer)).isOne();
+            });
 
             Duration took = Duration.ofNanos(System.nanoTime() - committed);
             assertThat(took).isLessThan(Duration.ofSeconds(10));
-            assertThat(fx.count("select count(*) from outbox_events where aggregate_id = ? and delivered_at is not null",
-                    offer)).isOne();
         } finally {
             worker.shutdownNow();
             worker.awaitTermination(10, TimeUnit.SECONDS);

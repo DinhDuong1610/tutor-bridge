@@ -155,6 +155,23 @@ class CommandStatusHttpTest extends HttpTest {
     }
 
     @Test
+    void an_unchanged_status_asked_again_with_its_etag_still_answers_in_full_never_304() throws Exception {
+        // The contract declares no 304 (NoConditionalGetFilter, #244).
+        Actor parent = newActor(Actor.Role.PARENT);
+        UUID student = studentOf(parent);
+        String key = newKey();
+        UUID receipt = receipt(parent, "CREATE_STUDENT", key, "SUCCEEDED", "STUDENT", student, null);
+
+        mvc.perform(get("/api/v1/operations/" + receipt).header("If-None-Match", "\"2\"").with(sessions().as(parent)))
+                .andExpect(Contract.matches()).andExpect(status().isOk()).andExpect(header().string("ETag", "\"2\""))
+                .andExpect(jsonPath("$.resultId").value(student.toString()));
+        mvc.perform(get("/api/v1/operations").param("idempotencyKey", key).param("commandType", "CREATE_STUDENT")
+                        .header("If-None-Match", "\"2\"").with(sessions().as(parent)))
+                .andExpect(Contract.matches()).andExpect(status().isOk()).andExpect(header().string("ETag", "\"2\""))
+                .andExpect(jsonPath("$.resultId").value(student.toString()));
+    }
+
+    @Test
     void INV_22_a_tutor_never_sees_a_result_of_a_parent_kind_even_under_its_own_receipt() throws Exception {
         Actor tutor = newActor(Actor.Role.TUTOR);
         Actor parent = newActor(Actor.Role.PARENT);

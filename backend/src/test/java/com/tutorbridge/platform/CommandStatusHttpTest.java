@@ -126,6 +126,35 @@ class CommandStatusHttpTest extends HttpTest {
     }
 
     @Test
+    void INV_22_a_status_whose_result_is_now_left_out_has_another_etag_so_no_304_keeps_the_old_one()
+            throws Exception {
+        Actor parent = newActor(Actor.Role.PARENT);
+        UUID student = studentOf(parent);
+        String key = newKey();
+        UUID receipt = receipt(parent, "CREATE_STUDENT", key, "SUCCEEDED", "STUDENT", student, null);
+        read(parent, receipt).andExpect(status().isOk()).andExpect(header().string("ETag", "\"2\""));
+
+        Actor other = newActor(Actor.Role.PARENT);
+        jdbc.sql("update students set parent_id = ? where id = ?").params(other.accountId(), student).update();
+
+        // By id and by key: a full answer without the result, not a 304 for the "2" that named it.
+        JsonNode byId = body(mvc.perform(get("/api/v1/operations/" + receipt).header("If-None-Match", "\"2\"")
+                        .with(sessions().as(parent))).andExpect(Contract.matches())
+                .andExpect(status().isOk()).andExpect(header().string("ETag", "\"3\"")));
+        assertHidden(byId, "SUCCEEDED");
+        JsonNode byKey = body(mvc.perform(get("/api/v1/operations").param("idempotencyKey", key)
+                        .param("commandType", "CREATE_STUDENT").header("If-None-Match", "\"2\"")
+                        .with(sessions().as(parent))).andExpect(Contract.matches())
+                .andExpect(status().isOk()).andExpect(header().string("ETag", "\"3\"")));
+        assertHidden(byKey, "SUCCEEDED");
+
+        // The child back with the parent: the "2" answer again.
+        jdbc.sql("update students set parent_id = ? where id = ?").params(parent.accountId(), student).update();
+        read(parent, receipt).andExpect(status().isOk()).andExpect(header().string("ETag", "\"2\""))
+                .andExpect(jsonPath("$.resultId").value(student.toString()));
+    }
+
+    @Test
     void INV_22_a_tutor_never_sees_a_result_of_a_parent_kind_even_under_its_own_receipt() throws Exception {
         Actor tutor = newActor(Actor.Role.TUTOR);
         Actor parent = newActor(Actor.Role.PARENT);

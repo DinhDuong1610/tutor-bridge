@@ -36,13 +36,15 @@ public class CommandStatuses {
 
     /** {@code CommandStatus}. */
     public record CommandStatus(UUID operationId, String commandType, CommandReceipts.State state,
-            String resultType, UUID resultId, String errorCode, Instant expiresAt) {
+            String resultType, UUID resultId, String errorCode, Instant expiresAt) {}
 
-        /** A receipt changes once, from PROCESSING to SUCCEEDED or FAILED. */
-        public long version() {
-            return state == CommandReceipts.State.PROCESSING ? 1 : 2;
-        }
-    }
+    /**
+     * A status and the version of what it shows, for the ETag. A receipt changes once, from PROCESSING (1)
+     * to SUCCEEDED or FAILED (2). A result the actor may no longer see is left out, and that answer has its
+     * own version (3), so a client holding "2" is not told by a 304 that the result it saw still stands. If
+     * the actor may see it again, the answer is the "2" one again.
+     */
+    public record Answer(CommandStatus status, long version) {}
 
     private record Row(UUID id, String commandType, String state, String resultType, UUID resultId,
             String errorCode, Instant expiresAt) {}
@@ -69,29 +71,31 @@ public class CommandStatuses {
     }
 
     /** getCommandStatus. */
-    public CommandStatus get(Actor actor, UUID operationId) {
+    public Answer get(Actor actor, UUID operationId) {
         return status(actor, jdbc.sql(COLUMNS + " where id = ? and actor_id = ? and expires_at > ?")
                 .params(operationId, actor.accountId(), at(clock.instant()))
                 .query(CommandStatuses::row).optional());
     }
 
     /** findCommandStatus: the original command type and key of the actor (unique per actor, V1). */
-    public CommandStatus find(Actor actor, String commandType, String idempotencyKey) {
+    public Answer find(Actor actor, String commandType, String idempotencyKey) {
         return status(actor, jdbc.sql(COLUMNS
                         + " where actor_id = ? and command_type = ? and idempotency_key = ? and expires_at > ?")
                 .params(actor.accountId(), commandType, idempotencyKey, at(clock.instant()))
                 .query(CommandStatuses::row).optional());
     }
 
-    private CommandStatus status(Actor actor, Optional<Row> found) {
+    private Answer status(Actor actor, Optional<Row> found) {
         Row row = found.orElseThrow(CommandStatuses::notFound);
-        boolean visible = row.resultType() != null && row.resultId() != null
-                && Optional.ofNullable(results.get(row.resultType()))
-                        .map(module -> module.visibleTo(actor, row.resultType(), row.resultId()))
-                        .orElse(false);
-        return new CommandStatus(row.id(), row.commandType(), CommandReceipts.State.valueOf(row.state()),
+        boolean hasResult = row.resultType() != null && row.resultId() != null;
+        boolean visible = hasResult && Optional.ofNullable(results.get(row.resultType()))
+                .map(module -> module.visibleTo(actor, row.resultType(), row.resultId()))
+                .orElse(false);
+        CommandReceipts.State state = CommandReceipts.State.valueOf(row.state());
+        long version = state == CommandReceipts.State.PROCESSING ? 1 : hasResult && !visible ? 3 : 2;
+        return new Answer(new CommandStatus(row.id(), row.commandType(), state,
                 visible ? row.resultType() : null, visible ? row.resultId() : null, row.errorCode(),
-                row.expiresAt());
+                row.expiresAt()), version);
     }
 
     private static Row row(ResultSet rs, int n) throws SQLException {

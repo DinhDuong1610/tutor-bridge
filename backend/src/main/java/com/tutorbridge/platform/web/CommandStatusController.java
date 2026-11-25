@@ -40,7 +40,7 @@ class CommandStatusController {
         return answer(statuses.find(actor, commandType, idempotencyKey));
     }
 
-    private static ResponseEntity<CommandStatuses.CommandStatus> answer(CommandStatuses.CommandStatus status) {
-        return ResponseEntity.ok().header(HttpHeaders.ETAG, Etag.of(status.version())).body(status);
+    private static ResponseEntity<CommandStatuses.CommandStatus> answer(CommandStatuses.Answer answer) {
+        return ResponseEntity.ok().header(HttpHeaders.ETAG, Etag.of(answer.version())).body(answer.status());
     }
 }

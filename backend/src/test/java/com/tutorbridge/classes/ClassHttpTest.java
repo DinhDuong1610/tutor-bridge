@@ -183,8 +183,9 @@ class ClassHttpTest extends HttpTest {
         // Not something TX05 writes today (the first goal is EFFECTIVE, #19 Q1): the invariant broken by hand.
         jdbc.sql("update class_goal_versions set status = 'SUPERSEDED' where class_id = ?").param(classId).update();
 
-        // Contract.matches() is left out: the contract lists no 500 for getClass.
+        // Every operation lists the shared 500 Problem (feature/TB-20-problem-500), so the answer is checked too.
         String body = mvc.perform(get("/api/v1/classes/" + classId).with(sessions().as(m.parent())))
+                .andExpect(Contract.matches())
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.code").value("INTERNAL_ERROR"))
                 .andReturn().getResponse().getContentAsString();

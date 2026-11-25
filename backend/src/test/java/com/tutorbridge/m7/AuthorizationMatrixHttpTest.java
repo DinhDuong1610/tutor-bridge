@@ -107,8 +107,9 @@ class AuthorizationMatrixHttpTest extends HttpTest {
     private List<Op> ops() {
         Set<Role> parent = EnumSet.of(Role.PARENT);
         Set<Role> tutor = EnumSet.of(Role.TUTOR);
-        // The contract lets a currently linked student read the list and the profile (P1, outside Lát 1).
-        Set<Role> parentOrStudent = EnumSet.of(Role.PARENT, Role.STUDENT);
+        // The contract also lets a currently linked student read the list and the profile, but student
+        // accounts are P1, outside Lát 1 (Q1, Đính 11/11/2026). In Lát 1 a STUDENT gets 403 on listStudents
+        // and the unknown-id 404 on getStudentProfile (#114), so STUDENT is checked here as a wrong role.
         List<Op> ops = new ArrayList<>();
 
         // Xác thực: public ones need no session; the others are any role's own session.
@@ -131,11 +132,11 @@ class AuthorizationMatrixHttpTest extends HttpTest {
                 "{\"password\":\"mot-mat-khau-du-dai-15\",\"purpose\":\"PRIVACY\"}"), null, false));
 
         // Học sinh.
-        ops.add(new Op("listStudents", Access.ROLES, parentOrStudent, this::family, v -> get("/api/v1/students"),
+        ops.add(new Op("listStudents", Access.ROLES, parent, this::family, v -> get("/api/v1/students"),
                 null, true));
         ops.add(new Op("createStudent", Access.ROLES, parent, this::nothing, v -> keyed(json(post("/api/v1/students"),
                 "{\"displayName\":\"Minh\",\"grade\":8,\"shortGoal\":\"\"}")), null, false));
-        ops.add(new Op("getStudentProfile", Access.ROLES, parentOrStudent, this::family,
+        ops.add(new Op("getStudentProfile", Access.ROLES, parent, this::family,
                 v -> get("/api/v1/students/" + v.get("student")), "student", false));
         ops.add(new Op("patchStudent", Access.ROLES, parent, this::family,
                 v -> keyed(json(patch("/api/v1/students/" + v.get("student")), "{\"displayName\":\"Lan\"}"))

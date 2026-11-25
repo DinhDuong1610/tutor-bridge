@@ -3,7 +3,7 @@
 - **Chủ task:** Đính (phần Đính). Phần Huy ở `feature/TB-23-authorization-huy` (#242), handoff `docs/handoff/TB-23.md` trên nhánh đó.
 - **Nhánh:** `feature/TB-23-authorization-dinh`, đặt trên `fix/TB-13-decide-verify-first` (#249), cả hai tách từ `dev` `9848259`
 - **Agent đang làm:** Claude (agent của Đính)
-- **Cập nhật lần cuối:** 26/11/2026, sau commit `a3838cc` (AT02)
+- **Cập nhật lần cuối:** 26/11/2026, sau commit `8454bca` (sửa theo Codex)
 - **Mã liên quan:** AT01, AT02; AC-UC02-02; AC-UC05-01, AC-UC05-04; UC03, UC05, UC06; INV-01, INV-06, INV-22, INV-63
 
 ## Mục tiêu
@@ -59,6 +59,21 @@ cd backend && ./gradlew test
   `getAdminSession` bỏ kiểm vai trò mà vẫn xanh vì có hai lớp kiểm: lần đọc phiên còn đòi dòng `auth_sessions` có `admin_mfa_verified_at`, mà vai trò khác không bao giờ có dòng đó (`loginAccount` từ chối ADMIN, MFA chỉ dành cho ADMIN). Đây là phòng thủ hai lớp, không phải test yếu.
 - #203 (nhánh riêng): trước khi sửa, test mới đỏ; sau khi sửa 19/19. Toàn bộ backend 661 ca, 0 hỏng.
 - #249 (nhánh riêng): `VerificationDecisionsHttpTest` 15/15. Trả code về bản `dev` thì ca mới đỏ. Toàn bộ backend 661 ca, 0 hỏng.
+
+## Sửa theo Codex rà `b0238d9` (26/11/2026)
+- **[Nên sửa] Ca danh sách chỉ kiểm "không chứa id":** body lỗi 403 hay 500 cũng không chứa id, nên ca vẫn xanh dù API hỏng. Sửa ở `8454bca`:
+  - ca của người khác: trước khi so id, khẳng định nhận 200 và `items` rỗng;
+  - ca của chính chủ sở hữu: danh sách phải chứa id của chủ sở hữu. Nhờ vậy API trả rỗng cho mọi người cũng bị bắt.
+- **Kiểm ngược:**
+
+  | Phép làm hỏng | Ca đỏ |
+  |---|---|
+  | `listOffers` trả 403 cho mọi PARENT (đúng tình huống Codex nêu; trước khi sửa vẫn xanh) | 2 |
+  | `listOffers` trả trang rỗng cho mọi người | 2 |
+  | Hàng chờ người xác minh trả trang rỗng cho mọi người | 1 |
+
+  Sau khi sửa: bảng Đề nghị 33/33, bảng Quản trị 32/32, toàn bộ backend 730 ca, 0 hỏng.
+- **[Chặn Ready] Còn thiếu nhóm Thông báo, `acceptOffer`, AT01:** đúng với kế hoạch ở trên. Làm sau khi #237, #238 merge (cả hai còn OPEN ngày 26/11). PR giữ Draft.
 
 ## Quyết định đã chọn
 - **Đính, 26/11/2026, cho #249:** `decideVerification` kiểm VERIFY (không khóa) trước khi đọc hồ sơ, giống ba API đọc. Trước đây ADMIN không VERIFY nhận 404 trên hồ sơ của người khác. Lần kiểm có khóa ở cuối giao dịch giữ nguyên, thứ tự khóa không đổi.

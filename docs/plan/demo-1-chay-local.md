@@ -26,10 +26,10 @@ New-NetFirewallRule -DisplayName "TutorBridge dev" -Direction Inbound -Protocol 
 Mạng Wi-Fi phải đặt là Private trong Windows, nếu không quy tắc trên không áp dụng.
 
 ## 2. File `.env` ở thư mục gốc
-Sao chép `.env.example` thành `.env`. Điền ba khóa của TB-8, mỗi khóa một giá trị khác nhau:
+Sao chép `.env.example` thành `.env`. Điền ba khóa của TB-8 và khóa MFA quản trị của TB-13, mỗi khóa một giá trị khác nhau:
 
 ```bash
-openssl rand -base64 32   # chạy ba lần, cho TB_EMAIL_DIGEST_KEY, TB_EMAIL_ENCRYPTION_KEY, TB_LINK_TOKEN_KEY
+openssl rand -base64 32   # chạy bốn lần, cho TB_EMAIL_DIGEST_KEY, TB_EMAIL_ENCRYPTION_KEY, TB_LINK_TOKEN_KEY, TB_ADMIN_MFA_KEY
 ```
 
 Đổi các mật khẩu `change-me-local-only` nếu muốn. Đổi khóa hoặc mật khẩu sau khi đã có dữ liệu thì tài khoản cũ không dùng được nữa: xóa dữ liệu theo mục 7.

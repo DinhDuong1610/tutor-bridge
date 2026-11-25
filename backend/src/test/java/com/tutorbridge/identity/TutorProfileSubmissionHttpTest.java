@@ -196,6 +196,10 @@ class TutorProfileSubmissionHttpTest extends HttpTest {
 
     @Test
     void UC03_submit_freezes_the_draft_links_the_evidence_and_opens_a_waiting_verification() throws Exception {
+        // No verifier at all, so the verification stays unassigned (TB-13 decision 4); the turns of the
+        // verifiers are tested in VerifierAssignmentHttpTest.
+        jdbc.sql("update admin_assignments set revoked_at = now() where capability = 'VERIFY' and revoked_at is null")
+                .update();
         Actor tutor = newActor(Actor.Role.TUTOR);
         UUID draft = draft(tutor, 1, 3);
         List<UUID> evidence = ready(tutor, 1);

@@ -9,8 +9,9 @@ import org.springframework.stereotype.Component;
 
 /**
  * The results of this module's commands, for the command status lookup (TX16, TB-22): the same owner checks
- * as the reads of those results, made now (INV-22). {@code CLASS} (TX05) is not here yet: its reader comes
- * with getClass in TB-20, so until then its status leaves the result out (Huy, 24/11/2026).
+ * as the reads of those results, made now (INV-22). {@code OFFER} (sendOffer, rejectOffer, cancelOffer of TB-18)
+ * follows getOffer: the offer's tutor, or the parent of its child. {@code CLASS} (TX05) is not here yet: its
+ * reader comes with getClass in TB-20, so until then its status leaves the result out (Huy, 24/11/2026).
  */
 @Component
 class ClassesCommandResults implements CommandResults {
@@ -18,19 +19,22 @@ class ClassesCommandResults implements CommandResults {
     private final NeedRepository needs;
     private final MatchingRepository runs;
     private final CalendarRepository calendars;
+    private final OfferRepository offers;
     private final Parties parties;
 
     ClassesCommandResults(NeedRepository needs, MatchingRepository runs, CalendarRepository calendars,
-            Parties parties) {
+            OfferRepository offers, Parties parties) {
         this.needs = needs;
         this.runs = runs;
         this.calendars = calendars;
+        this.offers = offers;
         this.parties = parties;
     }
 
     @Override
     public Set<String> resultTypes() {
-        return Set.of(NeedService.RESULT_TYPE, MatchingRunService.RESULT_TYPE, CalendarService.RESULT_TYPE);
+        return Set.of(NeedService.RESULT_TYPE, MatchingRunService.RESULT_TYPE, CalendarService.RESULT_TYPE,
+                OfferService.RESULT_TYPE);
     }
 
     @Override
@@ -44,6 +48,12 @@ class ClassesCommandResults implements CommandResults {
                     .map(owner -> CalendarService.TUTOR.equals(owner.kind())
                             ? actor.role() == Actor.Role.TUTOR && owner.id().equals(actor.accountId())
                             : ownsStudent(actor, owner.id()))
+                    .orElse(false);
+            // As getOffer reads it (OfferService.mayRead).
+            case OfferService.RESULT_TYPE -> offers.find(resultId)
+                    .map(offer -> actor.role() == Actor.Role.TUTOR
+                            ? offer.tutorId().equals(actor.accountId())
+                            : ownsStudent(actor, offer.studentId()))
                     .orElse(false);
             default -> false;
         };

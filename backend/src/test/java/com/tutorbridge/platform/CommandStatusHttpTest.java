@@ -139,6 +139,65 @@ class CommandStatusHttpTest extends HttpTest {
     }
 
     @Test
+    void INV_22_an_offer_is_shown_as_getOffer_reads_it_to_its_tutor_and_the_parent_of_its_child()
+            throws Exception {
+        // TB-18 commands keep OFFER as their result: sendOffer (parent), rejectOffer (tutor), cancelOffer (parent).
+        com.tutorbridge.classes.OfferFixture fixture = new com.tutorbridge.classes.OfferFixture(jdbc, tx);
+        com.tutorbridge.classes.OfferFixture.Student child = fixture.student();
+        com.tutorbridge.classes.OfferFixture.Tutor to = fixture.tutor();
+        UUID offer = fixture.offer(fixture.need(child), to);
+        Actor parent = new Actor(child.parentId(), Actor.Role.PARENT, UUID.randomUUID());
+        Actor tutor = new Actor(to.id(), Actor.Role.TUTOR, UUID.randomUUID());
+
+        assertShown(parent, "SEND_OFFER", "OFFER", offer);
+        assertShown(parent, "CANCEL_OFFER", "OFFER", offer);
+        assertShown(tutor, "REJECT_OFFER", "OFFER", offer);
+
+        // Another tutor or another family under their own receipt: the status, never the result.
+        Actor otherTutor = newActor(Actor.Role.TUTOR);
+        Actor otherParent = newActor(Actor.Role.PARENT);
+        assertHidden(body(read(otherTutor, receipt(otherTutor, "REJECT_OFFER", "SUCCEEDED", "OFFER", offer, null))
+                .andExpect(status().isOk())), "SUCCEEDED");
+        assertHidden(body(read(otherParent, receipt(otherParent, "SEND_OFFER", "SUCCEEDED", "OFFER", offer, null))
+                .andExpect(status().isOk())), "SUCCEEDED");
+
+        // The parent who loses the child loses the result too (INV-22).
+        jdbc.sql("update students set parent_id = ? where id = ?").params(otherParent.accountId(), child.id()).update();
+        assertHidden(body(read(parent, receipt(parent, "SEND_OFFER", "SUCCEEDED", "OFFER", offer, null))
+                .andExpect(status().isOk())), "SUCCEEDED");
+    }
+
+    @Test
+    void INV_22_a_decided_verification_is_shown_to_its_verifier_while_they_may_still_verify() throws Exception {
+        // decideVerification (TB-13) keeps TUTOR_VERIFICATION as its result, with the ADMIN as the actor.
+        Actor verifier = newActor(Actor.Role.ADMIN);
+        jdbc.sql("insert into admin_assignments(account_id, capability, granted_by) values (?, 'VERIFY', ?)")
+                .params(verifier.accountId(), verifier.accountId()).update();
+        UUID verification = UUID.randomUUID();
+        jdbc.sql("""
+                insert into tutor_verifications(id, profile_id, scope, status, evidence_key, assigned_to, reviewed_by,
+                                                reviewed_at)
+                values (?, ?, 'MATH8_ALGEBRA', 'VERIFIED', ?, ?, ?, now())
+                """).params(verification, profile(newActor(Actor.Role.TUTOR)), "0".repeat(64), verifier.accountId(),
+                        verifier.accountId()).update();
+
+        assertShown(verifier, "DECIDE_VERIFICATION", "TUTOR_VERIFICATION", verification);
+
+        // Another verifier, to whom it is not assigned: the status, not the result.
+        Actor other = newActor(Actor.Role.ADMIN);
+        jdbc.sql("insert into admin_assignments(account_id, capability, granted_by) values (?, 'VERIFY', ?)")
+                .params(other.accountId(), other.accountId()).update();
+        assertHidden(body(read(other, receipt(other, "DECIDE_VERIFICATION", "SUCCEEDED", "TUTOR_VERIFICATION",
+                verification, null)).andExpect(status().isOk())), "SUCCEEDED");
+
+        // The verifier whose VERIFY is revoked no longer reads it (INV-22).
+        jdbc.sql("update admin_assignments set revoked_at = now() where account_id = ?").param(verifier.accountId())
+                .update();
+        assertHidden(body(read(verifier, receipt(verifier, "DECIDE_VERIFICATION", "SUCCEEDED", "TUTOR_VERIFICATION",
+                verification, null)).andExpect(status().isOk())), "SUCCEEDED");
+    }
+
+    @Test
     void a_class_until_TB_20_an_unknown_type_and_a_result_that_is_gone_are_left_out() throws Exception {
         Actor tutor = newActor(Actor.Role.TUTOR);
 

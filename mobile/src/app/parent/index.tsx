@@ -9,6 +9,7 @@ export default function ParentHomeRoute() {
       onAddStudent={() => router.push("/parent/account/students/new")}
       onManageStudents={() => router.push("/parent/account/students")}
       onSecurity={() => router.push("/parent/security")}
+      onNotifications={() => router.push("/parent/notifications")}
     />
   );
 }

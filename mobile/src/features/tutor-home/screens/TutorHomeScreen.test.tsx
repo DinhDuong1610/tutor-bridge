@@ -43,7 +43,7 @@ function serve({ profile, verification: record, calendar }: { profile?: unknown;
 }
 
 async function renderHome() {
-  const handlers = { onOpen: jest.fn(), onSecurity: jest.fn() };
+  const handlers = { onOpen: jest.fn(), onSecurity: jest.fn(), onNotifications: jest.fn() };
   await renderScreen(<TutorHomeScreen {...handlers} now={() => NOW} />, { session: fakeSession("TUTOR") });
   return handlers;
 }
@@ -92,9 +92,12 @@ describe("GS01 Trang chủ gia sư", () => {
     expect(urls.map((url) => url.pathname).sort()).toEqual(["/api/v1/me/tutor-calendar", "/api/v1/me/tutor-profile", "/api/v1/me/tutor-profile/verification"]);
     expect(urls.every((url) => url.search === "")).toBe(true);
     expect(server.unexpected).toEqual([]);
-    for (const block of ["Buổi sắp tới", "Đề nghị", "Thông báo"]) {
+    for (const block of ["Buổi sắp tới", "Đề nghị"]) {
       expect(screen.queryByText(block, { exact: false })).toBeNull();
     }
+    // The notifications block stays hidden: the only "Thông báo" is the temporary way in to COM01 (#74).
+    expect(screen.queryAllByText("Thông báo", { exact: false })).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "Thông báo" })).toBeOnTheScreen();
   });
 
   it("frame Đang chờ xác minh", async () => {
@@ -192,11 +195,14 @@ describe("GS01 Trang chủ gia sư", () => {
       "GET /me/tutor-profile/verification": none,
       "GET /me/tutor-calendar": none,
     });
-    const { onSecurity } = await renderHome();
+    const { onSecurity, onNotifications } = await renderHome();
 
     expect(await screen.findByText("Không tải được dữ liệu. Kiểm tra kết nối rồi thử lại.", {}, { timeout: 10_000 })).toBeOnTheScreen();
     await press("Bảo mật");
     expect(onSecurity).toHaveBeenCalledTimes(1);
+    // The temporary way in to COM01 (#74) stays too, until the tab bar exists (#205).
+    await press("Thông báo");
+    expect(onNotifications).toHaveBeenCalledTimes(1);
     await press("Thử lại");
 
     expect(await screen.findByText("Bước 2")).toBeOnTheScreen();

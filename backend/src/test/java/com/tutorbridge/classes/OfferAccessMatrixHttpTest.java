@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.jayway.jsonpath.JsonPath;
 import com.tutorbridge.Contract;
 import com.tutorbridge.HttpTest;
 import com.tutorbridge.classes.OfferHttpFixture.Scenario;
@@ -152,7 +153,13 @@ class OfferAccessMatrixHttpTest extends HttpTest {
             if (op.list()) {
                 cases.add(DynamicTest.dynamicTest("another " + role + "'s list holds none of the owner's ids", () -> {
                     Owned owned = owned();
-                    String body = send(op.request().apply(owned).apply(null), newActor(role)).getContentAsString();
+                    MockHttpServletResponse answer = send(op.request().apply(owned).apply(null), newActor(role));
+                    String body = answer.getContentAsString();
+                    // A real list first (Codex on #250): an error body holds no id either, so without this
+                    // a 403 or a 500 to a caller who may read their own list would pass.
+                    assertThat(answer.getStatus()).as(op.id() + " as another " + role + ": " + body).isEqualTo(200);
+                    List<Object> items = JsonPath.read(body, "$.items");
+                    assertThat(items).as(op.id() + ": the other member has no offer of their own").isEmpty();
                     for (UUID id : ids(owned)) {
                         assertThat(body).as(op.id() + " as another " + role).doesNotContain(id.toString());
                     }
@@ -186,11 +193,19 @@ class OfferAccessMatrixHttpTest extends HttpTest {
                     Actor self = role == Role.PARENT ? owned.parent() : owned.tutor();
                     // sendOffer: the pair already has a PENDING offer, so the owner's own call is refused on
                     // the offer, 409, after the access checks; every other row answers 2xx.
-                    int status = send(op.request().apply(owned).apply(op.pathId().apply(owned)), self).getStatus();
+                    MockHttpServletResponse answer = send(op.request().apply(owned).apply(op.pathId().apply(owned)),
+                            self);
+                    int status = answer.getStatus();
                     if (op.id().equals("sendOffer")) {
                         assertThat(status).as(op.id()).isEqualTo(409);
                     } else {
                         assertThat(status).as(op.id()).isBetween(200, 299);
+                    }
+                    if (op.list()) {
+                        // The list has the owner's offer, so its emptiness for another member above means
+                        // something (Codex on #250).
+                        List<String> offers = JsonPath.read(answer.getContentAsString(), "$.items[*].id");
+                        assertThat(offers).as(op.id() + " as the owning " + role).contains(owned.offer().toString());
                     }
                 }))));
     }

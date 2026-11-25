@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import com.jayway.jsonpath.JsonPath;
 import com.tutorbridge.Contract;
 import com.tutorbridge.HttpTest;
 import com.tutorbridge.platform.api.Actor;
@@ -108,7 +109,13 @@ class AdminAccessMatrixHttpTest extends HttpTest {
         if (op.list()) {
             cases.add(DynamicTest.dynamicTest("another verifier's queue holds none of the owner's ids", () -> {
                 Owned owned = owned();
-                String body = send(own(op, owned), verifier()).getContentAsString();
+                MockHttpServletResponse answer = send(own(op, owned), verifier());
+                String body = answer.getContentAsString();
+                // A real queue first (Codex on #250): an error body holds no id either, so without this a 403
+                // or a 500 to a verifier who may read their own queue would pass.
+                assertThat(answer.getStatus()).as(op.id() + ": " + body).isEqualTo(200);
+                List<Object> items = JsonPath.read(body, "$.items");
+                assertThat(items).as(op.id() + ": the other verifier has no record of their own").isEmpty();
                 for (UUID id : List.of(owned.verification(), owned.profile(), owned.upload(), owned.tutor())) {
                     assertThat(body).as(op.id()).doesNotContain(id.toString());
                 }
@@ -145,7 +152,13 @@ class AdminAccessMatrixHttpTest extends HttpTest {
     Stream<DynamicNode> the_assigned_verifier_is_answered() {
         return verifierOps().stream().map(op -> DynamicTest.dynamicTest(op.id(), () -> {
             Owned owned = owned();
-            assertThat(send(own(op, owned), owned.verifier()).getStatus()).as(op.id()).isBetween(200, 299);
+            MockHttpServletResponse answer = send(own(op, owned), owned.verifier());
+            assertThat(answer.getStatus()).as(op.id()).isBetween(200, 299);
+            if (op.list()) {
+                // The queue has the owner's record, so its emptiness for another verifier means something.
+                List<String> records = JsonPath.read(answer.getContentAsString(), "$.items[*].id");
+                assertThat(records).as(op.id()).containsExactly(owned.verification().toString());
+            }
         }));
     }
 

@@ -9,6 +9,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 import com.tutorbridge.Contract;
 import com.tutorbridge.HttpTest;
+import com.tutorbridge.classes.OfferFixture;
+import com.tutorbridge.classes.OfferFixture.Need;
+import com.tutorbridge.classes.OfferFixture.Student;
+import com.tutorbridge.classes.OfferFixture.Tutor;
+import com.tutorbridge.classes.api.AcceptOffer;
 import com.tutorbridge.platform.api.Actor;
 import com.tutorbridge.platform.api.Actor.Role;
 import java.nio.file.Files;
@@ -32,9 +37,11 @@ import org.junit.jupiter.api.DynamicNode;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * TB-23, Huy's part of the M7 acceptance: the access cases of every operation of Lát 1 in Huy's API groups
@@ -55,6 +62,12 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
  */
 class AuthorizationMatrixHttpTest extends HttpTest {
 
+    @Autowired
+    TransactionTemplate tx;
+
+    @Autowired
+    AcceptOffer acceptOffer;
+
     private static final ZoneId VIETNAM = ZoneId.of("Asia/Ho_Chi_Minh");
     private static final String DESCRIPTION = "Dạy đại số lớp 8 theo từng bước, có bài tập về nhà mỗi buổi học.";
     private static final String GOAL = "Nắm chắc phương trình bậc nhất một ẩn trước kỳ kiểm tra giữa kỳ.";
@@ -63,13 +76,6 @@ class AuthorizationMatrixHttpTest extends HttpTest {
     /** Huy's groups of `r0a-scope.md` (Huy on Notion; Lịch, Nhu cầu, Trạng thái lệnh: Huy, 25/11/2026). */
     private static final List<String> HUY_GROUPS = List.of("Xác thực", "Học sinh", "Hồ sơ gia sư", "Lịch",
             "Nhu cầu", "Gợi ý", "Lớp", "Trạng thái lệnh");
-
-    /** Not on `dev` yet; each gets its row when its PR merges (`docs/handoff/TB-23.md`). */
-    private static final Map<String, String> PENDING = Map.of(
-            "getClass", "#240 (TB-20)",
-            "listSessions", "#240 (TB-20)",
-            "getCommandStatus", "#222 (TB-22)",
-            "findCommandStatus", "#222 (TB-22)");
 
     /**
      * Rows where a role outside the contract's gets 404, not 403, because the decision hides whether the
@@ -202,6 +208,22 @@ class AuthorizationMatrixHttpTest extends HttpTest {
         // A public profile is no one's own data: no other-member row, only the roles.
         ops.add(new Op("getTutorPublic", Access.ROLES, parent, this::publicTutor,
                 v -> get("/api/v1/tutors/" + v.get("tutor") + "/public-profile"), null, false));
+
+        // Lớp: the class's parent or tutor. The owner here is its parent; another parent gets the unknown-id
+        // 404 (the other tutor's case is in ClassHttpTest). STUDENT is P1, so 403 like ADMIN (ClassService).
+        Set<Role> parties = EnumSet.of(Role.PARENT, Role.TUTOR);
+        ops.add(new Op("getClass", Access.ROLES, parties, this::classOf, v -> get("/api/v1/classes/" + v.get("class")),
+                "class", false));
+        ops.add(new Op("listSessions", Access.ROLES, parties, this::classOf,
+                v -> get("/api/v1/classes/" + v.get("class") + "/sessions"), "class", false));
+
+        // Trạng thái lệnh: any role, only its own receipt. The key of findCommandStatus is in the query, so
+        // the other-member case swaps the key, as it swaps a path id elsewhere.
+        ops.add(new Op("getCommandStatus", Access.ANY, Set.of(), this::receiptOf,
+                v -> get("/api/v1/operations/" + v.get("receipt")), "receipt", false));
+        ops.add(new Op("findCommandStatus", Access.ANY, Set.of(), this::receiptOf,
+                v -> get("/api/v1/operations").param("idempotencyKey", v.get("key"))
+                        .param("commandType", "CREATE_STUDENT"), "key", false));
         return ops;
     }
 
@@ -290,10 +312,7 @@ class AuthorizationMatrixHttpTest extends HttpTest {
         }
 
         assertThat(scoped).as("Huy's groups as r0a-scope.md lists them").hasSize(38);
-        Set<String> covered = new TreeSet<>(rows);
-        covered.addAll(PENDING.keySet());
-        assertThat(covered).isEqualTo(new TreeSet<>(scoped));
-        assertThat(rows).doesNotContainAnyElementsOf(PENDING.keySet());
+        assertThat(rows).isEqualTo(new TreeSet<>(scoped));
     }
 
     /** The operationIds of Huy's groups in the API table of `r0a-scope.md`. */
@@ -399,6 +418,34 @@ class AuthorizationMatrixHttpTest extends HttpTest {
         return vars;
     }
 
+    /** A class of the owner's child, made by TX05 as acceptOffer makes it, with its 4 weekly sessions. */
+    private Map<String, String> classOf(Actor owner) {
+        OfferFixture fixture = new OfferFixture(jdbc, tx);
+        Student student = fixture.student(owner.accountId());
+        Need need = fixture.need(student);
+        Tutor tutor = fixture.tutor();
+        UUID offer = fixture.offer(need, tutor);
+        UUID classId = acceptOffer.accept(tutor.id(), offer, 1, UUID.randomUUID().toString()).id();
+        return Map.of("owner", owner.accountId().toString(), "student", student.id().toString(), "class",
+                classId.toString());
+    }
+
+    /** A succeeded CREATE_STUDENT receipt of the owner's, whose result is the owner's child. */
+    private Map<String, String> receiptOf(Actor owner) {
+        UUID student = UUID.randomUUID();
+        jdbc.sql("insert into students(id, parent_id, display_name) values (?, ?, 'Hoc sinh thu')")
+                .params(student, owner.accountId()).update();
+        UUID receipt = UUID.randomUUID();
+        String key = UUID.randomUUID().toString();
+        jdbc.sql("""
+                insert into command_receipts(id, actor_id, command_type, idempotency_key, payload_sha256, state,
+                                             result_type, result_id, expires_at)
+                values (?, ?, 'CREATE_STUDENT', ?, ?, 'SUCCEEDED', 'STUDENT', ?, now() + interval '7 days')
+                """).params(receipt, owner.accountId(), key, "0".repeat(64), student).update();
+        return Map.of("owner", owner.accountId().toString(), "student", student.toString(), "receipt",
+                receipt.toString(), "key", key);
+    }
+
     // ---------------------------------------------------------------- requests
 
     private static Op publicOp(String id, String path) {
@@ -463,6 +510,16 @@ class AuthorizationMatrixHttpTest extends HttpTest {
         if (vars.containsKey("session")) {
             parts.add(one("select coalesce(revoked_at::text, 'live') from auth_sessions where id = ?::uuid",
                     vars.get("session")));
+        }
+        if (vars.containsKey("class")) {
+            String classId = vars.get("class");
+            parts.add(one("select status || '/' || revision from classes where id = ?::uuid", classId));
+            parts.add(one("select string_agg(state || '/' || revision, ',' order by ordinal) from lesson_sessions "
+                    + "where class_id = ?::uuid", classId));
+        }
+        if (vars.containsKey("receipt")) {
+            parts.add(one("select state || '/' || expires_at::text from command_receipts where id = ?::uuid",
+                    vars.get("receipt")));
         }
         if (vars.containsKey("upload")) {
             parts.add(one("select state from tutor_evidence_uploads where id = ?::uuid", vars.get("upload")));

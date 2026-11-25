@@ -143,11 +143,7 @@ public class AcceptOfferService implements AcceptOffer {
         lockResources(need.studentId(), offer.tutorId());
 
         // Measured after the locks: the wait for them must not extend the deadline.
-        boolean expired = jdbc.sql("select clock_timestamp() >= ?")
-                .param(java.sql.Timestamp.from(offer.expiresAt())).query(Boolean.class).single();
-        if (expired) {
-            throw offerExpired();
-        }
+        requireNotExpired(offer);
         UUID parentId = parties.lockAgreementParties(
                 offer.tutorId(), offer.profileId(), offer.rateVnd60(), need.studentId())
                 .orElseThrow(AcceptOfferService::scopeChanged);
@@ -176,6 +172,10 @@ public class AcceptOfferService implements AcceptOffer {
                 """).params(offer.needId(), offerId).query(UUID.class).list();
         jdbc.sql("update learning_needs set status = 'CLOSED', revision = revision + 1 where id = ?")
                 .param(offer.needId()).update();
+        // Again after the last statement that may wait (Codex on #238): on the accounts, the profile and the
+        // child in lockAgreementParties, or on a competing offer a reject or a cancel holds (TX06 locks only
+        // the offer). An offer that ran out meanwhile makes no class: this rolls back every write (BR05, UC06).
+        requireNotExpired(offer);
 
         outbox.publish("CLASS", classId, "CLASS_CREATED", Map.of("classId", classId, "offerId", offerId),
                 "CLASS_CREATED:" + classId);
@@ -255,6 +255,15 @@ public class AcceptOfferService implements AcceptOffer {
             }
         }
         return null;
+    }
+
+    /** By the database clock, the one every replica shares. */
+    private void requireNotExpired(Offer offer) {
+        boolean expired = jdbc.sql("select clock_timestamp() >= ?")
+                .param(java.sql.Timestamp.from(offer.expiresAt())).query(Boolean.class).single();
+        if (expired) {
+            throw offerExpired();
+        }
     }
 
     private void requireActiveTutor(UUID actorId) {

@@ -408,6 +408,107 @@ class OfferAcceptHttpTest extends HttpTest {
         assertThat(replay.get(10, TimeUnit.SECONDS)).isEqualTo(403);
     }
 
+    // ---------------------------------------------------------------- BR05, UC06: the deadline while waiting
+
+    /**
+     * A PENDING offer of the scenario with {@code secondsLeft} of its 48 hours left, inserted with its terms as
+     * {@code overdueOffer} does: an offer already sent cannot have its deadline moved (integrity triggers).
+     */
+    private UUID offerEndingIn(Scenario s, int secondsLeft) {
+        return tx.execute(st -> {
+            UUID offer = UUID.randomUUID();
+            jdbc.sql("""
+                    insert into class_offers(id, need_id, need_version_id, tutor_id, profile_id, tutor_calendar_id,
+                                             student_calendar_id, run_id, state, goal_snapshot, duration_minutes,
+                                             frequency, cycle_start_date, rate_vnd_60, price_vnd_session, sent_at,
+                                             expires_at)
+                    values (?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', ?, 90, 2, ?, ?, ?,
+                            statement_timestamp() - interval '48 hours' + make_interval(secs => ?),
+                            statement_timestamp() + make_interval(secs => ?))
+                    """).params(offer, s.need().id(), s.need().versionId(), s.candidate().tutor().id(),
+                            s.candidate().tutor().profileId(), s.candidate().tutor().calendarId(),
+                            s.need().calendarId(), s.candidate().runId(), OfferHttpFixture.GOAL, s.need().start(),
+                            OfferHttpFixture.RATE, OfferHttpFixture.PRICE, secondsLeft, secondsLeft).update();
+            List<java.util.Map<String, String>> windows = s.candidate().schedule();
+            for (int i = 0; i < windows.size(); i++) {
+                jdbc.sql("""
+                        insert into offer_sessions(offer_id, ordinal, during)
+                        values (?, ?, tstzrange(cast(? as timestamptz), cast(? as timestamptz), '[)'))
+                        """).params(offer, i + 1, windows.get(i).get("start"), windows.get(i).get("end")).update();
+            }
+            return offer;
+        });
+    }
+
+    /**
+     * Holds {@code lockSql} until the accept is seen waiting on {@code waitingOn} and the offer has run out,
+     * then releases it and returns the accept's status.
+     */
+    private String acceptWhileHeldPastTheDeadline(Actor tutor, UUID offer, String lockSql, UUID lockedId,
+            String waitingOn) throws Exception {
+        CompletableFuture<String> answer;
+        try (Connection hold = DriverManager.getConnection(
+                PostgresTestSupport.jdbcUrl(), "tutorbridge_app", PostgresTestSupport.APP_PASSWORD)) {
+            hold.setAutoCommit(false);
+            try (var lock = hold.prepareStatement(lockSql)) {
+                lock.setObject(1, lockedId);
+                lock.executeQuery();
+            }
+            answer = Concurrently.supply(() -> outcomeOf(() -> accept(tutor, offer)));
+            // The accept passed the first deadline check and now waits on the held row.
+            await().atMost(Duration.ofSeconds(2)).pollInterval(Duration.ofMillis(20)).until(() -> fx.count("""
+                    select count(*) from pg_stat_activity
+                    where wait_event_type = 'Lock' and query like ? and query not like '%pg_stat_activity%'
+                    """, waitingOn) == 1);
+            await().atMost(Duration.ofSeconds(4)).pollInterval(Duration.ofMillis(50)).until(() -> fx.count(
+                    "select count(*) from class_offers where id = ? and expires_at <= clock_timestamp()", offer) == 1);
+            hold.commit();
+        }
+        return answer.get(10, TimeUnit.SECONDS);
+    }
+
+    private void assertNoLateClass(Scenario s, UUID offer) {
+        assertThat(classesOf(s.need())).isZero();
+        assertThat(fx.count("select count(*) from class_offers where id = ? and state = 'PENDING'", offer)).isOne();
+        assertThat(fx.count("select count(*) from learning_needs where id = ? and status = 'CONFIRMED'", s.need().id()))
+                .isOne();
+        assertThat(acceptReceipts(tutorOf(s))).isZero();
+        assertThat(fx.count("select count(*) from outbox_events where event_type = 'CLASS_CREATED' and payload::text like ?",
+                "%" + offer + "%")).isZero();
+    }
+
+    @Test
+    void BR05_an_offer_that_runs_out_while_the_accept_waits_on_the_parent_account_makes_no_class() throws Exception {
+        Scenario s = fx.scenario();
+        UUID offer = offerEndingIn(s, 3);
+
+        // Codex's probe on #238: FOR NO KEY UPDATE, as an account change would, so the receipt can still be written.
+        String outcome = acceptWhileHeldPastTheDeadline(tutorOf(s), offer,
+                "select 1 from tutorbridge.accounts where id = ? for no key update", s.parent().accountId(),
+                "%select role from accounts%");
+
+        assertThat(outcome).isEqualTo("409 OFFER_EXPIRED");
+        assertNoLateClass(s, offer);
+    }
+
+    @Test
+    void BR05_an_offer_that_runs_out_while_the_accept_waits_on_a_competing_offer_makes_no_class() throws Exception {
+        Scenario s = fx.scenario();
+        Tutor other = fx.tutor("Thầy Nam Thử", s.need().start());
+        Candidate second = fx.run(s.parent(), s.need(), other);
+        UUID competing = id(fx.send(s.parent(), s.need().id(), UUID.randomUUID().toString(), "\"2\"",
+                input(s.need(), second)).andExpect(status().isCreated()));
+        UUID offer = offerEndingIn(s, 3);
+
+        // As a reject or a cancel of the competing offer would hold it (TX06 locks only the offer).
+        String outcome = acceptWhileHeldPastTheDeadline(tutorOf(s), offer,
+                "select 1 from tutorbridge.class_offers where id = ? for update", competing, "%NEED_CLOSED%");
+
+        assertThat(outcome).isEqualTo("409 OFFER_EXPIRED");
+        assertNoLateClass(s, offer);
+        assertThat(offerState(competing)).isEqualTo("PENDING/-/1");
+    }
+
     @Test
     void ADR_0007_a_need_held_past_the_lock_timeout_is_503_and_writes_nothing() throws Exception {
         Scenario s = fx.scenario();
@@ -434,6 +535,18 @@ class OfferAcceptHttpTest extends HttpTest {
     @FunctionalInterface
     private interface Request {
         ResultActions perform() throws Exception;
+    }
+
+    /** Status and Problem code, as "409 OFFER_EXPIRED". */
+    private static String outcomeOf(Request request) {
+        try {
+            var response = request.perform().andReturn().getResponse();
+            String code = response.getStatus() >= 400
+                    ? JsonPath.read(response.getContentAsString(), "$.code") : "-";
+            return response.getStatus() + " " + code;
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     private static int statusOf(Request request) {

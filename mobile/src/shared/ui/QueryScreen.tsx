@@ -8,12 +8,21 @@ import { Notice } from "./Notice";
 import { colors, spacing, typography } from "./theme";
 import { TopAppBar } from "./TopAppBar";
 
+/**
+ * The part of a query result this frame reads. A `UseQueryResult` fits it; a screen that reads
+ * several queries can combine them into one (GS01, `useQueries` with `combine`).
+ */
+export type QueryState<T> = Pick<UseQueryResult<T>, "isPending" | "isError" | "error"> & {
+  data: T | undefined;
+  refetch: () => unknown;
+};
+
 type Props<T> = {
   /** Shown as the screen heading. Put the screen code (PH02...) in a comment at the top of the screen file. */
   title: string;
   /** Shows a back button next to the title. */
   onBack?: () => void;
-  query: UseQueryResult<T>;
+  query: QueryState<T>;
   /** Shown when `isEmpty(data)` is true, for example "Chưa có hồ sơ con nào." */
   empty?: { when: (data: T) => boolean; message: string; action?: ReactNode };
   /**
@@ -78,7 +87,7 @@ function Body<T>({ query, empty, placesStaleNotice, children }: Omit<Props<T>, "
   );
 }
 
-function LoadError({ error, retry }: { error: Error; retry: () => void }) {
+function LoadError({ error, retry }: { error: Error | null; retry: () => void }) {
   if (error instanceof ApiError) {
     switch (error.kind) {
       case "session-expired":

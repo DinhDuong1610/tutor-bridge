@@ -2,14 +2,14 @@ import "server-only";
 import { createApiClient, type ApiClient } from "@tutorbridge/api-client";
 import { headers } from "next/headers";
 import { readSessionToken, SESSION_COOKIE } from "@/shared/session/cookies";
-import { clientIpFrom } from "./client-ip";
+import { clientIpFrom, clientIpHops } from "./client-ip";
 
 const API_URL = process.env.TB_API_URL ?? "http://127.0.0.1:8080/api/v1";
 /** This web's origin. The API accepts cookie writes only from origins in tutorbridge.security.admin-origins. */
 const WEB_ORIGIN = process.env.TB_WEB_ORIGIN ?? "http://localhost:3000";
 
 /** Trusted proxies in front of the one that saw the browser (#252, client-ip.ts). */
-const CLIENT_IP_HOPS = Number(process.env.TB_CLIENT_IP_HOPS ?? "0");
+const CLIENT_IP_HOPS = clientIpHops(process.env.TB_CLIENT_IP_HOPS);
 const CLIENT_IP_HEADER = "X-TB-Client-IP";
 
 const CSRF_COOKIE = "tb_csrf";

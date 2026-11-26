@@ -11,3 +11,17 @@ export function clientIpFrom(forwardedFor: string | null, hops: number): string 
   const entries = (forwardedFor ?? "").split(",").map((entry) => entry.trim()).filter(Boolean);
   return entries[entries.length - 1 - hops] ?? null;
 }
+
+/**
+ * TB_CLIENT_IP_HOPS as a whole number, 0 when unset. Anything else throws when the server starts: a typo
+ * would otherwise send no address and put every admin back on one count.
+ */
+export function clientIpHops(raw: string | undefined): number {
+  if (raw === undefined || raw === "") {
+    return 0;
+  }
+  if (!/^[0-9]+$/.test(raw)) {
+    throw new Error(`TB_CLIENT_IP_HOPS must be a whole number of 0 or more, not "${raw}"`);
+  }
+  return Number(raw);
+}

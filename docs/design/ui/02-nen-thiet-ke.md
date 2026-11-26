@@ -95,7 +95,7 @@ Web: `--radius` đổi từ `0.625rem` sang `0.75rem` để shadcn/ui ra 8 và 1
 Không dùng bóng làm mặc định. Phân lớp bằng nền `surface` và viền `divider`. Chỉ thanh tác vụ cố định ở cuối màn hình mobile có viền trên `divider`. Hộp thoại và bảng chọn dùng nền tối mờ phía sau, không thêm bóng.
 
 ## Icon
-- Một bộ icon dạng nét cho mỗi kênh, không trộn bộ. Đề xuất: Android dùng Material Symbols (Outlined), vì luật Android của Impeccable coi icon ngoài bộ của nền tảng là dấu hiệu app bê từ web sang; web quản trị dùng Lucide (đã có qua shadcn/ui). Gói mobile đã duyệt: `react-native-svg` bản Expo SDK 58 (15.16.0) cùng đường vẽ SVG Material Symbols Outlined trong `mobile/src/shared/ui/Icon.tsx` (Đính, 21/11/2026, comment rà #188; #95). Web chưa cài `lucide-react` (`TBD` Đính, handoff TB-95). Trong Figma dùng bản SVG của đúng bộ.
+- Một bộ icon dạng nét cho mỗi kênh, không trộn bộ. Đề xuất: Android dùng Material Symbols (Outlined), vì luật Android của Impeccable coi icon ngoài bộ của nền tảng là dấu hiệu app bê từ web sang; web quản trị dùng Lucide (đã có qua shadcn/ui). Gói mobile đã duyệt: `react-native-svg` bản Expo SDK 58 (15.16.0) cùng đường vẽ SVG Material Symbols Outlined trong `mobile/src/shared/ui/Icon.tsx` (Đính, 21/11/2026, comment rà #188; #95). Gói web đã duyệt: `lucide-react` 1.72.0, khóa đúng phiên bản theo quy tắc hai tuần (Đính, 22/11/2026, #95); web `Notice` dùng icon theo tone như mobile. Trong Figma dùng bản SVG của đúng bộ.
 - Icon mang nghĩa luôn đi kèm chữ, hoặc có nhãn trợ năng nếu đứng một mình.
 - Không đặt icon trang trí trên mỗi tiêu đề.
 

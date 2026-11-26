@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, LoaderCircle } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/shared/ui/button";
 import { FormField } from "@/shared/ui/form-field";
@@ -37,6 +37,16 @@ export function AdminSignInForm({
   const [answer, setAnswer] = useState<SignInStep | null>(null);
   const [pending, startTransition] = useTransition();
 
+  // Codex on #253: a delay ends on its own once the time the API named has passed, so the admin who waited
+  // the 15 minutes can try again without reloading. Editing a field does not end it (AD01 "Bị trì hoãn").
+  useEffect(() => {
+    if (answer?.state !== "delayed") {
+      return;
+    }
+    const timer = setTimeout(() => setAnswer((now) => (now === answer ? null : now)), answer.retryAfterSeconds * 1000);
+    return () => clearTimeout(timer);
+  }, [answer]);
+
   function run(call: () => Promise<SignInStep>) {
     startTransition(async () => {
       let result: SignInStep;
@@ -55,8 +65,9 @@ export function AdminSignInForm({
   }
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-md items-center px-4">
-      <section className="flex w-full flex-col gap-4 rounded-lg border bg-background p-6">
+    // Đính, 27/11/2026: the frame's muted page and borderless card, kept centred.
+    <div className="flex min-h-dvh items-center bg-muted px-4">
+      <section className="mx-auto flex w-full max-w-md flex-col gap-4 rounded-lg bg-background p-6">
         <p className="text-sm text-muted-foreground">{COPY.brand}</p>
         {step === "password" ? (
           <PasswordStep
@@ -100,6 +111,9 @@ function PasswordStep({
   const [shown, setShown] = useState(false);
   const fields = answer?.state === "invalid" ? answer.fields : {};
   const delayed = answer?.state === "delayed";
+  const answerNotice = pending ? <Notice tone="info" message={COPY.sending} /> : <PasswordAnswer answer={answer} />;
+  // Đính, 27/11/2026: the note belongs to the default frame only, so it goes once anything else is said.
+  const quiet = !pending && reason === null && (answer === null || answer.state === "invalid" || answer.state === "mfa");
 
   return (
     <form noValidate onChange={onEdit} onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
@@ -146,12 +160,12 @@ function PasswordStep({
           </p>
         ) : null}
       </div>
-      {pending ? <Notice tone="info" message={COPY.sending} /> : <PasswordAnswer answer={answer} />}
+      {answerNotice}
       <Button type="submit" disabled={pending || delayed} aria-busy={pending || undefined}>
         {pending ? <LoaderCircle aria-hidden className="animate-spin motion-reduce:animate-none" /> : null}
         {COPY.continue}
       </Button>
-      <p className="text-sm text-muted-foreground">{COPY.note}</p>
+      {quiet ? <p className="text-sm text-muted-foreground">{COPY.note}</p> : null}
     </form>
   );
 }

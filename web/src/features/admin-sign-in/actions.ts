@@ -25,17 +25,27 @@ export type SignInStep =
   | { state: "wrong-code" }
   /** The challenge is used, expired or gone: back to the password step (AdminSignIn.challengeEnded). */
   | { state: "challenge-ended" }
-  | { state: "delayed" }
+  /** 429: wait {@code retryAfterSeconds}, from Retry-After, then the form opens again (Codex on #253). */
+  | { state: "delayed"; retryAfterSeconds: number }
   | { state: "locked" }
   | { state: "invalid"; fields: Record<string, string> }
   | { state: "failed" };
 
 type Answer = { error?: unknown; response: Response };
 
+/** The 15 minutes the delay message names, when the API gives no usable Retry-After. */
+const DEFAULT_DELAY_SECONDS = 15 * 60;
+
+/** Retry-After in whole seconds, as the API sends it (TooManyRequests), else the default. */
+function retryAfterSeconds(response: Response): number {
+  const raw = response.headers.get("Retry-After") ?? "";
+  return /^[0-9]+$/.test(raw) && Number(raw) > 0 ? Number(raw) : DEFAULT_DELAY_SECONDS;
+}
+
 /** Answers both steps share: the 429 delay, the locked account, a lost connection or a 5xx. */
 function common(response: Response, error: unknown): SignInStep {
   if (response.status === 429) {
-    return { state: "delayed" };
+    return { state: "delayed", retryAfterSeconds: retryAfterSeconds(response) };
   }
   if (response.status === 403 && isProblem(error) && error.code === "ACCOUNT_LOCKED") {
     return { state: "locked" };

@@ -20,7 +20,7 @@ export const COPY = {
   // 04-trang-thai-cau-chu.md: "Mất quyền" (Đính, 26/11/2026, for reason=forbidden) and "Lỗi khác".
   forbidden: "Bạn không còn quyền xem nội dung này.",
   failed: "Không thực hiện được. Vui lòng thử lại.",
-  // Agent's proposals, not drawn in Figma: waiting for Đính (docs/handoff/TB-68.md).
+  // Not drawn in Figma: the agent's proposals, approved by Đính on 27/11/2026.
   emailRequired: "Nhập email.",
   emailInvalid: "Email chưa đúng định dạng.",
   passwordRequired: "Nhập mật khẩu.",

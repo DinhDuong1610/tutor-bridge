@@ -103,6 +103,34 @@ class NotificationsHttpTest extends HttpTest {
     }
 
     @Test
+    void FR_37_the_status_of_a_mark_read_names_the_notification_to_its_recipient_while_it_is_there()
+            throws Exception {
+        Actor parent = newActor(Actor.Role.PARENT);
+        UUID id = deliver(parent, "OFFER_REJECTED");
+        String key = UUID.randomUUID().toString();
+        read(parent, id, key).andExpect(status().isOk());
+
+        // TB-22's lookup by key, as the app asks after a lost answer (INV-24): the result is shown (INV-22).
+        commandStatus(parent, key).andExpect(status().isOk())
+                .andExpect(jsonPath("$.state").value("SUCCEEDED"))
+                .andExpect(jsonPath("$.resultType").value("NOTIFICATION"))
+                .andExpect(jsonPath("$.resultId").value(id.toString()));
+
+        // Gone since (INV-26): the status stays, without the result.
+        jdbc.sql("delete from notifications where id = ?").param(id).update();
+        commandStatus(parent, key).andExpect(status().isOk())
+                .andExpect(jsonPath("$.state").value("SUCCEEDED"))
+                .andExpect(jsonPath("$.resultType").doesNotExist())
+                .andExpect(jsonPath("$.resultId").doesNotExist());
+    }
+
+    private ResultActions commandStatus(Actor actor, String key) throws Exception {
+        return mvc.perform(get("/api/v1/operations").param("idempotencyKey", key)
+                .param("commandType", "MARK_NOTIFICATION_READ").with(sessions().as(actor)))
+                .andExpect(Contract.matches());
+    }
+
+    @Test
     void AC_UC15_03_nobody_reads_or_marks_another_members_notification() throws Exception {
         Actor parent = newActor(Actor.Role.PARENT);
         UUID id = deliver(parent, "OFFER_REJECTED");

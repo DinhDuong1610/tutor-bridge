@@ -33,6 +33,7 @@ public class NotificationService {
             Instant createdAt, boolean read) {}
 
     static final String MARK_READ = "MARK_NOTIFICATION_READ";
+    static final String RESULT_TYPE = "NOTIFICATION";
 
     private static final String SELECT = """
             select id, template_code, target_type, target_id, target_version, created_at, read_at is not null as read
@@ -82,7 +83,7 @@ public class NotificationService {
             }
             jdbc.sql("update notifications set read_at = ? where id = ? and recipient_id = ? and read_at is null")
                     .params(at(clock.instant()), notificationId, actor.accountId()).update();
-            receipts.succeed(receipt.id(), "NOTIFICATION", notificationId);
+            receipts.succeed(receipt.id(), RESULT_TYPE, notificationId);
             return find(actor, notificationId).orElseThrow();
         });
     }

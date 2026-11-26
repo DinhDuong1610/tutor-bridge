@@ -1,4 +1,4 @@
-import { renderRouter, screen } from "expo-router/testing-library";
+import { act, fireEvent, renderRouter, screen } from "expo-router/testing-library";
 import { json, mockApi } from "@/shared/test/mockApi";
 import { clearStore, fakeSession, storeSession } from "@/shared/test/session";
 
@@ -42,6 +42,10 @@ describe("CL02 routes", () => {
 
     expect(await screen.findByText("Toán 8, 1 buổi từ 20/11 đến 20/11/2030")).toBeOnTheScreen();
     expect(screen).toHavePathname(`/parent/classes/${CLASS_ID}/sessions`);
+
+    // Opened straight from a link: back has no history, so it lands on the parent home.
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Quay lại" })));
+    expect(screen).toHavePathname("/parent");
   });
 
   it("opens a class's sessions for the tutor", async () => {

@@ -5,5 +5,8 @@ import { ClassSessionsScreen } from "@/features/classes/screens/ClassSessionsScr
 export default function ParentClassSessionsRoute() {
   const router = useRouter();
   const { classId } = useLocalSearchParams<{ classId: string }>();
-  return <ClassSessionsScreen classId={classId} role="PARENT" onBack={() => router.back()} onOtherChild={() => router.back()} />;
+  // Opened from a link there is nothing to go back to, so the parent home stands in. TBD: the class
+  // list once listClasses exists (#97).
+  const leave = () => (router.canGoBack() ? router.back() : router.replace("/parent"));
+  return <ClassSessionsScreen classId={classId} role="PARENT" onBack={leave} onOtherChild={leave} />;
 }

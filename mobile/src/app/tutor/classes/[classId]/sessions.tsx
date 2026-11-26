@@ -5,5 +5,5 @@ import { ClassSessionsScreen } from "@/features/classes/screens/ClassSessionsScr
 export default function TutorClassSessionsRoute() {
   const router = useRouter();
   const { classId } = useLocalSearchParams<{ classId: string }>();
-  return <ClassSessionsScreen classId={classId} role="TUTOR" onBack={() => router.back()} />;
+  return <ClassSessionsScreen classId={classId} role="TUTOR" onBack={() => (router.canGoBack() ? router.back() : router.replace("/tutor"))} />;
 }

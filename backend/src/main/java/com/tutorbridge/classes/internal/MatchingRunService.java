@@ -63,7 +63,7 @@ public class MatchingRunService {
     static final int TOP = 5;
     /** Tutors read per page of {@link Parties#matchableTutors} (INV-81). */
     static final int PAGE = 50;
-    private static final String RESULT_TYPE = "MATCHING_RUN";
+    static final String RESULT_TYPE = "MATCHING_RUN";
     /** Q6: the name of a verification scope, never its code. R0 has one subject (INV-30). */
     private static final Map<String, String> SCOPE_NAMES = Map.of("MATH8_ALGEBRA", "Toán 8 đại số");
 

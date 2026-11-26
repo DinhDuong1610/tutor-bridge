@@ -32,7 +32,7 @@ Mục ghi **TBD** là quyết định còn mở, chưa được tự chọn.
 - Lỗi nghiệp vụ dùng kiểu riêng, ánh xạ về Problem tại một chỗ.
 - Không gọi dịch vụ ngoài trong giao dịch (INV-18).
 - Nền chung theo [ADR-0010](../decisions/adr/0010-nen-backend.md), đặt trong `platform`: `Actor` và `SessionResolver` cho xác thực, đọc `Idempotency-Key` và `If-Match`, `Cache-Control`, ánh xạ lỗi validate. Controller dùng các phần này, không tự đọc header.
-- Controller khai báo tham số `IdempotencyKey` cho lệnh ghi, `WritePrecondition.Expected` khi cần `If-Match`, `WritePrecondition` khi cho phép tạo lần đầu bằng `If-None-Match: *`. Phản hồi có phiên bản đặt `ETag` bằng `Etag.of(version)`. Mọi phản hồi đã có sẵn `Cache-Control: private, no-store`.
+- Controller khai báo tham số `IdempotencyKey` cho lệnh ghi, `WritePrecondition.Expected` khi cần `If-Match`, `WritePrecondition` khi cho phép tạo lần đầu bằng `If-None-Match: *`. Phản hồi có phiên bản đặt `ETag` bằng `Etag.of(version)`. Mọi phản hồi đã có sẵn `Cache-Control: private, no-store`. GET và HEAD không bao giờ trả 304: `NoConditionalGetFilter` bỏ `If-None-Match` và `If-Modified-Since` khỏi lệnh đọc, vì hợp đồng không khai 304 (Huy, 25/11/2026).
 - Code mới lấy thời gian từ bean `Clock` (UTC) và ID từ bean `IdGenerator`, không gọi `Instant.now()` hay `UUID.randomUUID()` trực tiếp, để test cố định được.
 - Không ghi bí mật hay dữ liệu cá nhân vào log. `LogRedaction` che bearer, cookie phiên, email, cặp `password=`… trong log JSON và trong log text của profile `local` (`RedactedTextLogFormatter`, cả stack trace; Đính chốt 13/11/2026, #85), nhưng chỉ là lớp chặn cuối.
 - Dữ liệu giả cho máy local: mỗi mô-đun khai báo một bean `LocalSeed` trong gói `internal`, chỉ ghi bảng của mình, chạy lại được nhiều lần, dữ liệu rõ ràng là giả.
@@ -41,6 +41,7 @@ Mục ghi **TBD** là quyết định còn mở, chưa được tự chọn.
 - Test HTTP của chức năng: kế thừa `HttpTest` (toàn ứng dụng, PostgreSQL thật), tạo người gọi bằng `newActor(role)`, gửi bằng `.with(sessions().as(actor))`, và mọi phản hồi qua `.andExpect(Contract.matches())`. Xem `HttpTestExampleTest`.
 - Test riêng tầng web không cần DB: `@WebMvcTest` kèm `@Import(WebSecurityTestConfig.class)` và `TestSessions`.
 - Ca âm quyền luôn có: không phiên, sai vai trò, đối tượng của người khác.
+- Lệnh ghi receipt bằng một `resultType` mới (`CommandReceipts.succeed`) thì khai loại đó trong bean `CommandResults` của mô-đun mình, cùng điều kiện chủ sở hữu như lần đọc kết quả. Loại chưa khai thì `getCommandStatus` và `findCommandStatus` ẩn `resultType`, `resultId` (TX16, INV-22; Huy, 24/11/2026). Ví dụ: `ClassesCommandResults`, `IdentityCommandResults`.
 
 ### Thêm một chức năng backend
 ```text

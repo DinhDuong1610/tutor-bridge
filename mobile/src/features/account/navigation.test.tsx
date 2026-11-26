@@ -199,7 +199,7 @@ describe("account routes", () => {
     storeSession(fakeSession("TUTOR"));
     await renderRouter("./src/app", { initialUrl: "/register" });
 
-    expect(await screen.findByRole("header", { name: "Trang chủ gia sư" })).toBeOnTheScreen();
+    expect(await screen.findByRole("header", { name: "Tổng quan" })).toBeOnTheScreen();
     expect(screen).toHavePathname("/tutor");
   });
 });

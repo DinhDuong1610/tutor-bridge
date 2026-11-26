@@ -251,13 +251,19 @@ describe("PH02 routes", () => {
   });
 
   it("keeps a tutor out of PH02", async () => {
-    server = mockApi({});
+    // GS01 reads the tutor's own data; a new tutor has none of it yet.
+    const none = () => problem(404, "NOT_FOUND", "Không tìm thấy");
+    server = mockApi({ "GET /me/tutor-profile": none, "GET /me/tutor-profile/verification": none, "GET /me/tutor-calendar": none });
     clearStore();
     storeSession(fakeSession("TUTOR"));
 
     await renderRouter("./src/app", { initialUrl: "/parent/account/students" });
 
-    expect(await screen.findByRole("header", { name: "Trang chủ gia sư" })).toBeOnTheScreen();
-    expect(server.requests).toHaveLength(0);
+    expect(await screen.findByText("Bước 1")).toBeOnTheScreen();
+    expect(screen).toHavePathname("/tutor");
+    // Only the tutor home's own reads: nothing of PH02 (listStudents) is requested.
+    const paths = server.requests.map((request) => new URL(request.url).pathname).sort();
+    expect(paths).toEqual(["/api/v1/me/tutor-calendar", "/api/v1/me/tutor-profile", "/api/v1/me/tutor-profile/verification"]);
+    expect(server.unexpected).toEqual([]);
   });
 });

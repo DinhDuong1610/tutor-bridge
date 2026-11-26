@@ -1,9 +1,9 @@
 # TB-23 Nghiệm thu M7, phần Đính
 
 - **Chủ task:** Đính (phần Đính). Phần Huy ở `feature/TB-23-authorization-huy` (#242), handoff `docs/handoff/TB-23.md` trên nhánh đó.
-- **Nhánh:** `feature/TB-23-authorization-dinh`, tách từ `dev` `9848259`. #249 đã merge; đã gộp `dev` vào nhánh (`214a2a4`, không force-push)
+- **Nhánh:** `feature/TB-23-authorization-dinh`, tách từ `dev` `9848259`. #249 đã merge; đã gộp `dev` vào nhánh (`214a2a4`). **Chồng lên #238:** đã gộp `feature/TB-19-accept-offer` (`7d14ca9`) vào nhánh, nên merge #238 trước. Không force-push
 - **Agent đang làm:** Claude (agent của Đính)
-- **Cập nhật lần cuối:** 26/11/2026, sau commit `8b7667d` (bảng quyền Thông báo)
+- **Cập nhật lần cuối:** 26/11/2026, sau commit `b551ac6` (dòng `acceptOffer` và AT01)
 - **Mã liên quan:** AT01, AT02; AC-UC02-02; AC-UC05-01, AC-UC05-04; UC03, UC05, UC06; INV-01, INV-06, INV-22, INV-63
 
 ## Mục tiêu
@@ -20,8 +20,8 @@ Huy nhận các nhóm còn lại (ghi trong #242).
 - [x] Bảng quyền nhóm Quản trị xác minh: `identity/AdminAccessMatrixHttpTest`, đủ 7 thao tác. Bảng tìm ra một chỗ lệch, sửa ở #249 (xem Quyết định).
 - [x] AT02: `classes/At02EmptyMatchingHttpTest`.
 - [x] Bảng quyền nhóm Thông báo: `platform/NotificationAccessMatrixHttpTest`, đủ 2 thao tác. Hợp đồng ghi "Recipient only" và vai trò nào cũng có hộp thư, nên không có dòng 403: mỗi vai trò được kiểm như chủ sở hữu, đối chiếu với người khác cùng vai trò. Bộ đọc bảng `r0a-scope.md` chuyển thành `com.tutorbridge.R0aScope`, ba bảng dùng chung.
-- [ ] Dòng `acceptOffer` trong bảng Đề nghị: sau khi #238 (TB-19) merge.
-- [ ] AT01 qua HTTP, sau khi #238 merge. Luồng: xác nhận nhu cầu → `createMatchingRun` → `sendOffer` → `acceptOffer` → lớp có đúng mục tiêu (bản 1 `EFFECTIVE`, theo Q1 của #19) và đúng các buổi. Hai gia đình chạy song song, không ai thấy dữ liệu của nhau (AC-UC02-02).
+- [x] Dòng `acceptOffer` trong bảng Đề nghị (trên code của #238). Bỏ cơ chế `PENDING`: bảng giờ đủ 6 thao tác.
+- [x] AT01 qua HTTP: `classes/At01TwoFamiliesHttpTest`. Luồng: xác nhận nhu cầu → `createMatchingRun` → `sendOffer` → `acceptOffer` → lớp có đúng mục tiêu (bản 1 `EFFECTIVE`, theo Q1 của #19) và đúng các buổi. Hai gia đình chạy song song, không ai thấy dữ liệu của nhau (AC-UC02-02).
 - [ ] Xóa file này trước khi Ready.
 
 Đặt hai bảng quyền trong package của module, không đặt trong `m7` như phần Huy, để dùng lại `OfferHttpFixture` (package-private) và dựng đề nghị bằng API thật thay vì SQL. Đề nghị có trigger kiểm lịch buổi, dựng bằng SQL rất dễ sai.
@@ -37,8 +37,8 @@ Huy nhận các nhóm còn lại (ghi trong #242).
 ## Lệnh kiểm tra
 ```bash
 cd backend && ./gradlew test --tests 'com.tutorbridge.classes.OfferAccessMatrixHttpTest' \
-  --tests 'com.tutorbridge.identity.AdminAccessMatrixHttpTest' --tests 'com.tutorbridge.classes.At02EmptyMatchingHttpTest'
-# mong đợi: 33 + 32 + 4 ca, 0 hỏng (cần Docker)
+  --tests 'com.tutorbridge.identity.AdminAccessMatrixHttpTest' --tests 'com.tutorbridge.classes.At02EmptyMatchingHttpTest'   --tests 'com.tutorbridge.platform.NotificationAccessMatrixHttpTest' --tests 'com.tutorbridge.classes.At01TwoFamiliesHttpTest'
+# mong đợi: 39 + 32 + 4 + 19 + 1 ca, 0 hỏng (cần Docker)
 cd backend && ./gradlew test
 ```
 
@@ -85,6 +85,27 @@ cd backend && ./gradlew test
   | Danh sách không lọc người nhận | 8 |
   | Danh sách luôn rỗng | 4 |
 - Sau khi gộp `dev`: bảng Đề nghị 33/33, Quản trị 32/32, AT02 4/4, toàn bộ backend 781 ca, 0 hỏng.
+
+## Dòng `acceptOffer` và AT01 (26/11/2026, `b551ac6`, trên #238)
+- Bảng Đề nghị 39/39 (thêm 6 ca của `acceptOffer`: 401; PARENT, STUDENT, ADMIN 403; gia sư khác cùng 404 như id lạ; chính gia sư nhận đề nghị tạo được lớp).
+- `At01TwoFamiliesHttpTest` 1/1. Hai gia đình chạy xen kẽ, mỗi bước qua API thật: `createStudent` (lớp 8), `replaceStudentCalendar`, `createNeedDraft`, `confirmNeed`, `createMatchingRun`, `sendOffer`, `acceptOffer`; gia sư lưu lịch bằng `replaceTutorCalendar`. Kiểm:
+  - lớp mang đúng mục tiêu của gia đình mình, là bản 1 `EFFECTIVE` (Q1 của #19), id khớp `effectiveGoalVersionId`;
+  - 8 buổi đúng giờ phụ huynh gửi, theo thứ tự, mỗi buổi 90 phút, nằm trong khung rảnh và trong 28 ngày của chu kỳ; đủ 2 lượt giữ chỗ mỗi buổi cho đúng học sinh và gia sư; nhu cầu `CLOSED`;
+  - phụ huynh và gia sư của gia đình này đọc con, nhu cầu, đề nghị của gia đình kia đều nhận cùng 404 như id lạ; danh sách con, nhu cầu, đề nghị chỉ có của mình (AC-UC02-02).
+- Giới hạn có chủ ý:
+  - Hồ sơ APPROVED của gia sư dựng bằng SQL: duyệt hồ sơ là UC03, đã có test HTTP riêng (`VerificationDecisionsHttpTest`, `AdminAccessMatrixHttpTest`).
+  - Lớp kiểm qua câu trả lời của `acceptOffer` và bảng, vì API đọc lớp ở #240 chưa merge.
+  - Buổi học đặt khung 05:30–08:00 để gia sư của test khác trong cùng DB không lọt vào top 5.
+- Kiểm ngược (test commit trước, trả code bằng `git checkout`):
+
+  | Phép làm hỏng | Bảng Đề nghị | AT01 |
+  |---|---|---|
+  | `acceptOffer`: gia sư nào cũng nhận được | 1 | 0 |
+  | `acceptOffer`: bỏ kiểm vai trò TUTOR | 3 | 0 |
+  | Buổi của lớp lệch 1 giờ so với đề nghị | 0 | 1 |
+  | Mục tiêu của lớp khác mục tiêu của nhu cầu | 0 | 1 |
+  | Phụ huynh nào cũng là chủ của mọi học sinh (`PartiesRepository`) | 1 | 1 |
+- Toàn bộ backend 802 ca, 0 hỏng.
 
 ## Quyết định đã chọn
 - **Đính, 26/11/2026, cho #249:** `decideVerification` kiểm VERIFY (không khóa) trước khi đọc hồ sơ, giống ba API đọc. Trước đây ADMIN không VERIFY nhận 404 trên hồ sơ của người khác. Lần kiểm có khóa ở cuối giao dịch giữ nguyên, thứ tự khóa không đổi.

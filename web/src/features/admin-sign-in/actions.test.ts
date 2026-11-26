@@ -27,12 +27,12 @@ function problem(status: number, code: string, fields?: { path: string; message:
 }
 
 /** The API answers once with this status and body; the request is kept for the checks. */
-function api(status: number, body: unknown) {
+function api(status: number, body: unknown, headers: Record<string, string> = {}) {
   const fetch = vi.fn(async (request: Request) => {
     void request;
     return new Response(JSON.stringify(body), {
       status,
-      headers: { "Content-Type": status < 400 ? "application/json" : "application/problem+json" },
+      headers: { "Content-Type": status < 400 ? "application/json" : "application/problem+json", ...headers },
     });
   });
   vi.stubGlobal("fetch", fetch);
@@ -65,7 +65,7 @@ describe("signIn (loginAdmin)", () => {
   it.each([
     [401, problem(401, "AUTHENTICATION_FAILED"), { state: "wrong-credentials" }],
     [403, problem(403, "ACCOUNT_LOCKED"), { state: "locked" }],
-    [429, problem(429, "RATE_LIMITED"), { state: "delayed" }],
+    [429, problem(429, "RATE_LIMITED"), { state: "delayed", retryAfterSeconds: 900 }],
     [500, problem(500, "INTERNAL_ERROR"), { state: "failed" }],
     [422, problem(422, "VALIDATION_FAILED", [{ path: "email", message: "Email chưa đúng." }]), { state: "invalid", fields: { email: "Email chưa đúng." } }],
   ])("answers %i as the matching AD01 state and keeps no challenge", async (status, body, expected) => {
@@ -73,6 +73,17 @@ describe("signIn (loginAdmin)", () => {
 
     expect(await signIn(login)).toEqual(expected);
     expect(jar.has("tb_admin_challenge")).toBe(false);
+  });
+
+  it("keeps how long the API says to wait, so the form can open again (Codex on #253)", async () => {
+    api(429, problem(429, "LOGIN_DELAYED"), { "Retry-After": "412" });
+    expect(await signIn(login)).toEqual({ state: "delayed", retryAfterSeconds: 412 });
+
+    // No usable header: the 15 minutes the message names.
+    for (const value of ["", "soon", "0", "-5"]) {
+      api(429, problem(429, "LOGIN_DELAYED"), { "Retry-After": value });
+      expect(await signIn(login)).toEqual({ state: "delayed", retryAfterSeconds: 900 });
+    }
   });
 
   it("treats a lost connection as a failure to retry, not as a wrong password", async () => {
@@ -148,8 +159,8 @@ describe("verifyCode (completeAdminMfa)", () => {
   });
 
   it("answers a delay and a server error like step 1, and sets no session", async () => {
-    api(429, problem(429, "RATE_LIMITED"));
-    expect(await verifyCode({ code: "482913" }, null)).toEqual({ state: "delayed" });
+    api(429, problem(429, "RATE_LIMITED"), { "Retry-After": "30" });
+    expect(await verifyCode({ code: "482913" }, null)).toEqual({ state: "delayed", retryAfterSeconds: 30 });
     api(503, problem(503, "SERVICE_BUSY"));
     expect(await verifyCode({ code: "482913" }, null)).toEqual({ state: "failed" });
     expect(jar.has("tb_session")).toBe(false);

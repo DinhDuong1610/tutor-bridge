@@ -1,12 +1,15 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { SignInStep } from "./actions";
 import { COPY } from "./copy";
 import { AdminSignInForm, type SignInReason } from "./sign-in-form";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
 
 function setup(steps: { signIn?: SignInStep[]; verifyCode?: SignInStep[] } = {}, reason: SignInReason = null) {
   const signIn = vi.fn(async () => steps.signIn?.shift() ?? { state: "mfa" as const });
@@ -48,7 +51,6 @@ describe("AD01 sign-in form", () => {
     ["wrong-credentials", COPY.wrongCredentials, "Lỗi"],
     ["locked", COPY.locked, "Lỗi"],
     ["failed", COPY.failed, "Lỗi"],
-    ["delayed", COPY.delayed, "Lưu ý"],
   ] as const)("shows the %s state with its approved words and keeps the input", async (state, message, tone) => {
     setup({ signIn: [{ state }] });
 
@@ -59,14 +61,59 @@ describe("AD01 sign-in form", () => {
     expect((screen.getByLabelText(COPY.email) as HTMLInputElement).value).toBe("xacminh01@example.com");
   });
 
+  it("shows the delay with its approved words and keeps the input", async () => {
+    setup({ signIn: [{ state: "delayed", retryAfterSeconds: 60 }] });
+
+    await fillPassword();
+
+    const notice = await screen.findByText(COPY.delayed);
+    expect(notice.closest("[role=alert]")?.querySelector('[aria-label="Lưu ý"]')).toBeTruthy();
+    expect((screen.getByLabelText(COPY.email) as HTMLInputElement).value).toBe("xacminh01@example.com");
+  });
+
   it("keeps the button disabled while delayed, even after an edit", async () => {
-    setup({ signIn: [{ state: "delayed" }] });
+    setup({ signIn: [{ state: "delayed", retryAfterSeconds: 60 }] });
 
     await fillPassword();
     await screen.findByText(COPY.delayed);
     await userEvent.type(screen.getByLabelText(COPY.password), "x");
 
     expect((screen.getByRole("button", { name: COPY.continue }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it.each([
+    ["password", COPY.continue],
+    ["code", COPY.confirm],
+  ] as const)("opens the %s step again once the delay the API named is over (Codex on #253)", async (where, button) => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const steps =
+      where === "password"
+        ? { signIn: [{ state: "delayed" as const, retryAfterSeconds: 60 }] }
+        : { signIn: [{ state: "mfa" as const }], verifyCode: [{ state: "delayed" as const, retryAfterSeconds: 60 }] };
+    setup(steps);
+    await fillPassword();
+    if (where === "code") {
+      await userEvent.type(await screen.findByLabelText(COPY.code), "482913");
+      await userEvent.click(screen.getByRole("button", { name: COPY.confirm }));
+    }
+    await screen.findByText(COPY.delayed);
+
+    await act(async () => vi.advanceTimersByTime(59_000));
+    expect((screen.getByRole("button", { name: button }) as HTMLButtonElement).disabled).toBe(true);
+
+    await act(async () => vi.advanceTimersByTime(2_000));
+    expect((screen.getByRole("button", { name: button }) as HTMLButtonElement).disabled).toBe(false);
+    expect(screen.queryByText(COPY.delayed)).toBeNull();
+  });
+
+  it("shows the note only while nothing else is said, as the default frame does", async () => {
+    setup({ signIn: [{ state: "wrong-credentials" }] });
+    expect(screen.getByText(COPY.note)).toBeTruthy();
+
+    await fillPassword();
+
+    await screen.findByText(COPY.wrongCredentials);
+    expect(screen.queryByText(COPY.note)).toBeNull();
   });
 
   it("goes to step 2, then shows a wrong code at the field", async () => {
@@ -121,6 +168,7 @@ describe("AD01 sign-in form", () => {
   ] as const)("tells why the console sent the admin here (%s)", async (reason, message) => {
     setup({}, reason);
     expect(screen.getByText(message)).toBeTruthy();
+    expect(screen.queryByText(COPY.note)).toBeNull();
   });
 
   it("drops the reason once the admin has tried again", async () => {

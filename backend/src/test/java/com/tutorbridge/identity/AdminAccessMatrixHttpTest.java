@@ -1,5 +1,6 @@
 package com.tutorbridge.identity;
 
+import static com.tutorbridge.R0aScope.operationsOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -14,15 +15,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.EnumSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DynamicContainer;
 import org.junit.jupiter.api.DynamicNode;
@@ -211,22 +209,6 @@ class AdminAccessMatrixHttpTest extends HttpTest {
         assertThat(rows).isEqualTo(new TreeSet<>(scoped));
     }
 
-    /** The operationIds of one group in the API table of `r0a-scope.md`. */
-    private static Set<String> operationsOf(String group) throws Exception {
-        Set<String> ids = new LinkedHashSet<>();
-        Pattern row = Pattern.compile("^\\| ([^|]+) \\| \\d+ \\| (.+) \\|$");
-        Pattern id = Pattern.compile("`(\\w+)`");
-        for (String line : Files.readAllLines(Path.of("../docs/context/r0a-scope.md"))) {
-            Matcher m = row.matcher(line);
-            if (m.matches() && m.group(1).trim().equals(group)) {
-                Matcher each = id.matcher(m.group(2));
-                while (each.find()) {
-                    ids.add(each.group(1));
-                }
-            }
-        }
-        return ids;
-    }
 
     // ---------------------------------------------------------------- owners and their records
 

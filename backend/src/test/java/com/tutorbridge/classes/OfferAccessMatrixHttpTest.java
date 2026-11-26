@@ -3,6 +3,7 @@ package com.tutorbridge.classes;
 import static com.tutorbridge.classes.OfferHttpFixture.id;
 import static com.tutorbridge.classes.OfferHttpFixture.input;
 import static com.tutorbridge.classes.OfferHttpFixture.reason;
+import static com.tutorbridge.R0aScope.operationsOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -14,19 +15,15 @@ import com.tutorbridge.HttpTest;
 import com.tutorbridge.classes.OfferHttpFixture.Scenario;
 import com.tutorbridge.platform.api.Actor;
 import com.tutorbridge.platform.api.Actor.Role;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.EnumSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.function.Function;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DynamicContainer;
@@ -226,22 +223,6 @@ class OfferAccessMatrixHttpTest extends HttpTest {
         assertThat(rows).doesNotContainAnyElementsOf(PENDING.keySet());
     }
 
-    /** The operationIds of one group in the API table of `r0a-scope.md`. */
-    static Set<String> operationsOf(String group) throws Exception {
-        Set<String> ids = new LinkedHashSet<>();
-        Pattern row = Pattern.compile("^\\| ([^|]+) \\| \\d+ \\| (.+) \\|$");
-        Pattern id = Pattern.compile("`(\\w+)`");
-        for (String line : Files.readAllLines(Path.of("../docs/context/r0a-scope.md"))) {
-            Matcher m = row.matcher(line);
-            if (m.matches() && m.group(1).trim().equals(group)) {
-                Matcher each = id.matcher(m.group(2));
-                while (each.find()) {
-                    ids.add(each.group(1));
-                }
-            }
-        }
-        return ids;
-    }
 
     // ---------------------------------------------------------------- owners and their resources
 

@@ -19,7 +19,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
@@ -52,9 +51,6 @@ import org.springframework.transaction.support.TransactionTemplate;
  * against the contract. Fake accounts only.
  */
 class OfferAccessMatrixHttpTest extends HttpTest {
-
-    /** Not on {@code dev} yet; each gets its row when its PR merges. */
-    private static final Map<String, String> PENDING = Map.of("acceptOffer", "#238 (TB-19)");
 
     @Autowired
     TransactionTemplate tx;
@@ -111,6 +107,11 @@ class OfferAccessMatrixHttpTest extends HttpTest {
         // "TUTOR recipient".
         ops.add(new Op("rejectOffer", tutor, tutor,
                 o -> offer -> keyed(json(post("/api/v1/offers/" + offer + "/reject"), reason("NOT_AVAILABLE")))
+                        .header("If-Match", "\"1\""),
+                Owned::offer, false));
+        // "TUTOR recipient active and approved" (#238). The owner's own call makes the class.
+        ops.add(new Op("acceptOffer", tutor, tutor,
+                o -> offer -> keyed(json(post("/api/v1/offers/" + offer + "/accept"), "{\"acceptUnchangedTerms\":true}"))
                         .header("If-Match", "\"1\""),
                 Owned::offer, false));
         // "PARENT owner".
@@ -217,10 +218,7 @@ class OfferAccessMatrixHttpTest extends HttpTest {
         }
         Set<String> scoped = operationsOf("Đề nghị");
         assertThat(scoped).as("Đề nghị as r0a-scope.md lists it").hasSize(6);
-        Set<String> covered = new TreeSet<>(rows);
-        covered.addAll(PENDING.keySet());
-        assertThat(covered).isEqualTo(new TreeSet<>(scoped));
-        assertThat(rows).doesNotContainAnyElementsOf(PENDING.keySet());
+        assertThat(rows).isEqualTo(new TreeSet<>(scoped));
     }
 
 

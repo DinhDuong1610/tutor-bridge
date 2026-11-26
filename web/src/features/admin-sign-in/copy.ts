@@ -1,0 +1,30 @@
+/** AD01 wording, verbatim from docs/design/ui/screens/AD01.md and the approved frames (AD01-v1.png). */
+export const COPY = {
+  brand: "TutorBridge, quản trị",
+  signInTitle: "Đăng nhập quản trị",
+  mfaTitle: "Xác thực bước 2",
+  mfaIntro: "Nhập mã 6–8 chữ số từ ứng dụng xác thực của bạn.",
+  mfaNote: "Mã chỉ dùng một lần. Phiên quản trị hết hạn sau 30 phút không hoạt động, tối đa 12 giờ.",
+  note: "Tài khoản quản trị do TutorBridge cấp, không tự đăng ký.",
+  email: "Email",
+  password: "Mật khẩu",
+  code: "Mã xác thực",
+  continue: "Tiếp tục",
+  confirm: "Xác nhận",
+  sending: "Đang gửi…",
+  wrongCredentials: "Email hoặc mật khẩu chưa đúng.",
+  wrongCode: "Mã chưa đúng hoặc đã hết hạn. Nhập mã mới từ ứng dụng xác thực.",
+  delayed: "Bạn đã nhập sai nhiều lần. Vui lòng thử lại sau 15 phút.",
+  locked: "Tài khoản đang bị tạm khóa nên chưa đăng nhập được.",
+  expired: "Phiên quản trị đã hết sau 30 phút không hoạt động. Vui lòng đăng nhập lại.",
+  // 04-trang-thai-cau-chu.md: "Mất quyền" (Đính, 26/11/2026, for reason=forbidden) and "Lỗi khác".
+  forbidden: "Bạn không còn quyền xem nội dung này.",
+  failed: "Không thực hiện được. Vui lòng thử lại.",
+  // Agent's proposals, not drawn in Figma: waiting for Đính (docs/handoff/TB-68.md).
+  emailRequired: "Nhập email.",
+  emailInvalid: "Email chưa đúng định dạng.",
+  passwordRequired: "Nhập mật khẩu.",
+  codeInvalid: "Nhập mã 6–8 chữ số.",
+  showPassword: "Hiện mật khẩu",
+  hidePassword: "Ẩn mật khẩu",
+} as const;

@@ -9,6 +9,8 @@ vi.mock("next/headers", () => ({
     set: (name: string, value: string, options: Record<string, unknown>) => jar.set(name, { value, options }),
     delete: ({ name }: { name: string }) => jar.delete(name),
   }),
+  // adminApi reads the browser's address here once #257 (#252) is in; none in these tests.
+  headers: async () => new Headers(),
 }));
 
 vi.mock("next/navigation", () => ({

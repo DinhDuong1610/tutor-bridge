@@ -57,9 +57,9 @@ public class CalendarService {
     static final Set<String> KINDS = Set.of("AVAILABLE", "PREFERRED", "BLOCKED");
     static final String REPLACE_TUTOR = "REPLACE_TUTOR_CALENDAR";
     static final String REPLACE_STUDENT = "REPLACE_STUDENT_CALENDAR";
-    private static final String TUTOR = "TUTOR";
+    static final String TUTOR = "TUTOR";
     private static final String STUDENT = "STUDENT";
-    private static final String RESULT_TYPE = "CALENDAR";
+    static final String RESULT_TYPE = "CALENDAR";
 
     private final CalendarRepository calendars;
     private final ResourceLocks locks;

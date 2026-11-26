@@ -40,8 +40,8 @@ describe("WeekAvailability", () => {
     const edited = addSlot(monday, 0, { start: "07:00", end: "09:00" });
     await render(<Harness initial={edited} saved={monday} changes={[]} />);
 
-    expect(screen.getByRole("button", { name: "18:00–21:00, đang hiệu lực" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "07:00–09:00, nháp, chưa xác nhận" })).toBeTruthy();
+    expect(screen.getByLabelText("18:00–21:00, đang hiệu lực")).toBeTruthy();
+    expect(screen.getByLabelText("07:00–09:00, nháp, chưa xác nhận")).toBeTruthy();
     expect(screen.getByText("nháp", { exact: false })).toBeTruthy();
   });
 
@@ -57,7 +57,8 @@ describe("WeekAvailability", () => {
     await act(async () => fireEvent.press(screen.getByRole("button", { name: "Thêm khung giờ" })));
 
     expect(changes.at(-1)![1]).toEqual([{ start: "19:00", end: "20:30" }]);
-    expect(screen.getByRole("button", { name: "19:00–20:30, nháp, chưa xác nhận" })).toBeTruthy();
+    expect(screen.getByLabelText("19:00–20:30, nháp, chưa xác nhận")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Bỏ khung Thứ 3 19:00–20:30" })).toBeTruthy();
     expect(screen.queryByRole("header", { name: "Thêm khung giờ rảnh, Thứ 3" })).toBeNull();
   });
 
@@ -81,11 +82,13 @@ describe("WeekAvailability", () => {
     expect(screen.queryByText("Lỗi: Giờ kết thúc phải sau giờ bắt đầu.")).toBeNull();
   });
 
-  it("removes a slot when its chip is pressed (#70 Q3, pending Đính)", async () => {
+  it("removes a slot from the × at the end of its chip, named by day and time (#70 Q3)", async () => {
     const changes: WeekPattern[] = [];
     await render(<Harness initial={monday} saved={monday} changes={changes} />);
 
-    await act(async () => fireEvent.press(screen.getByRole("button", { name: "18:00–21:00, đang hiệu lực" })));
+    // Pressing the chip itself does nothing: only the × removes (Đính, 26/11/2026).
+    expect(screen.queryByRole("button", { name: "18:00–21:00, đang hiệu lực" })).toBeNull();
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Bỏ khung Thứ 2 18:00–21:00" })));
 
     expect(changes.at(-1)).toEqual(emptyWeek());
     expect(screen.getAllByText("Không rảnh")).toHaveLength(7);

@@ -49,6 +49,7 @@ export function WeekAvailability({ value, onChange, saved }: Props) {
                 <TimeChip
                   key={label(slot)}
                   label={label(slot)}
+                  day={name}
                   variant={saved[day].some((s) => same(s, slot)) ? "effective" : "draft"}
                   onRemove={() => onChange(removeSlot(value, day, slot))}
                 />

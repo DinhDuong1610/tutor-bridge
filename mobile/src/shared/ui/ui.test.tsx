@@ -12,6 +12,7 @@ import { Notice } from "./Notice";
 import { StatusLabel } from "./StatusLabel";
 import { StickyActionBar } from "./StickyActionBar";
 import { TextField } from "./TextField";
+import { TimeChip } from "./TimeChip";
 import { TopAppBar } from "./TopAppBar";
 import { colors, radius, typography } from "./theme";
 
@@ -359,5 +360,27 @@ describe("StatusLabel", () => {
     expect(text).toHaveStyle({ color: colors.info });
     expect(StyleSheet.flatten(text.parent?.props.style)).toMatchObject({ backgroundColor: colors.infoSurface });
     expect(screen.queryByRole("image")).toBeNull();
+  });
+});
+
+describe("TimeChip", () => {
+  it("removes a slot only from its × button, a 48 point target named by day and time (#70 Q3)", async () => {
+    const onRemove = jest.fn();
+    await act(async () => render(<TimeChip label="18:00–19:30" variant="effective" day="Thứ 2" onRemove={onRemove} />));
+
+    expect(screen.getByLabelText("18:00–19:30, đang hiệu lực")).toBeTruthy();
+    const remove = screen.getByRole("button", { name: "Bỏ khung Thứ 2 18:00–19:30" });
+    expect(StyleSheet.flatten(remove.props.style)).toMatchObject({ minWidth: 48, minHeight: 48 });
+    await act(async () => fireEvent.press(screen.getByLabelText("18:00–19:30, đang hiệu lực")));
+    expect(onRemove).not.toHaveBeenCalled();
+    await act(async () => fireEvent.press(remove));
+    expect(onRemove).toHaveBeenCalledTimes(1);
+  });
+
+  it("gives a booked session no × even with a handler (UC07)", async () => {
+    await act(async () => render(<TimeChip label="18:00–19:30" variant="booked" day="Thứ 2" onRemove={jest.fn()} />));
+
+    expect(screen.getByLabelText("18:00–19:30, đã có buổi, không sửa ở đây")).toBeTruthy();
+    expect(screen.queryByRole("button")).toBeNull();
   });
 });

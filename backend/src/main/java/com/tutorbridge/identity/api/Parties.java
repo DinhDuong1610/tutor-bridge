@@ -47,6 +47,12 @@ public interface Parties {
      */
     List<UUID> ownStudentIds(UUID parentId);
 
+    /**
+     * The parent account of this student, whatever its status, for the inbox (TB-21): a notification is
+     * only metadata, and reading its target checks access again. Empty for an unknown student.
+     */
+    Optional<UUID> parentOf(UUID studentId);
+
     boolean isActiveTutor(UUID accountId);
 
     /**

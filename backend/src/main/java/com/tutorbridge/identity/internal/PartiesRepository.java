@@ -51,6 +51,11 @@ class PartiesRepository implements Parties {
     }
 
     @Override
+    public Optional<UUID> parentOf(UUID studentId) {
+        return jdbc.sql("select parent_id from students where id = ?").param(studentId).query(UUID.class).optional();
+    }
+
+    @Override
     public boolean isActiveTutor(UUID accountId) {
         return jdbc.sql("select count(*) from accounts where id = ? and role = 'TUTOR' and status = 'ACTIVE'")
                 .param(accountId).query(Integer.class).single() == 1;

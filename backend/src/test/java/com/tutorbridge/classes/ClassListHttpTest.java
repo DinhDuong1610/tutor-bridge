@@ -13,7 +13,7 @@ import com.tutorbridge.classes.TutorCalendarReplayHttpTest.MovableClock;
 import com.tutorbridge.classes.api.AcceptOffer;
 import com.tutorbridge.platform.api.Actor;
 import java.time.Instant;
-import java.time.OffsetDateTime;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -216,14 +216,14 @@ class ClassListHttpTest extends HttpTest {
         assertThat(next(tutor)).isEqualTo(sessions.get(1).get("id").toString());
 
         // A session still going on is next; one that has ended is not.
-        Instant secondStart = ((OffsetDateTime) sessions.get(1).get("start")).toInstant();
-        Instant secondEnd = ((OffsetDateTime) sessions.get(1).get("end")).toInstant();
+        Instant secondStart = ((Timestamp) sessions.get(1).get("start")).toInstant();
+        Instant secondEnd = ((Timestamp) sessions.get(1).get("end")).toInstant();
         clock.set(secondStart.plusSeconds(60));
         assertThat(next(tutor)).isEqualTo(sessions.get(1).get("id").toString());
         clock.set(secondEnd);
         assertThat(next(tutor)).isEqualTo(sessions.get(2).get("id").toString());
 
-        Instant lastEnd = ((OffsetDateTime) sessions.getLast().get("end")).toInstant();
+        Instant lastEnd = ((Timestamp) sessions.getLast().get("end")).toInstant();
         clock.set(lastEnd.plusSeconds(1));
         MockHttpServletResponse answer = list(tutorActor(tutor), "");
         Object none = JsonPath.read(answer.getContentAsString(), "$.items[0].nextSession");

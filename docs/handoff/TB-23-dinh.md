@@ -1,9 +1,9 @@
 # TB-23 Nghiệm thu M7, phần Đính
 
 - **Chủ task:** Đính (phần Đính). Phần Huy ở `feature/TB-23-authorization-huy` (#242), handoff `docs/handoff/TB-23.md` trên nhánh đó.
-- **Nhánh:** `feature/TB-23-authorization-dinh`, đặt trên `fix/TB-13-decide-verify-first` (#249), cả hai tách từ `dev` `9848259`
+- **Nhánh:** `feature/TB-23-authorization-dinh`, tách từ `dev` `9848259`. #249 đã merge; đã gộp `dev` vào nhánh (`214a2a4`, không force-push)
 - **Agent đang làm:** Claude (agent của Đính)
-- **Cập nhật lần cuối:** 26/11/2026, sau commit `8454bca` (sửa theo Codex)
+- **Cập nhật lần cuối:** 26/11/2026, sau commit `8b7667d` (bảng quyền Thông báo)
 - **Mã liên quan:** AT01, AT02; AC-UC02-02; AC-UC05-01, AC-UC05-04; UC03, UC05, UC06; INV-01, INV-06, INV-22, INV-63
 
 ## Mục tiêu
@@ -19,7 +19,7 @@ Huy nhận các nhóm còn lại (ghi trong #242).
 - [x] Bảng quyền nhóm Đề nghị: `classes/OfferAccessMatrixHttpTest`, 5 trên 6 thao tác. `acceptOffer` nằm trong `PENDING` cho tới khi #238 merge.
 - [x] Bảng quyền nhóm Quản trị xác minh: `identity/AdminAccessMatrixHttpTest`, đủ 7 thao tác. Bảng tìm ra một chỗ lệch, sửa ở #249 (xem Quyết định).
 - [x] AT02: `classes/At02EmptyMatchingHttpTest`.
-- [ ] Bảng quyền nhóm Thông báo (`listOwnNotifications`, `markNotificationRead`): làm sau khi #237 (TB-21) merge. Đặt trong `platform`, cùng khuôn với hai bảng trên.
+- [x] Bảng quyền nhóm Thông báo: `platform/NotificationAccessMatrixHttpTest`, đủ 2 thao tác. Hợp đồng ghi "Recipient only" và vai trò nào cũng có hộp thư, nên không có dòng 403: mỗi vai trò được kiểm như chủ sở hữu, đối chiếu với người khác cùng vai trò. Bộ đọc bảng `r0a-scope.md` chuyển thành `com.tutorbridge.R0aScope`, ba bảng dùng chung.
 - [ ] Dòng `acceptOffer` trong bảng Đề nghị: sau khi #238 (TB-19) merge.
 - [ ] AT01 qua HTTP, sau khi #238 merge. Luồng: xác nhận nhu cầu → `createMatchingRun` → `sendOffer` → `acceptOffer` → lớp có đúng mục tiêu (bản 1 `EFFECTIVE`, theo Q1 của #19) và đúng các buổi. Hai gia đình chạy song song, không ai thấy dữ liệu của nhau (AC-UC02-02).
 - [ ] Xóa file này trước khi Ready.
@@ -74,6 +74,17 @@ cd backend && ./gradlew test
 
   Sau khi sửa: bảng Đề nghị 33/33, bảng Quản trị 32/32, toàn bộ backend 730 ca, 0 hỏng.
 - **[Chặn Ready] Còn thiếu nhóm Thông báo, `acceptOffer`, AT01:** đúng với kế hoạch ở trên. Làm sau khi #237, #238 merge (cả hai còn OPEN ngày 26/11). PR giữ Draft.
+
+## Bảng quyền Thông báo (26/11/2026, `8b7667d`)
+- `NotificationAccessMatrixHttpTest` 19/19: 401 cho cả hai thao tác; 4 vai trò × (danh sách của người khác rỗng và không có id; `markNotificationRead` của người khác cùng 404 như id lạ, thông báo vẫn chưa đọc); 4 vai trò × chính chủ được trả lời; ca đối chiếu `r0a-scope.md`.
+- Kiểm ngược (test commit trước, trả code bằng `git checkout`):
+
+  | Phép làm hỏng `NotificationService` | Ca đỏ |
+  |---|---|
+  | Tìm thông báo không lọc người nhận | 4 |
+  | Danh sách không lọc người nhận | 8 |
+  | Danh sách luôn rỗng | 4 |
+- Sau khi gộp `dev`: bảng Đề nghị 33/33, Quản trị 32/32, AT02 4/4, toàn bộ backend 781 ca, 0 hỏng.
 
 ## Quyết định đã chọn
 - **Đính, 26/11/2026, cho #249:** `decideVerification` kiểm VERIFY (không khóa) trước khi đọc hồ sơ, giống ba API đọc. Trước đây ADMIN không VERIFY nhận 404 trên hồ sơ của người khác. Lần kiểm có khóa ở cuối giao dịch giữ nguyên, thứ tự khóa không đổi.

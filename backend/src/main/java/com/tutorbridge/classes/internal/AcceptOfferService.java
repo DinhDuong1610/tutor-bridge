@@ -22,6 +22,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 class AcceptOfferService implements AcceptOffer {
 
     private static final String COMMAND = "ACCEPT_OFFER";
+    static final String RESULT_TYPE = "CLASS";
     private static final int MAX_ATTEMPTS = 3;
     private static final String EXCLUSION_VIOLATION = "23P01";
     private static final String UNIQUE_VIOLATION = "23505";
@@ -163,7 +164,7 @@ class AcceptOfferService implements AcceptOffer {
             outbox.publish("OFFER", competingId, "OFFER_CANCELLED", Map.of("offerId", competingId),
                     "OFFER_CANCELLED:" + competingId);
         }
-        receipts.succeed(receipt.id(), "CLASS", classId);
+        receipts.succeed(receipt.id(), RESULT_TYPE, classId);
 
         return new AcceptedClass(classId, need.studentId(), offer.tutorId(), 1, "WAITING", offer.priceVndSession(),
                 offer.durationMinutes(), goalId, offer.goalSnapshot(), receipt.id());

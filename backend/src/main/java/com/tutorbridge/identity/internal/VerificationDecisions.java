@@ -66,7 +66,10 @@ public class VerificationDecisions {
 
     public TutorProfileSubmissions.Verification decide(Actor actor, UUID verificationId, IdempotencyKey key,
             WritePrecondition.Expected precondition, Decision decision) {
-        if (actor.role() != Actor.Role.ADMIN) {
+        // As the three reads of the queue (AssignedVerifications): without VERIFY, 403 before any record is
+        // read, whoever the record is assigned to (Đính, 26/11/2026, from the TB-23 access matrix). Not locked:
+        // the transaction checks VERIFY again under FOR SHARE, last, in the lock order of TB-13 (INV-22).
+        if (actor.role() != Actor.Role.ADMIN || !verifications.canVerify(actor.accountId())) {
             throw accessDenied();
         }
         validate(decision);

@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
+import type { StudentChoice } from "@/shared/ui/StudentSwitcher";
 
 type Selection = { selectedId: string | null; select: (studentId: string) => void };
 
@@ -25,4 +26,15 @@ export function useSelectedStudent<T extends { id: string }>(students: readonly 
   }
   const selected = students.find((student) => student.id === selection.selectedId) ?? students[0];
   return { selected, select: selection.select };
+}
+
+/** The switcher's choices for the parent's children, as PH01 shows them. */
+export function studentChoices(students: readonly { id: string; displayName: string; grade: number }[]): StudentChoice[] {
+  return students.map((student) => ({
+    id: student.id,
+    name: student.displayName,
+    label: `${student.displayName}, lớp ${student.grade}`,
+    // The approved sheet also counts classes and offers; those APIs are not merged yet (TBD in handoff TB-14).
+    detail: `Lớp ${student.grade}.`,
+  }));
 }

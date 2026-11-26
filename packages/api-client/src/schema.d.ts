@@ -43,7 +43,7 @@ export interface paths {
         put?: never;
         /**
          * Create a need draft
-         * @description Create a need draft
+         * @description Create a need draft for the owning parent's child. A child has at most one need that is not CLOSED: another one is 409 NEED_ALREADY_OPEN (#16 Q4). The draft fields are the whole draft; the schedule is the child's calendar (getStudentCalendar), not windows in the body (#16 Q1).
          */
         post: operations["createNeedDraft"];
         delete?: never;
@@ -71,7 +71,7 @@ export interface paths {
         head?: never;
         /**
          * Save a new draft revision
-         * @description Save a new draft revision
+         * @description The body replaces the whole draft; an absent field is empty (#16 Q3). A DRAFT need keeps one unconfirmed version, updated in place with revision + 1 (#16 Q2). A CONFIRMED need gets a new unconfirmed version that becomes current and the need is DRAFT again; confirmed versions never change (UC04). Pending offers of the old version stay as they are and acceptOffer refuses them with 409 SCOPE_CHANGED (UC06, #16 Q6). CLOSED: 409.
          */
         patch: operations["updateNeedDraft"];
         trace?: never;
@@ -87,7 +87,7 @@ export interface paths {
         put?: never;
         /**
          * Confirm current need revision
-         * @description Validate nonempty complete hard filters, 20–2000 goal, start in local today..today+28, valid 28-day future schedule. Editing requires a new draft.
+         * @description Validate nonempty complete hard filters, 20–2000 goal, start in local today..today+28, valid 28-day future schedule. Editing requires a new draft. The schedule is the child's effective calendar, whose version id is stored as studentCalendarId (#16 Q1). Valid means: each of the 4 blocks of 7 days from cycleStartDate holds at least frequencyPer7Days future slots of durationMinutes that do not overlap, inside AVAILABLE or PREFERRED windows and outside BLOCKED ones; otherwise 422 naming the short blocks (#16 Q5). No calendar: 422.
          */
         post: operations["confirmNeed"];
         delete?: never;
@@ -1609,7 +1609,7 @@ export interface paths {
         };
         /**
          * getOwnTutorProfile
-         * @description Verified TUTOR own data only. New draft starts from profile GET/ETag or If-None-Match: *. Evidence limit 5MiB and up to10 per submission is proposed, pending D07-04.
+         * @description Verified TUTOR own data only. New draft starts from profile GET/ETag or If-None-Match: *. Evidence: PDF/JPEG/PNG, at most 5 MiB per file and 10 files per submission (G3-D07-04).
          */
         get: operations["getOwnTutorProfile"];
         /**
@@ -1673,9 +1673,29 @@ export interface paths {
         };
         /**
          * listAssignedVerifications
-         * @description Only assigned records; no support-role implicit access
+         * @description Only records assigned to the caller, oldest submission first (AD03, OP-28); no support-role implicit access. Without status every assigned record is listed. A superseded record (its profile version was replaced, OP-24) is never listed under PENDING, since it can no longer be decided.
          */
         get: operations["listAssignedVerifications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/verifications/{verificationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * getAssignedVerification
+         * @description AD04 (OP-28). The exact submitted profile version of one record assigned to the caller, and the list of its evidence. Each evidence id is the evidenceId of readAssignedEvidence; no evidence bytes, object key or hash here. A record assigned to someone else, or no longer assigned to the caller, is 404, as if it did not exist; no support-role implicit access. The ETag is the record revision that decideVerification takes as If-Match.
+         */
+        get: operations["getAssignedVerification"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2087,7 +2107,7 @@ export interface paths {
         put?: never;
         /**
          * createEvidenceUpload
-         * @description Verified TUTOR own data only. New draft starts from profile GET/ETag or If-None-Match: *. Evidence limit 5MiB and up to10 per submission is proposed, pending D07-04.
+         * @description Verified TUTOR own data only. New draft starts from profile GET/ETag or If-None-Match: *. Evidence: PDF/JPEG/PNG, at most 5 MiB per file and 10 files per submission (G3-D07-04).
          */
         post: operations["createEvidenceUpload"];
         delete?: never;
@@ -2147,9 +2167,29 @@ export interface paths {
         put?: never;
         /**
          * completeEvidenceUpload
-         * @description TUTOR owner only; verify actual object bytes/hash/MIME and scan in quarantine. Only READY evidence may attach to a submitted immutable profile version; never return public evidence URL.
+         * @description TUTOR owner only; verify actual object bytes/hash/MIME and scan in quarantine. Only READY evidence may attach to a submitted immutable profile version; never return public evidence URL. R0 checks structure only: magic bytes, real MIME, size and SHA-256 against CompleteEvidenceInput, then QUARANTINED -> READY through EvidenceScanner. TBD (OP-07): a real malware scanner before any real evidence is accepted.
          */
         post: operations["completeEvidenceUpload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/tutor-profile/evidence-uploads/{uploadId}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * uploadEvidenceContent
+         * @description Receives the file bytes for an upload created by createEvidenceUpload (EvidenceUploadTicket.uploadUrl points here in R0). Only while the upload is UPLOADING and before expiresAt; bytes go to private storage, never a public URL. Content-Type must equal the declared mediaType and the body length the declared sizeBytes (at most 5 MiB), and the SHA-256 of the body must equal the sha256 declared by createEvidenceUpload, else 422 VALIDATION_FAILED. Magic bytes are checked by completeEvidenceUpload. Expired: 409 EVIDENCE_UPLOAD_EXPIRED. No longer UPLOADING: 409 EVIDENCE_UPLOAD_CLOSED. Idempotency (INV-20): the receipt payload is {uploadId, bodySha256}. Content-Type and length are not in it, since they must equal what the upload declared. Same key, same uploadId and same bytes replays the record of that upload after the owner is checked again; same key with another uploadId or other bytes is 409. A new key while still UPLOADING stores the bytes again; since every accepted body has the declared SHA-256, the stored bytes never differ from the ones completeEvidenceUpload checks.
+         */
+        put: operations["uploadEvidenceContent"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2330,7 +2370,15 @@ export interface components {
             frequencyPer7Days?: 1 | 2 | 3;
             /** Format: date */
             cycleStartDate?: string;
+            /**
+             * @deprecated
+             * @description Not used. The schedule is the child's calendar (getStudentCalendar, replaceStudentCalendar); a non-empty array is 422 (#16 Q1). Never returned.
+             */
             availableWindows?: components["schemas"]["Window"][];
+            /**
+             * @deprecated
+             * @description Not used. The schedule is the child's calendar (getStudentCalendar, replaceStudentCalendar); a non-empty array is 422 (#16 Q1). Never returned.
+             */
             preferredWindows?: components["schemas"]["Window"][];
         };
         Need: {
@@ -2345,6 +2393,11 @@ export interface components {
             /** @enum {string} */
             status: "DRAFT" | "CONFIRMED" | "CLOSED";
             draft: components["schemas"]["NeedDraftInput"];
+            /**
+             * Format: uuid
+             * @description Id of the child's calendar version this need version was confirmed with (EffectiveCalendar.id); null until confirmed (#16 Q1).
+             */
+            studentCalendarId: string | null;
         };
         NeedPage: {
             items: components["schemas"]["Need"][];
@@ -3288,8 +3341,60 @@ export interface components {
             revision: number;
         };
         VerificationPage: {
-            items: components["schemas"]["VerificationRecord"][];
+            items: components["schemas"]["AssignedVerification"][];
             nextCursor: string | null;
+        };
+        /** @description A verification record as its assigned verifier sees it (AD03, AD04, OP-28). Only for the verifier; the tutor reads TutorVerificationView. No email, no evidence key (AC-UC03-03). */
+        AssignedVerification: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            profileVersionId: string;
+            profileVersion: number;
+            /** @description The tutor's display name; null when the account has none. */
+            tutorDisplayName: string | null;
+            /** Format: uuid */
+            assignedTo: string | null;
+            /** @enum {string} */
+            status: "PENDING" | "VERIFIED" | "REJECTED";
+            scope: string;
+            /** @description The verifier's reason. A PENDING record with a reason is NEEDS_INFO (G3-D07-05); a PENDING record without one has not been decided yet. */
+            reason: string | null;
+            /** Format: date-time */
+            submittedAt: string;
+            /**
+             * Format: date-time
+             * @description When the last decision was recorded, NEEDS_INFO included; null while undecided.
+             */
+            decidedAt: string | null;
+            /** @description True when the tutor replaced this profile version (OP-24); the record can no longer be decided and decideVerification answers 409 VERIFICATION_SUPERSEDED. */
+            superseded: boolean;
+            /** Format: int64 */
+            revision: number;
+        } & (unknown & unknown);
+        /** @description What AD04 needs to examine one assigned record (OP-28). */
+        AssignedVerificationDetail: {
+            verification: components["schemas"]["AssignedVerification"];
+            profile: components["schemas"]["SubmittedTutorProfile"];
+            evidence: components["schemas"]["AssignedEvidence"][];
+        };
+        /** @description The submitted profile version under verification, frozen since it was sent (INV-54). */
+        SubmittedTutorProfile: {
+            /** Format: uuid */
+            id: string;
+            version: number;
+            subject: string;
+            description: string;
+            experienceMonths: number;
+            rateVnd60: number;
+        };
+        /** @description One evidence file of the submitted version. id is the evidenceId of readAssignedEvidence. */
+        AssignedEvidence: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            mediaType: "application/pdf" | "image/jpeg" | "image/png";
+            sizeBytes: number;
         };
         /** @description What a tutor may read about the verification of their own profile (OP-23). No verifier identity, no evidence. */
         TutorVerificationView: {
@@ -3304,7 +3409,9 @@ export interface components {
             reason: string | null;
             /** Format: date-time */
             decidedAt: string | null;
-        } & (unknown & unknown);
+            /** @description Version number of the tutor's current approved profile version, the one parents see while a newer version waits or is refused (OP-24 (1)); null when the tutor has no approved version. When state is VERIFIED it is profileVersion. Lets GS01 tell a first submission from an edit of a profile that stays public (#166). */
+            approvedVersion: number | null;
+        } & (unknown & unknown & unknown);
         VerificationDecisionInput: {
             /** Format: uuid */
             profileVersionId: string;
@@ -3521,7 +3628,10 @@ export interface components {
         EvidenceUploadTicket: {
             /** Format: uuid */
             uploadId: string;
-            /** Format: uri */
+            /**
+             * Format: uri
+             * @description Absolute URL to PUT the file bytes to before expiresAt. In R0 it is uploadEvidenceContent on this API. The client sends its session credentials and an Idempotency-Key only when uploadUrl has the same origin as the API; a URL on another origin carries its own access and must never receive the session credentials. Pointing uploadUrl at another store is a later contract change, since the client then needs other headers.
+             */
             uploadUrl: string;
             /** Format: date-time */
             expiresAt: string;
@@ -3644,6 +3754,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -3684,6 +3795,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -3722,6 +3834,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -3766,6 +3879,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -3801,6 +3915,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -3847,6 +3962,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -3893,6 +4009,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -3939,6 +4056,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -3974,6 +4092,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -4009,6 +4128,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -4055,6 +4175,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -4091,6 +4212,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -4126,6 +4248,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -4172,6 +4295,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -4218,6 +4342,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -4264,6 +4389,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -4299,6 +4425,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -4337,6 +4464,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -4375,6 +4503,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -4419,6 +4548,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -4465,6 +4595,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -4500,6 +4631,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -4538,6 +4670,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -4573,6 +4706,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -4619,6 +4753,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -4665,6 +4800,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -4711,6 +4847,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -4746,6 +4883,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -4790,6 +4928,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -4834,6 +4973,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -4869,6 +5009,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -4913,6 +5054,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -4958,6 +5100,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -4993,6 +5136,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -5039,6 +5183,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -5085,6 +5230,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -5121,6 +5267,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -5168,6 +5315,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -5203,6 +5351,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -5239,6 +5388,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -5276,6 +5426,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -5385,6 +5536,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            500: components["responses"]["Problem"];
             /** @description Stable typed error; no private payload or stack trace */
             503: {
                 headers: {
@@ -5508,6 +5660,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            500: components["responses"]["Problem"];
             /** @description Stable typed error; no private payload or stack trace */
             503: {
                 headers: {
@@ -5622,6 +5775,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            500: components["responses"]["Problem"];
             /** @description Stable typed error; no private payload or stack trace */
             503: {
                 headers: {
@@ -5745,6 +5899,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            500: components["responses"]["Problem"];
             /** @description Stable typed error; no private payload or stack trace */
             503: {
                 headers: {
@@ -5868,6 +6023,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            500: components["responses"]["Problem"];
             /** @description Stable typed error; no private payload or stack trace */
             503: {
                 headers: {
@@ -5991,6 +6147,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            500: components["responses"]["Problem"];
             /** @description Stable typed error; no private payload or stack trace */
             503: {
                 headers: {
@@ -6114,6 +6271,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            500: components["responses"]["Problem"];
             /** @description Stable typed error; no private payload or stack trace */
             503: {
                 headers: {
@@ -6237,6 +6395,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            500: components["responses"]["Problem"];
             /** @description Stable typed error; no private payload or stack trace */
             503: {
                 headers: {
@@ -6360,6 +6519,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            500: components["responses"]["Problem"];
             /** @description Stable typed error; no private payload or stack trace */
             503: {
                 headers: {
@@ -6474,6 +6634,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            500: components["responses"]["Problem"];
             /** @description Stable typed error; no private payload or stack trace */
             503: {
                 headers: {
@@ -6588,6 +6749,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            500: components["responses"]["Problem"];
             /** @description Stable typed error; no private payload or stack trace */
             503: {
                 headers: {
@@ -6711,6 +6873,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            500: components["responses"]["Problem"];
             /** @description Stable typed error; no private payload or stack trace */
             503: {
                 headers: {
@@ -6834,6 +6997,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            500: components["responses"]["Problem"];
             /** @description Stable typed error; no private payload or stack trace */
             503: {
                 headers: {
@@ -6957,6 +7121,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            500: components["responses"]["Problem"];
             /** @description Stable typed error; no private payload or stack trace */
             503: {
                 headers: {
@@ -7079,6 +7244,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            500: components["responses"]["Problem"];
             /** @description Stable typed error; no private payload or stack trace */
             503: {
                 headers: {
@@ -7193,6 +7359,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            500: components["responses"]["Problem"];
             /** @description Stable typed error; no private payload or stack trace */
             503: {
                 headers: {
@@ -7316,6 +7483,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            500: components["responses"]["Problem"];
             /** @description Stable typed error; no private payload or stack trace */
             503: {
                 headers: {
@@ -7439,6 +7607,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            500: components["responses"]["Problem"];
             /** @description Stable typed error; no private payload or stack trace */
             503: {
                 headers: {
@@ -7556,6 +7725,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            500: components["responses"]["Problem"];
             /** @description Stable typed error; no private payload or stack trace */
             503: {
                 headers: {
@@ -7670,6 +7840,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            500: components["responses"]["Problem"];
             /** @description Stable typed error; no private payload or stack trace */
             503: {
                 headers: {
@@ -7791,6 +7962,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            500: components["responses"]["Problem"];
             /** @description Stable typed error; no private payload or stack trace */
             503: {
                 headers: {
@@ -7908,6 +8080,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            500: components["responses"]["Problem"];
             /** @description Stable typed error; no private payload or stack trace */
             503: {
                 headers: {
@@ -8031,6 +8204,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            500: components["responses"]["Problem"];
             /** @description Stable typed error; no private payload or stack trace */
             503: {
                 headers: {
@@ -8145,6 +8319,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            500: components["responses"]["Problem"];
             /** @description Stable typed error; no private payload or stack trace */
             503: {
                 headers: {
@@ -8268,6 +8443,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            500: components["responses"]["Problem"];
             /** @description Stable typed error; no private payload or stack trace */
             503: {
                 headers: {
@@ -8391,6 +8567,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            500: components["responses"]["Problem"];
             /** @description Stable typed error; no private payload or stack trace */
             503: {
                 headers: {
@@ -8514,6 +8691,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            500: components["responses"]["Problem"];
             /** @description Stable typed error; no private payload or stack trace */
             503: {
                 headers: {
@@ -8628,6 +8806,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            500: components["responses"]["Problem"];
             /** @description Stable typed error; no private payload or stack trace */
             503: {
                 headers: {
@@ -8747,6 +8926,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            500: components["responses"]["Problem"];
             /** @description Stable typed error; no private payload or stack trace */
             503: {
                 headers: {
@@ -8862,6 +9042,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            500: components["responses"]["Problem"];
             /** @description Stable typed error; no private payload or stack trace */
             503: {
                 headers: {
@@ -8979,6 +9160,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            500: components["responses"]["Problem"];
             /** @description Stable typed error; no private payload or stack trace */
             503: {
                 headers: {
@@ -9091,6 +9273,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            500: components["responses"]["Problem"];
             /** @description Stable typed error; no private payload or stack trace */
             503: {
                 headers: {
@@ -9134,6 +9317,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -9167,6 +9351,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -9204,6 +9389,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -9239,6 +9425,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -9272,6 +9459,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -9301,6 +9489,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -9337,6 +9526,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -9368,6 +9558,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -9401,6 +9592,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -9436,6 +9628,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -9480,6 +9673,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -9524,6 +9718,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -9564,6 +9759,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -9604,6 +9800,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -9637,6 +9834,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -9679,6 +9877,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -9721,6 +9920,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -9752,6 +9952,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -9760,6 +9961,8 @@ export interface operations {
             query?: {
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];
+                /** @description Stored status filter of AD03. NEEDS_INFO is PENDING with a reason (G3-D07-05), so it is listed under PENDING. */
+                status?: "PENDING" | "VERIFIED" | "REJECTED";
             };
             header?: never;
             path?: never;
@@ -9788,6 +9991,39 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
+            503: components["responses"]["Problem"];
+        };
+    };
+    getAssignedVerification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                verificationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authorized committed result; no credentials in ordinary DTOs */
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    /** @description Strong revision of the verification record */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssignedVerificationDetail"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -9832,6 +10068,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -9876,6 +10113,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -9912,6 +10150,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -9952,6 +10191,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -9987,6 +10227,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -10025,6 +10266,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -10069,6 +10311,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -10113,6 +10356,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -10157,6 +10401,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -10201,6 +10446,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -10245,6 +10491,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -10289,6 +10536,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -10325,6 +10573,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -10363,6 +10612,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -10398,6 +10648,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -10442,6 +10693,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -10478,6 +10730,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -10509,6 +10762,7 @@ export interface operations {
             403: components["responses"]["Problem"];
             422: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -10534,6 +10788,7 @@ export interface operations {
             401: components["responses"]["Problem"];
             403: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -10571,6 +10826,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -10608,6 +10864,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -10643,6 +10900,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -10683,6 +10941,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -10717,6 +10976,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -10750,6 +11010,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -10792,6 +11053,48 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
+            503: components["responses"]["Problem"];
+        };
+    };
+    uploadEvidenceContent: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Random key, 16–128 characters; scoped to actor and command; keep receipts at least 7 days. Same key + different canonical payload -> 409. Missing -> 400 IDEMPOTENCY_KEY_REQUIRED; out of range -> 422 IDEMPOTENCY_KEY_INVALID (CR-014). */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                uploadId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/pdf": string;
+                "image/jpeg": string;
+                "image/png": string;
+            };
+        };
+        responses: {
+            /** @description Bytes stored; the upload stays UPLOADING until completeEvidenceUpload */
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TutorEvidenceRecord"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+            429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -10827,6 +11130,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -10862,6 +11166,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -10895,6 +11200,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -10937,6 +11243,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -10972,6 +11279,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -11016,6 +11324,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -11060,6 +11369,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };
@@ -11105,6 +11415,7 @@ export interface operations {
             422: components["responses"]["Problem"];
             428: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
             503: components["responses"]["Problem"];
         };
     };

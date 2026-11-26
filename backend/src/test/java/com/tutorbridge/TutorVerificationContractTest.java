@@ -10,7 +10,8 @@ import org.springframework.mock.web.MockHttpServletResponse;
 
 /**
  * The tutor's view of their own verification (OP-23, Issue #96): the server derives four states,
- * shows a reason only for NEEDS_INFO and REJECTED, and never names the verifier.
+ * shows a reason only for NEEDS_INFO and REJECTED, and never names the verifier. It also names the
+ * tutor's current approved version, if any (OP-24 (1), Issue #166).
  */
 class TutorVerificationContractTest {
 
@@ -21,12 +22,18 @@ class TutorVerificationContractTest {
 
     private final Contract contract = Contract.load(Contract.FILE);
 
+    /** A view of version 2; a verified one is the approved version, otherwise there is none. */
     private static String view(String state, String reason, String decidedAt) {
+        return view(state, reason, decidedAt, "VERIFIED".equals(state) ? "2" : "null");
+    }
+
+    private static String view(String state, String reason, String decidedAt, String approvedVersion) {
         return """
                 {"id":"5f0c2b9e-2a51-4a8e-9a43-6d1f0c2b9e10","profileVersionId":"7a1d3c0f-3b62-4b9f-8b54-7e2a1d3c0f21",
-                 "profileVersion":2,"state":"%s","scope":"Toán đại số lớp 8","reason":%s,"decidedAt":%s}"""
+                 "profileVersion":2,"state":"%s","scope":"Toán đại số lớp 8","reason":%s,"decidedAt":%s,
+                 "approvedVersion":%s}"""
                 .formatted(state, reason == null ? "null" : "\"" + reason + "\"",
-                        decidedAt == null ? "null" : "\"" + decidedAt + "\"");
+                        decidedAt == null ? "null" : "\"" + decidedAt + "\"", approvedVersion);
     }
 
     private List<String> check(int status, String contentType, String body) throws IOException {
@@ -67,6 +74,24 @@ class TutorVerificationContractTest {
         assertThat(check(view("WAITING", null, "2026-11-12T03:00:00Z"))).isNotEmpty();
         assertThat(check(view("VERIFIED", null, null))).isNotEmpty();
         assertThat(check(view("NEEDS_INFO", "Bổ sung bằng tốt nghiệp.", null))).isNotEmpty();
+    }
+
+    @Test
+    void an_edit_waiting_or_refused_still_names_the_approved_version_parents_see() throws IOException {
+        // #166: version 2 waits, needs more or is refused while version 1 stays public (OP-24 (1)).
+        assertThat(check(view("WAITING", null, null, "1"))).isEmpty();
+        assertThat(check(view("NEEDS_INFO", "Bổ sung bằng tốt nghiệp.", "2026-11-12T03:00:00Z", "1"))).isEmpty();
+        assertThat(check(view("REJECTED", "Minh chứng không khớp phạm vi.", "2026-11-12T03:00:00Z", "1"))).isEmpty();
+    }
+
+    @Test
+    void the_approved_version_is_always_present_and_a_verified_view_has_one() throws IOException {
+        String missing = view("WAITING", null, null).replaceAll(",\\s*\"approvedVersion\":null", "");
+        assertThat(missing).doesNotContain("approvedVersion");
+        assertThat(check(missing)).isNotEmpty();
+        assertThat(check(view("VERIFIED", null, "2026-11-12T03:00:00Z", "null"))).isNotEmpty();
+        assertThat(check(view("WAITING", null, null, "0"))).isNotEmpty();
+        assertThat(check(view("WAITING", null, null, "\"1\""))).isNotEmpty();
     }
 
     @Test

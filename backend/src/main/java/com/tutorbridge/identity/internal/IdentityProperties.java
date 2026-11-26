@@ -25,8 +25,10 @@ public record IdentityProperties(List<String> termsVersions, Keys keys, Limits l
      * @param emailDigest HMAC-SHA256 key for {@code accounts.email_digest} and the source digests
      * @param emailEncryption AES-256-GCM key for {@code accounts.email_ciphertext}
      * @param linkToken AES-256-GCM key for the one-time link codes carried in outbox events
+     * @param adminMfa AES-256-GCM key for the admin TOTP secrets in {@code admin_mfa_enrollments}
+     *     (TB-13, Đính 23/11/2026 on #13)
      */
-    public record Keys(String emailDigest, String emailEncryption, String linkToken) {}
+    public record Keys(String emailDigest, String emailEncryption, String linkToken, String adminMfa) {}
 
     public record Limits(Limit registerPerSource, Limit resendPerAccount, Limit resendPerSource,
             Limit recoveryPerAccount, Limit recoveryPerSource) {

@@ -9,31 +9,31 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /** Synthetic parties and pending offers. Weekly sessions start 14 days after today. */
-final class OfferFixture {
+public final class OfferFixture {
 
     static final int RATE = 100_000;
     static final int PRICE_90_MINUTES = 150_000;
     private static final ZoneId VIETNAM = ZoneId.of("Asia/Ho_Chi_Minh");
 
-    record Student(UUID id, UUID parentId) {}
+    public record Student(UUID id, UUID parentId) {}
 
-    record Tutor(UUID id, UUID profileId) {}
+    public record Tutor(UUID id, UUID profileId) {}
 
-    record Need(UUID id, UUID versionId, Student student) {}
+    public record Need(UUID id, UUID versionId, Student student) {}
 
     private final JdbcClient jdbc;
     private final TransactionTemplate tx;
 
-    OfferFixture(JdbcClient jdbc, TransactionTemplate tx) {
+    public OfferFixture(JdbcClient jdbc, TransactionTemplate tx) {
         this.jdbc = jdbc;
         this.tx = tx;
     }
 
-    LocalDate cycleStart() {
+    public LocalDate cycleStart() {
         return LocalDate.now(VIETNAM).plusDays(14);
     }
 
-    OffsetDateTime sessionStart(int hour, int minute) {
+    public OffsetDateTime sessionStart(int hour, int minute) {
         return cycleStart().atTime(hour, minute).atZone(VIETNAM).toOffsetDateTime();
     }
 
@@ -58,7 +58,7 @@ final class OfferFixture {
                 .params(ownerKind, ownerId).query(UUID.class).single();
     }
 
-    Student student() {
+    public Student student() {
         UUID parent = account("PARENT");
         UUID student = UUID.randomUUID();
         jdbc.sql("insert into students(id, parent_id, display_name) values (?, ?, 'Hoc sinh thu')")
@@ -67,7 +67,7 @@ final class OfferFixture {
         return new Student(student, parent);
     }
 
-    Tutor tutor() {
+    public Tutor tutor() {
         UUID tutor = account("TUTOR");
         UUID profile = UUID.randomUUID();
         jdbc.sql("""
@@ -79,7 +79,7 @@ final class OfferFixture {
         return new Tutor(tutor, profile);
     }
 
-    Need need(Student student) {
+    public Need need(Student student) {
         return tx.execute(s -> {
             UUID need = UUID.randomUUID();
             UUID version = UUID.randomUUID();
@@ -95,11 +95,11 @@ final class OfferFixture {
         });
     }
 
-    UUID offer(Need need, Tutor tutor, OffsetDateTime firstSession) {
+    public UUID offer(Need need, Tutor tutor, OffsetDateTime firstSession) {
         return offer(need, tutor, weekly(firstSession), "1 hour");
     }
 
-    UUID offer(Need need, Tutor tutor, List<OffsetDateTime> sessions) {
+    public UUID offer(Need need, Tutor tutor, List<OffsetDateTime> sessions) {
         return offer(need, tutor, sessions, "1 hour");
     }
 
@@ -108,7 +108,7 @@ final class OfferFixture {
     }
 
     /** Sent 49 hours ago, so the 48 hour deadline passed one hour ago. */
-    UUID expiredOffer(Need need, Tutor tutor) {
+    public UUID expiredOffer(Need need, Tutor tutor) {
         return offer(need, tutor, weekly(sessionStart(18, 0)), "49 hours");
     }
 
@@ -141,11 +141,11 @@ final class OfferFixture {
         });
     }
 
-    UUID offer(Need need, Tutor tutor) {
+    public UUID offer(Need need, Tutor tutor) {
         return offer(need, tutor, sessionStart(18, 0));
     }
 
-    int count(String sql, Object... params) {
+    public int count(String sql, Object... params) {
         return jdbc.sql(sql).params(params).query(Integer.class).single();
     }
 }

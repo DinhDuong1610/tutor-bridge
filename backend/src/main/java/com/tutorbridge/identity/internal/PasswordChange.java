@@ -24,7 +24,13 @@ public class PasswordChange {
     static final Duration REAUTH_LIFETIME = Duration.ofMinutes(5);
     static final String REAUTH = "REAUTH";
 
-    public record ReauthToken(String reauthToken, Instant expiresAt) {}
+    public record ReauthToken(String reauthToken, Instant expiresAt) {
+
+        @Override
+        public String toString() {
+            return "ReauthToken[reauthToken=%s, expiresAt=%s]".formatted(Masked.VALUE, expiresAt);
+        }
+    }
 
     private final SessionRepository sessions;
     private final AccountRepository accounts;

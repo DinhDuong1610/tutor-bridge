@@ -131,6 +131,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '428':
@@ -164,6 +166,8 @@ paths:
         '428':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -241,6 +245,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '428':
@@ -248,7 +254,10 @@ paths:
     post:
       operationId: createNeedDraft
       summary: Create a need draft
-      description: Create a need draft
+      description: 'Create a need draft for the owning parent''s child. A child has
+        at most one need that is not CLOSED: another one is 409 NEED_ALREADY_OPEN
+        (#16 Q4). The draft fields are the whole draft; the schedule is the child''s
+        calendar (getStudentCalendar), not windows in the body (#16 Q1).'
       tags:
       - TX01
       x-authorization: PARENT owner
@@ -297,6 +306,8 @@ paths:
         '422':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -356,6 +367,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '428':
@@ -363,7 +376,12 @@ paths:
     patch:
       operationId: updateNeedDraft
       summary: Save a new draft revision
-      description: Save a new draft revision
+      description: 'The body replaces the whole draft; an absent field is empty
+        (#16 Q3). A DRAFT need keeps one unconfirmed version, updated in place with
+        revision + 1 (#16 Q2). A CONFIRMED need gets a new unconfirmed version that
+        becomes current and the need is DRAFT again; confirmed versions never change
+        (UC04). Pending offers of the old version stay as they are and acceptOffer
+        refuses them with 409 SCOPE_CHANGED (UC06, #16 Q6). CLOSED: 409.'
       tags:
       - TX01
       x-authorization: PARENT owner
@@ -414,6 +432,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '428':
@@ -428,9 +448,14 @@ paths:
     post:
       operationId: confirmNeed
       summary: Confirm current need revision
-      description: Validate nonempty complete hard filters, 20–2000 goal, start in
+      description: 'Validate nonempty complete hard filters, 20–2000 goal, start in
         local today..today+28, valid 28-day future schedule. Editing requires a new
-        draft.
+        draft. The schedule is the child''s effective calendar, whose version id is
+        stored as studentCalendarId (#16 Q1). Valid means: each of the 4 blocks of
+        7 days from cycleStartDate holds at least frequencyPer7Days future slots
+        of durationMinutes that do not overlap, inside AVAILABLE or PREFERRED windows
+        and outside BLOCKED ones; otherwise 422 naming the short blocks (#16 Q5).
+        No calendar: 422.'
       tags:
       - TX02
       x-authorization: PARENT owner
@@ -480,6 +505,8 @@ paths:
         '422':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -549,6 +576,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '428':
@@ -607,6 +636,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '428':
@@ -658,6 +689,8 @@ paths:
         '422':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -720,6 +753,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '428':
@@ -774,6 +809,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '428':
@@ -825,6 +862,8 @@ paths:
         '422':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -889,6 +928,8 @@ paths:
         '422':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -955,6 +996,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '428':
@@ -1020,6 +1063,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '428':
@@ -1078,6 +1123,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '428':
@@ -1132,6 +1179,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '428':
@@ -1185,6 +1234,8 @@ paths:
         '422':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -1246,6 +1297,8 @@ paths:
         '422':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -1314,6 +1367,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '428':
@@ -1372,6 +1427,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '428':
@@ -1427,6 +1484,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '428':
@@ -1478,6 +1537,8 @@ paths:
         '422':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -1539,6 +1600,8 @@ paths:
         '422':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -1609,6 +1672,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '428':
@@ -1678,6 +1743,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '428':
@@ -1735,6 +1802,8 @@ paths:
         '422':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -1796,6 +1865,8 @@ paths:
         '422':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -1864,6 +1935,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '428':
@@ -1924,6 +1997,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '428':
@@ -1982,6 +2057,8 @@ paths:
         '422':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -2055,6 +2132,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '428':
@@ -2112,6 +2191,8 @@ paths:
         '422':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -2172,6 +2253,8 @@ paths:
         '422':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -2239,6 +2322,8 @@ paths:
         '422':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -2315,6 +2400,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '428':
@@ -2382,6 +2469,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '428':
@@ -2435,6 +2524,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '428':
@@ -2484,6 +2575,8 @@ paths:
         '422':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -2547,6 +2640,8 @@ paths:
         '422':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -2642,6 +2737,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           description: Stable typed error; no private payload or stack trace
           content:
@@ -2751,6 +2848,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           description: Stable typed error; no private payload or stack trace
           content:
@@ -2843,6 +2942,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           description: Stable typed error; no private payload or stack trace
           content:
@@ -2941,6 +3042,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           description: Stable typed error; no private payload or stack trace
           content:
@@ -3041,6 +3144,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           description: Stable typed error; no private payload or stack trace
           content:
@@ -3141,6 +3246,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           description: Stable typed error; no private payload or stack trace
           content:
@@ -3243,6 +3350,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           description: Stable typed error; no private payload or stack trace
           content:
@@ -3346,6 +3455,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           description: Stable typed error; no private payload or stack trace
           content:
@@ -3446,6 +3557,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           description: Stable typed error; no private payload or stack trace
           content:
@@ -3544,6 +3657,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           description: Stable typed error; no private payload or stack trace
           content:
@@ -3636,6 +3751,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           description: Stable typed error; no private payload or stack trace
           content:
@@ -3730,6 +3847,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           description: Stable typed error; no private payload or stack trace
           content:
@@ -3833,6 +3952,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           description: Stable typed error; no private payload or stack trace
           content:
@@ -3935,6 +4056,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           description: Stable typed error; no private payload or stack trace
           content:
@@ -4040,6 +4163,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           description: Stable typed error; no private payload or stack trace
           content:
@@ -4138,6 +4263,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           description: Stable typed error; no private payload or stack trace
           content:
@@ -4232,6 +4359,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           description: Stable typed error; no private payload or stack trace
           content:
@@ -4334,6 +4463,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           description: Stable typed error; no private payload or stack trace
           content:
@@ -4444,6 +4575,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           description: Stable typed error; no private payload or stack trace
           content:
@@ -4538,6 +4671,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           description: Stable typed error; no private payload or stack trace
           content:
@@ -4633,6 +4768,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           description: Stable typed error; no private payload or stack trace
           content:
@@ -4737,6 +4874,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           description: Stable typed error; no private payload or stack trace
           content:
@@ -4846,6 +4985,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           description: Stable typed error; no private payload or stack trace
           content:
@@ -4938,6 +5079,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           description: Stable typed error; no private payload or stack trace
           content:
@@ -5034,6 +5177,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           description: Stable typed error; no private payload or stack trace
           content:
@@ -5134,6 +5279,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           description: Stable typed error; no private payload or stack trace
           content:
@@ -5236,6 +5383,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           description: Stable typed error; no private payload or stack trace
           content:
@@ -5336,6 +5485,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           description: Stable typed error; no private payload or stack trace
           content:
@@ -5458,6 +5609,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           description: Stable typed error; no private payload or stack trace
           content:
@@ -5556,6 +5709,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           description: Stable typed error; no private payload or stack trace
           content:
@@ -5649,6 +5804,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           description: Stable typed error; no private payload or stack trace
           content:
@@ -5738,6 +5895,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           description: Stable typed error; no private payload or stack trace
           content:
@@ -5773,6 +5932,8 @@ paths:
         '428':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -5824,6 +5985,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '204':
@@ -5874,6 +6037,8 @@ paths:
         '428':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -5929,6 +6094,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '202':
@@ -5979,6 +6146,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '204':
@@ -6024,6 +6193,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '204':
@@ -6066,6 +6237,8 @@ paths:
         '428':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -6122,6 +6295,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '204':
@@ -6165,6 +6340,8 @@ paths:
         '428':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -6220,6 +6397,8 @@ paths:
         '428':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -6283,6 +6462,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '200':
@@ -6340,6 +6521,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '201':
@@ -6396,6 +6579,8 @@ paths:
         '428':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -6461,6 +6646,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '200':
@@ -6523,6 +6710,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '200':
@@ -6555,12 +6744,12 @@ paths:
       tags:
       - UC03
       x-authorization: 'Verified TUTOR own data only. New draft starts from profile
-        GET/ETag or If-None-Match: *. Evidence limit 5MiB and up to10 per submission
-        is proposed, pending D07-04.'
+        GET/ETag or If-None-Match: *. Evidence: PDF/JPEG/PNG, at most 5 MiB per file
+        and 10 files per submission (G3-D07-04).'
       x-transaction: UC03
-      description: 'Verified TUTOR own data only. New draft starts from profile GET/ETag
-        or If-None-Match: *. Evidence limit 5MiB and up to10 per submission is proposed,
-        pending D07-04.'
+      description: 'Verified TUTOR own data only. New draft starts from profile
+        GET/ETag or If-None-Match: *. Evidence: PDF/JPEG/PNG, at most 5 MiB per file
+        and 10 files per submission (G3-D07-04).'
       parameters: []
       responses:
         '400':
@@ -6580,6 +6769,8 @@ paths:
         '428':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -6632,6 +6823,8 @@ paths:
         '428':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -6694,6 +6887,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '200':
@@ -6718,10 +6913,24 @@ paths:
       - UC03
       x-authorization: assigned VERIFIER
       x-transaction: UC03
-      description: Only assigned records; no support-role implicit access
+      description: Only records assigned to the caller, oldest submission first (AD03,
+        OP-28); no support-role implicit access. Without status every assigned record
+        is listed. A superseded record (its profile version was replaced, OP-24) is never
+        listed under PENDING, since it can no longer be decided.
       parameters:
       - $ref: '#/components/parameters/Cursor'
       - $ref: '#/components/parameters/Limit'
+      - name: status
+        in: query
+        required: false
+        description: Stored status filter of AD03. NEEDS_INFO is PENDING with a reason
+          (G3-D07-05), so it is listed under PENDING.
+        schema:
+          type: string
+          enum:
+          - PENDING
+          - VERIFIED
+          - REJECTED
       responses:
         '400':
           $ref: '#/components/responses/Problem'
@@ -6741,6 +6950,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '200':
@@ -6758,6 +6969,60 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/VerificationPage'
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+  /admin/verifications/{verificationId}:
+    get:
+      operationId: getAssignedVerification
+      summary: getAssignedVerification
+      tags:
+      - UC03
+      x-authorization: assigned VERIFIER
+      x-transaction: UC03
+      description: AD04 (OP-28). The exact submitted profile version of one record assigned
+        to the caller, and the list of its evidence. Each evidence id is the evidenceId
+        of readAssignedEvidence; no evidence bytes, object key or hash here. A record
+        assigned to someone else, or no longer assigned to the caller, is 404, as if
+        it did not exist; no support-role implicit access. The ETag is the record revision
+        that decideVerification takes as If-Match.
+      parameters:
+      - name: verificationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+        '200':
+          description: Authorized committed result; no credentials in ordinary DTOs
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                const: private, no-store
+            ETag:
+              schema:
+                type: string
+              description: Strong revision of the verification record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssignedVerificationDetail'
       security:
       - bearerAuth: []
       - cookieAuth: []
@@ -6798,6 +7063,8 @@ paths:
         '428':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -6863,6 +7130,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '200':
@@ -6918,6 +7187,8 @@ paths:
         '428':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -6976,6 +7247,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '200':
@@ -7030,6 +7303,8 @@ paths:
         '428':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -7087,6 +7362,8 @@ paths:
         '428':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -7151,6 +7428,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '200':
@@ -7207,6 +7486,8 @@ paths:
         '428':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -7272,6 +7553,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '200':
@@ -7334,6 +7617,8 @@ paths:
         '428':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -7400,6 +7685,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '201':
@@ -7464,6 +7751,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '200':
@@ -7521,6 +7810,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '202':
@@ -7574,6 +7865,8 @@ paths:
         '428':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -7631,6 +7924,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '200':
@@ -7687,6 +7982,8 @@ paths:
         '428':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -7746,6 +8043,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '200':
@@ -7793,6 +8092,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '200':
@@ -7833,6 +8134,8 @@ paths:
         '403':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -7881,6 +8184,8 @@ paths:
         '428':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -7935,6 +8240,8 @@ paths:
         '428':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -7995,6 +8302,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '202':
@@ -8022,12 +8331,12 @@ paths:
       tags:
       - UC03
       x-authorization: 'Verified TUTOR own data only. New draft starts from profile
-        GET/ETag or If-None-Match: *. Evidence limit 5MiB and up to10 per submission
-        is proposed, pending D07-04.'
+        GET/ETag or If-None-Match: *. Evidence: PDF/JPEG/PNG, at most 5 MiB per file
+        and 10 files per submission (G3-D07-04).'
       x-transaction: UC03
-      description: 'Verified TUTOR own data only. New draft starts from profile GET/ETag
-        or If-None-Match: *. Evidence limit 5MiB and up to10 per submission is proposed,
-        pending D07-04.'
+      description: 'Verified TUTOR own data only. New draft starts from profile
+        GET/ETag or If-None-Match: *. Evidence: PDF/JPEG/PNG, at most 5 MiB per file
+        and 10 files per submission (G3-D07-04).'
       parameters:
       - $ref: '#/components/parameters/IdempotencyKey'
       responses:
@@ -8048,6 +8357,8 @@ paths:
         '428':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -8117,6 +8428,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '200':
@@ -8170,6 +8483,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '200':
@@ -8197,9 +8512,12 @@ paths:
         scan in quarantine. Only READY evidence may attach to a submitted immutable
         profile version; never return public evidence URL.
       x-transaction: UC03
-      description: TUTOR owner only; verify actual object bytes/hash/MIME and scan
+      description: 'TUTOR owner only; verify actual object bytes/hash/MIME and scan
         in quarantine. Only READY evidence may attach to a submitted immutable profile
-        version; never return public evidence URL.
+        version; never return public evidence URL. R0 checks structure only: magic
+        bytes, real MIME, size and SHA-256 against CompleteEvidenceInput, then
+        QUARANTINED -> READY through EvidenceScanner. TBD (OP-07): a real malware
+        scanner before any real evidence is accepted.'
       parameters:
       - name: uploadId
         in: path
@@ -8227,6 +8545,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '200':
@@ -8253,6 +8573,85 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CompleteEvidenceInput'
+  /me/tutor-profile/evidence-uploads/{uploadId}/content:
+    put:
+      operationId: uploadEvidenceContent
+      summary: uploadEvidenceContent
+      tags:
+      - UC03
+      x-authorization: TUTOR owner only; another account's upload is 404.
+      x-transaction: UC03
+      description: 'Receives the file bytes for an upload created by createEvidenceUpload
+        (EvidenceUploadTicket.uploadUrl points here in R0). Only while the upload
+        is UPLOADING and before expiresAt; bytes go to private storage, never a
+        public URL. Content-Type must equal the declared mediaType and the body length
+        the declared sizeBytes (at most 5 MiB), and the SHA-256 of the body must
+        equal the sha256 declared by createEvidenceUpload, else 422 VALIDATION_FAILED.
+        Magic bytes are checked by completeEvidenceUpload. Expired: 409 EVIDENCE_UPLOAD_EXPIRED.
+        No longer UPLOADING: 409 EVIDENCE_UPLOAD_CLOSED. Idempotency (INV-20): the
+        receipt payload is {uploadId, bodySha256}. Content-Type and length are
+        not in it, since they must equal what the upload declared. Same key, same
+        uploadId and same bytes replays the record of that upload after the owner
+        is checked again; same key with another uploadId or other bytes is 409.
+        A new key while still UPLOADING stores the bytes again; since every accepted
+        body has the declared SHA-256, the stored bytes never differ from the ones
+        completeEvidenceUpload checks.'
+      parameters:
+      - name: uploadId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+        '200':
+          description: Bytes stored; the upload stays UPLOADING until completeEvidenceUpload
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                const: private, no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TutorEvidenceRecord'
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/pdf:
+            schema:
+              type: string
+              format: binary
+          image/jpeg:
+            schema:
+              type: string
+              format: binary
+          image/png:
+            schema:
+              type: string
+              format: binary
   /auth/verification-resend:
     post:
       operationId: resendVerification
@@ -8285,6 +8684,8 @@ paths:
         '428':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -8343,6 +8744,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '200':
@@ -8395,6 +8798,8 @@ paths:
         '428':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -8458,6 +8863,8 @@ paths:
         '428':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -8523,6 +8930,8 @@ paths:
         '428':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -8593,6 +9002,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
         '200':
@@ -8661,6 +9072,8 @@ paths:
         '428':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -8736,6 +9149,8 @@ paths:
         '428':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+        '500':
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
@@ -8974,11 +9389,17 @@ components:
           items:
             $ref: '#/components/schemas/Window'
           maxItems: 100
+          deprecated: true
+          description: Not used. The schedule is the child's calendar (getStudentCalendar,
+            replaceStudentCalendar); a non-empty array is 422 (#16 Q1). Never returned.
         preferredWindows:
           type: array
           items:
             $ref: '#/components/schemas/Window'
           maxItems: 100
+          deprecated: true
+          description: Not used. The schedule is the child's calendar (getStudentCalendar,
+            replaceStudentCalendar); a non-empty array is 422 (#16 Q1). Never returned.
       required: []
     Need:
       type: object
@@ -9005,6 +9426,13 @@ components:
           - CLOSED
         draft:
           $ref: '#/components/schemas/NeedDraftInput'
+        studentCalendarId:
+          type:
+          - string
+          - 'null'
+          format: uuid
+          description: Id of the child's calendar version this need version was confirmed
+            with (EffectiveCalendar.id); null until confirmed (#16 Q1).
       required:
       - id
       - studentId
@@ -9012,6 +9440,7 @@ components:
       - versionId
       - status
       - draft
+      - studentCalendarId
     NeedPage:
       type: object
       additionalProperties: false
@@ -11684,7 +12113,7 @@ components:
         items:
           type: array
           items:
-            $ref: '#/components/schemas/VerificationRecord'
+            $ref: '#/components/schemas/AssignedVerification'
           maxItems: 50
         nextCursor:
           type:
@@ -11694,6 +12123,181 @@ components:
       required:
       - items
       - nextCursor
+    AssignedVerification:
+      type: object
+      additionalProperties: false
+      description: A verification record as its assigned verifier sees it (AD03, AD04,
+        OP-28). Only for the verifier; the tutor reads TutorVerificationView. No email,
+        no evidence key (AC-UC03-03).
+      properties:
+        id:
+          type: string
+          format: uuid
+        profileVersionId:
+          type: string
+          format: uuid
+        profileVersion:
+          type: integer
+          minimum: 1
+        tutorDisplayName:
+          type:
+          - string
+          - 'null'
+          maxLength: 100
+          description: The tutor's display name; null when the account has none.
+        assignedTo:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        status:
+          type: string
+          enum:
+          - PENDING
+          - VERIFIED
+          - REJECTED
+        scope:
+          type: string
+          maxLength: 200
+        reason:
+          type:
+          - string
+          - 'null'
+          maxLength: 2000
+          minLength: 1
+          description: The verifier's reason. A PENDING record with a reason is NEEDS_INFO
+            (G3-D07-05); a PENDING record without one has not been decided yet.
+        submittedAt:
+          type: string
+          format: date-time
+        decidedAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+          description: When the last decision was recorded, NEEDS_INFO included; null
+            while undecided.
+        superseded:
+          type: boolean
+          description: True when the tutor replaced this profile version (OP-24); the
+            record can no longer be decided and decideVerification answers 409
+            VERIFICATION_SUPERSEDED.
+        revision:
+          type: integer
+          minimum: 1
+          format: int64
+      required:
+      - id
+      - profileVersionId
+      - profileVersion
+      - tutorDisplayName
+      - assignedTo
+      - status
+      - scope
+      - reason
+      - submittedAt
+      - decidedAt
+      - superseded
+      - revision
+      allOf:
+      - if:
+          properties:
+            status:
+              enum:
+              - VERIFIED
+              - REJECTED
+        then:
+          properties:
+            reason:
+              type: string
+            decidedAt:
+              type: string
+      - if:
+          properties:
+            reason:
+              type: 'null'
+        then:
+          properties:
+            decidedAt:
+              type: 'null'
+        else:
+          properties:
+            decidedAt:
+              type: string
+    AssignedVerificationDetail:
+      type: object
+      additionalProperties: false
+      description: What AD04 needs to examine one assigned record (OP-28).
+      properties:
+        verification:
+          $ref: '#/components/schemas/AssignedVerification'
+        profile:
+          $ref: '#/components/schemas/SubmittedTutorProfile'
+        evidence:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/AssignedEvidence'
+      required:
+      - verification
+      - profile
+      - evidence
+    SubmittedTutorProfile:
+      type: object
+      additionalProperties: false
+      description: The submitted profile version under verification, frozen since it
+        was sent (INV-54).
+      properties:
+        id:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          minimum: 1
+        subject:
+          type: string
+          maxLength: 64
+          pattern: ^[A-Z0-9_]{1,64}$
+        description:
+          type: string
+          maxLength: 3000
+        experienceMonths:
+          type: integer
+          minimum: 0
+          maximum: 600
+        rateVnd60:
+          type: integer
+          minimum: 1
+      required:
+      - id
+      - version
+      - subject
+      - description
+      - experienceMonths
+      - rateVnd60
+    AssignedEvidence:
+      type: object
+      additionalProperties: false
+      description: One evidence file of the submitted version. id is the evidenceId
+        of readAssignedEvidence.
+      properties:
+        id:
+          type: string
+          format: uuid
+        mediaType:
+          type: string
+          enum:
+          - application/pdf
+          - image/jpeg
+          - image/png
+        sizeBytes:
+          type: integer
+          minimum: 1
+          maximum: 5242880
+      required:
+      - id
+      - mediaType
+      - sizeBytes
     TutorVerificationView:
       type: object
       additionalProperties: false
@@ -11730,6 +12334,16 @@ components:
           - string
           - 'null'
           format: date-time
+        approvedVersion:
+          type:
+          - integer
+          - 'null'
+          minimum: 1
+          description: Version number of the tutor's current approved profile version,
+            the one parents see while a newer version waits or is refused (OP-24 (1)); null
+            when the tutor has no approved version. When state is VERIFIED it is
+            profileVersion. Lets GS01 tell a first submission from an edit of a profile that
+            stays public (#166).
       required:
       - id
       - profileVersionId
@@ -11738,6 +12352,7 @@ components:
       - scope
       - reason
       - decidedAt
+      - approvedVersion
       allOf:
       - if:
           properties:
@@ -11765,6 +12380,14 @@ components:
           properties:
             decidedAt:
               type: string
+      - if:
+          properties:
+            state:
+              const: VERIFIED
+        then:
+          properties:
+            approvedVersion:
+              type: integer
     VerificationDecisionInput:
       type: object
       additionalProperties: false
@@ -12298,6 +12921,12 @@ components:
           type: string
           maxLength: 2000
           format: uri
+          description: Absolute URL to PUT the file bytes to before expiresAt. In R0
+            it is uploadEvidenceContent on this API. The client sends its session
+            credentials and an Idempotency-Key only when uploadUrl has the same origin
+            as the API; a URL on another origin carries its own access and must never
+            receive the session credentials. Pointing uploadUrl at another store is a
+            later contract change, since the client then needs other headers.
         expiresAt: *id001
       required:
       - uploadId

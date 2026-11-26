@@ -21,6 +21,23 @@ class LogRedactionTest {
                 .doesNotContain("hunter2").doesNotContain("k1234567890123456");
     }
 
+    /** Spring MVC logs a request record at DEBUG, e.g. ChangePasswordInput[currentPassword=…] (#197). */
+    @Test
+    void masks_secret_keys_that_have_a_prefix() {
+        assertThat(LogRedaction.redact("Read to [ChangePasswordInput[currentPassword=hunter2, newPassword=n3wpass]]"))
+                .isEqualTo("Read to [ChangePasswordInput[currentPassword=[REDACTED], newPassword=[REDACTED]]]");
+        assertThat(LogRedaction.redact("ResetInput[token=t0k3n, newPassword=n3wpass]"))
+                .isEqualTo("ResetInput[token=[REDACTED], newPassword=[REDACTED]]");
+        assertThat(LogRedaction.redact("{\"new_password\":\"n3wpass\",\"csrfToken\":\"c5rf\",\"X-Reauth-Token\": \"r3auth\"}"))
+                .doesNotContain("n3wpass").doesNotContain("c5rf").doesNotContain("r3auth");
+    }
+
+    @Test
+    void leaves_keys_that_only_start_with_a_secret_word_alone() {
+        assertThat(LogRedaction.redact("tokenCount=5 passwordAgeDays=30 secretary=Lan"))
+                .isEqualTo("tokenCount=5 passwordAgeDays=30 secretary=Lan");
+    }
+
     @Test
     void masks_email_addresses() {
         assertThat(LogRedaction.redact("Verification sent to parent.one+test@example.test"))

@@ -1,5 +1,6 @@
 package com.tutorbridge.identity.web;
 
+import com.tutorbridge.identity.internal.Masked;
 import com.tutorbridge.identity.internal.PasswordRecovery;
 import com.tutorbridge.platform.api.PublicEndpoints;
 import com.tutorbridge.platform.api.TraceContext;
@@ -25,10 +26,22 @@ class RecoveryController {
     static final String RECOVERY_SENT =
             "Nếu email có tài khoản, chúng tôi đã gửi liên kết đặt lại mật khẩu. Vui lòng kiểm tra hộp thư.";
 
-    record RecoveryInput(@NotNull @Email @Size(max = 254) String email) {}
+    record RecoveryInput(@NotNull @Email @Size(max = 254) String email) {
+
+        @Override
+        public String toString() {
+            return "RecoveryInput[email=%s]".formatted(Masked.VALUE);
+        }
+    }
 
     // Length in code points is checked by the service; UTF-16 length bounds it from above.
-    record ResetInput(@NotNull @Size(min = 20, max = 512) String token, @NotNull @Size(max = 256) String newPassword) {}
+    record ResetInput(@NotNull @Size(min = 20, max = 512) String token, @NotNull @Size(max = 256) String newPassword) {
+
+        @Override
+        public String toString() {
+            return "ResetInput[token=%s, newPassword=%s]".formatted(Masked.VALUE, Masked.VALUE);
+        }
+    }
 
     record GenericAcknowledgment(String message, String traceId) {}
 

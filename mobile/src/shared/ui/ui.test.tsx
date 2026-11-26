@@ -1,15 +1,19 @@
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
-import { Text } from "react-native";
+import { StyleSheet, Text } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ApiError, UnknownOutcomeError } from "@/shared/api/errors";
-import { Button } from "./Button";
+import { Button, buttonStyle } from "./Button";
 import { CommandStatus } from "./CommandStatus";
 import { QueryScreen } from "./QueryScreen";
+import { NavigationBar, type NavigationTab } from "./NavigationBar";
+import { Notice } from "./Notice";
+import { StatusLabel } from "./StatusLabel";
 import { StickyActionBar } from "./StickyActionBar";
 import { TextField } from "./TextField";
 import { TopAppBar } from "./TopAppBar";
+import { colors, radius, typography } from "./theme";
 
 const problem = (status: number, title = "Không được phép.") =>
   new ApiError({
@@ -87,6 +91,24 @@ describe("QueryScreen", () => {
     expect(screen.queryByText(/Không tải được/)).toBeNull();
     expect(screen.queryByRole("alert")).toBeNull();
   });
+
+  it("keeps the footer while loading and after a failed first read", async () => {
+    let fail: (error: Error) => void = () => undefined;
+    function WithFooter({ load }: { load: () => Promise<string[]> }) {
+      const query = useQuery({ queryKey: ["footer"], queryFn: load });
+      return (
+        <QueryScreen title="Tổng quan" query={query} footer={<Text>Lối ra</Text>}>
+          {(items) => items.map((item) => <Text key={item}>{item}</Text>)}
+        </QueryScreen>
+      );
+    }
+    await render(wrap(<WithFooter load={() => new Promise((_, reject) => (fail = reject))} />));
+    expect(screen.getByText("Lối ra")).toBeOnTheScreen();
+
+    await act(async () => fail(new UnknownOutcomeError()));
+    expect(await screen.findByText("Không tải được dữ liệu. Kiểm tra kết nối rồi thử lại.")).toBeOnTheScreen();
+    expect(screen.getByText("Lối ra")).toBeOnTheScreen();
+  });
 });
 
 describe("TextField", () => {
@@ -99,6 +121,41 @@ describe("TextField", () => {
 });
 
 describe("Button", () => {
+  it("turns primaryPressed, not see-through, while a primary button is pressed", async () => {
+    const look = (pressed: boolean, inactive = false) => StyleSheet.flatten(buttonStyle("primary", pressed, inactive));
+
+    expect(look(false)).toMatchObject({ backgroundColor: colors.primary });
+    expect(look(true)).toMatchObject({ backgroundColor: colors.primaryPressed });
+    expect(look(true)).not.toHaveProperty("opacity");
+    expect(StyleSheet.flatten(buttonStyle("secondary", false, false))).toMatchObject({ borderColor: colors.primary });
+  });
+
+  it("gives a pressed secondary button the infoSurface background, not see-through", async () => {
+    const look = (pressed: boolean) => StyleSheet.flatten(buttonStyle("secondary", pressed, false));
+
+    expect(look(false)).toMatchObject({ backgroundColor: colors.background, borderColor: colors.primary });
+    expect(look(true)).toMatchObject({ backgroundColor: colors.infoSurface, borderColor: colors.primary });
+    expect(look(true)).not.toHaveProperty("opacity");
+  });
+
+  it("lets a long label wrap inside the button instead of overflowing", async () => {
+    await render(<Button title="Đăng xuất khỏi thiết bị này" onPress={() => undefined} />);
+    const label = screen.getByText("Đăng xuất khỏi thiết bị này");
+
+    expect(label).toHaveStyle({ flexShrink: 1, ...typography.label });
+    expect(label.props.numberOfLines).toBeUndefined();
+  });
+
+  it("ignores presses while disabled", async () => {
+    const onPress = jest.fn();
+    await render(<Button title="Lưu" onPress={onPress} disabled />);
+
+    await fireEvent.press(screen.getByRole("button", { name: "Lưu" }));
+
+    expect(onPress).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Lưu" })).toBeDisabled();
+  });
+
   it("ignores presses while busy", async () => {
     const onPress = jest.fn();
     await render(<Button title="Lưu" onPress={onPress} busy />);
@@ -172,5 +229,135 @@ describe("StickyActionBar", () => {
 
     await fireEvent.press(screen.getByRole("button", { name: "Lưu hồ sơ" }));
     expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  it("is set apart by the divider line, not a shadow", async () => {
+    await render(wrap(<StickyActionBar><Text>Hành động</Text></StickyActionBar>));
+
+    let bar = screen.getByText("Hành động").parent;
+    while (bar && !StyleSheet.flatten(bar.props.style)?.borderTopWidth) bar = bar.parent;
+    expect(StyleSheet.flatten(bar?.props.style)).toMatchObject({ borderTopColor: colors.divider });
+  });
+});
+
+describe("Notice", () => {
+  const box = (message: string) => {
+    let node = screen.getByText(message).parent;
+    while (node && !StyleSheet.flatten(node.props.style)?.padding) node = node.parent;
+    return StyleSheet.flatten(node?.props.style);
+  };
+
+  it.each([
+    ["info", "Thông tin", "icon-info"],
+    ["success", "Đã xong", "icon-check_circle"],
+    ["warning", "Lưu ý", "icon-warning"],
+    ["danger", "Lỗi", "icon-error"],
+  ] as const)("says the %s tone with an icon named %s, not a label line above the text", async (tone, word, icon) => {
+    await render(<Notice tone={tone} message="Không tải được dữ liệu." />);
+
+    expect(screen.getByRole("image", { name: word })).toBeOnTheScreen();
+    expect(screen.getByTestId(icon)).toBeOnTheScreen();
+    expect(screen.queryByText(word)).toBeNull();
+    expect(screen.getByText("Không tải được dữ liệu.")).toBeOnTheScreen();
+  });
+
+  it("has no colored side edge and the 12 radius of a message box (02)", async () => {
+    await render(<Notice tone="warning" message="Không cập nhật được." />);
+
+    const style = box("Không cập nhật được.");
+    expect(style).toMatchObject({ backgroundColor: colors.warningSurface, borderRadius: radius.md });
+    expect(style).not.toHaveProperty("borderLeftWidth");
+  });
+
+  it("announces errors and warnings as alerts and keeps the action at its own width", async () => {
+    const onPress = jest.fn();
+    await render(<Notice tone="danger" message="Không tải được dữ liệu." action={<Button variant="secondary" title="Thử lại" onPress={onPress} />} />);
+
+    // The box is not focusable itself; its role and live region make the reader announce it.
+    expect(screen.toJSON()).toMatchObject({ props: { accessibilityRole: "alert", accessibilityLiveRegion: "polite" } });
+    const action = screen.getByRole("button", { name: "Thử lại" }).parent;
+    let wrapper = action;
+    while (wrapper && StyleSheet.flatten(wrapper.props.style)?.alignSelf !== "flex-start") wrapper = wrapper.parent;
+    expect(wrapper).not.toBeNull();
+    await fireEvent.press(screen.getByRole("button", { name: "Thử lại" }));
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not announce an info notice as an alert", async () => {
+    await render(<Notice tone="info" message="Tạo hồ sơ cho con trước." />);
+    expect(screen.toJSON()).not.toMatchObject({ props: { accessibilityRole: "alert" } });
+  });
+});
+
+describe("NavigationBar", () => {
+  const TABS: NavigationTab[] = [
+    { key: "home", label: "Tổng quan", icon: "home_fill" },
+    { key: "search", label: "Tìm gia sư", icon: "search" },
+    { key: "classes", label: "Lớp học", icon: "event" },
+    { key: "notifications", label: "Thông báo", icon: "notifications_fill", unread: 2 },
+    { key: "account", label: "Tài khoản", icon: "person_fill" },
+  ];
+
+  it("marks the selected tab and reports the tab that is pressed", async () => {
+    const onSelect = jest.fn();
+    await render(wrap(<NavigationBar tabs={TABS} selectedKey="home" onSelect={onSelect} />));
+
+    expect(screen.getByRole("tab", { name: "Tổng quan" })).toBeSelected();
+    expect(screen.getByRole("tab", { name: "Tìm gia sư" })).not.toBeSelected();
+    await fireEvent.press(screen.getByRole("tab", { name: "Lớp học" }));
+    expect(onSelect).toHaveBeenCalledWith("classes");
+  });
+
+  it("shows the unread count in the badge and reads it as in 05; over 99 is 99+ (PH01)", async () => {
+    const many = TABS.map((tab) => (tab.key === "notifications" ? { ...tab, unread: 120 } : tab));
+    await render(wrap(<NavigationBar tabs={many} selectedKey="home" onSelect={() => undefined} />));
+
+    expect(screen.getByRole("tab", { name: "Thông báo, 99+ thông báo chưa đọc" })).toBeOnTheScreen();
+    expect(screen.getByText("99+")).toBeOnTheScreen();
+  });
+
+  it("shows no badge when nothing is unread", async () => {
+    const none = TABS.map((tab) => ({ ...tab, unread: 0 }));
+    await render(wrap(<NavigationBar tabs={none} selectedKey="home" onSelect={() => undefined} />));
+
+    expect(screen.getByRole("tab", { name: "Thông báo" })).toBeOnTheScreen();
+    expect(screen.queryByText("0")).toBeNull();
+  });
+
+  it("limits only the tab labels to 1.3x text (OP-22)", async () => {
+    await render(wrap(<NavigationBar tabs={TABS} selectedKey="home" onSelect={() => undefined} />));
+
+    for (const tab of TABS) expect(screen.getByText(tab.label)).toHaveProp("maxFontSizeMultiplier", 1.3);
+    expect(screen.getByText("2")).not.toHaveProp("maxFontSizeMultiplier");
+  });
+
+  it("puts the infoSurface pill only behind the selected tab", async () => {
+    await render(wrap(<NavigationBar tabs={TABS} selectedKey="search" onSelect={() => undefined} />));
+
+    // Tab icons are hidden from screen readers (the tab is named by its label), hence includeHiddenElements.
+    const pill = (icon: string) =>
+      StyleSheet.flatten(screen.getByTestId(icon, { includeHiddenElements: true }).parent?.props.style);
+    expect(pill("icon-search")).toMatchObject({ backgroundColor: colors.infoSurface });
+    expect(pill("icon-home_fill")?.backgroundColor).toBeUndefined();
+  });
+
+  it("matches the Figma sizes: indicator 64×32, badge 16 at x=36 (Đính's review of #202)", async () => {
+    await render(wrap(<NavigationBar tabs={TABS} selectedKey="home" onSelect={() => undefined} />));
+
+    const indicator = StyleSheet.flatten(screen.getByTestId("icon-home_fill", { includeHiddenElements: true }).parent?.props.style);
+    expect(indicator).toMatchObject({ width: 64, height: 32 });
+    const badge = StyleSheet.flatten(screen.getByText("2", { includeHiddenElements: true }).parent?.props.style);
+    expect(badge).toMatchObject({ top: 0, left: 36, minWidth: 16, minHeight: 16 });
+  });
+});
+
+describe("StatusLabel", () => {
+  it("says the state in text on the tone's light surface; the icon is hidden from screen readers (03)", async () => {
+    await render(<StatusLabel label="Đang chờ xác minh" tone="info" icon="schedule" />);
+
+    const text = screen.getByText("Đang chờ xác minh");
+    expect(text).toHaveStyle({ color: colors.info });
+    expect(StyleSheet.flatten(text.parent?.props.style)).toMatchObject({ backgroundColor: colors.infoSurface });
+    expect(screen.queryByRole("image")).toBeNull();
   });
 });

@@ -23,13 +23,13 @@ Trên môi trường thử, phụ huynh tạo được nhu cầu, nhận gợi �
 | FR-18 | Chỉ chuyển mục tiêu ban đầu vào lớp. Đề xuất đổi mục tiêu để sau |
 | FR-37, 41 | Lỗi, thử lại, thông báo trong hệ thống cho đề nghị và chốt lớp |
 
-## API: 51 trên 126 thao tác
+## API: 53 trên 130 thao tác
 | Nhóm | Số | operationId |
 |---|---|---|
 | Xác thực | 11 | `registerAccount`, `verifyEmail`, `resendVerification`, `loginAccount`, `logoutAccount`, `requestRecovery`, `resetPassword`, `listOwnSessions`, `revokeOwnSession`, `changePassword`, `reauthenticate` |
-| Quản trị xác minh | 6 | `loginAdmin`, `completeAdminMfa`, `getAdminSession`, `listAssignedVerifications`, `decideVerification`, `readAssignedEvidence` |
+| Quản trị xác minh | 7 | `loginAdmin`, `completeAdminMfa`, `getAdminSession`, `listAssignedVerifications`, `getAssignedVerification`, `decideVerification`, `readAssignedEvidence` |
 | Học sinh | 4 | `listStudents`, `createStudent`, `getStudentProfile`, `patchStudent` |
-| Hồ sơ gia sư | 6 | `saveTutorProfile`, `getOwnTutorProfile`, `submitTutorProfile`, `getOwnTutorVerification`, `createEvidenceUpload`, `completeEvidenceUpload` |
+| Hồ sơ gia sư | 7 | `saveTutorProfile`, `getOwnTutorProfile`, `submitTutorProfile`, `getOwnTutorVerification`, `createEvidenceUpload`, `uploadEvidenceContent`, `completeEvidenceUpload` |
 | Lịch | 4 | `getTutorCalendar`, `replaceTutorCalendar`, `getStudentCalendar`, `replaceStudentCalendar` |
 | Nhu cầu | 5 | `listNeeds`, `createNeedDraft`, `getNeed`, `updateNeedDraft`, `confirmNeed` |
 | Gợi ý | 3 | `createMatchingRun`, `getMatchingRun`, `getTutorPublic` |

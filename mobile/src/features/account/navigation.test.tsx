@@ -12,12 +12,12 @@ describe("account routes", () => {
     await renderRouter("./src/app", { initialUrl: "/sign-in" });
     expect(await screen.findByRole("header", { name: "Đăng nhập" })).toBeOnTheScreen();
 
-    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Chưa có tài khoản? Đăng ký" })));
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Tạo tài khoản" })));
 
-    expect(await screen.findByRole("header", { name: "Đăng ký tài khoản" })).toBeOnTheScreen();
+    expect(await screen.findByRole("header", { name: "Tạo tài khoản" })).toBeOnTheScreen();
     expect(screen).toHavePathname("/register");
 
-    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Đã có tài khoản? Đăng nhập" })));
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Tôi đã có tài khoản" })));
 
     expect(await screen.findByRole("header", { name: "Đăng nhập" })).toBeOnTheScreen();
     expect(screen).toHavePathname("/sign-in");
@@ -25,9 +25,9 @@ describe("account routes", () => {
 
   it("opens registration from a link without a history to go back to", async () => {
     await renderRouter("./src/app", { initialUrl: "/register" });
-    expect(await screen.findByRole("header", { name: "Đăng ký tài khoản" })).toBeOnTheScreen();
+    expect(await screen.findByRole("header", { name: "Tạo tài khoản" })).toBeOnTheScreen();
 
-    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Đã có tài khoản? Đăng nhập" })));
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Tôi đã có tài khoản" })));
 
     expect(await screen.findByRole("header", { name: "Đăng nhập" })).toBeOnTheScreen();
     expect(screen).toHavePathname("/sign-in");
@@ -44,7 +44,7 @@ describe("account routes", () => {
       await fireEvent.changeText(screen.getByLabelText("Mật khẩu"), "mat khau rat bi mat 2026");
       await act(async () => fireEvent.press(screen.getByRole("button", { name: "Đăng nhập" })));
 
-      const resend = await screen.findByRole("button", { name: "Gửi lại liên kết xác minh" });
+      const resend = await screen.findByRole("button", { name: "Gửi lại liên kết" });
       await act(async () => fireEvent.press(resend));
 
       expect(await screen.findByRole("header", { name: "Xác minh email" })).toBeOnTheScreen();
@@ -52,7 +52,7 @@ describe("account routes", () => {
       expect(screen.getByRole("button", { name: "Gửi lại liên kết" })).toBeOnTheScreen();
       // No token here: a neutral lead, not the error for a broken link.
       expect(screen.getByText("Nhập email đã đăng ký để nhận liên kết xác minh mới.")).toBeOnTheScreen();
-      expect(screen.queryByText(/Liên kết xác minh không hợp lệ/)).toBeNull();
+      expect(screen.queryByRole("header", { name: "Liên kết không hợp lệ" })).toBeNull();
     } finally {
       server.restore();
     }
@@ -64,7 +64,7 @@ describe("account routes", () => {
 
     await act(async () => fireEvent.press(screen.getByRole("button", { name: "Quên mật khẩu?" })));
 
-    expect(await screen.findByRole("header", { name: "Khôi phục mật khẩu" })).toBeOnTheScreen();
+    expect(await screen.findByRole("header", { name: "Quên mật khẩu" })).toBeOnTheScreen();
     expect(screen).toHavePathname("/forgot-password");
 
     await act(async () => fireEvent.press(screen.getByRole("button", { name: "Quay lại đăng nhập" })));
@@ -74,7 +74,7 @@ describe("account routes", () => {
 
   it.each([
     ["/verify-email?token=fake-verification-token-0001", "Xác minh email", "Xác minh email"],
-    ["/reset-password?token=fake-reset-token-000000001", "Đặt lại mật khẩu", "Đặt lại mật khẩu"],
+    ["/reset-password?token=fake-reset-token-000000001", "Đặt lại mật khẩu", "Đặt mật khẩu mới"],
   ])("opens the email link %s with its token", async (initialUrl, header, button) => {
     await renderRouter("./src/app", { initialUrl });
 
@@ -99,7 +99,7 @@ describe("account routes", () => {
       await screen.findByRole("header", { name: "Đặt lại mật khẩu" });
       await fireEvent.changeText(screen.getByLabelText("Mật khẩu mới"), "mot cau mat khau moi du dai");
 
-      await act(async () => fireEvent.press(screen.getByRole("button", { name: "Đặt lại mật khẩu" })));
+      await act(async () => fireEvent.press(screen.getByRole("button", { name: "Đặt mật khẩu mới" })));
 
       expect(await screen.findByRole("header", { name: "Đã đặt lại mật khẩu" })).toBeOnTheScreen();
       await waitFor(() => expect(storedSession()).toBeUndefined());
@@ -117,7 +117,7 @@ describe("account routes", () => {
       storeSession(fakeSession(role));
       await renderRouter("./src/app", { initialUrl });
 
-      expect(await screen.findByRole("header", { name: "Bảo mật và phiên đăng nhập" })).toBeOnTheScreen();
+      expect(await screen.findByRole("header", { name: "Bảo mật và phiên" })).toBeOnTheScreen();
       expect(screen).toHavePathname(initialUrl);
     } finally {
       server.restore();
@@ -138,7 +138,7 @@ describe("account routes", () => {
 
       await act(async () => fireEvent.press(screen.getByRole("button", { name: "Hủy" })));
 
-      expect(await screen.findByRole("header", { name: "Bảo mật và phiên đăng nhập" })).toBeOnTheScreen();
+      expect(await screen.findByRole("header", { name: "Bảo mật và phiên" })).toBeOnTheScreen();
     } finally {
       server.restore();
     }
@@ -161,7 +161,7 @@ describe("account routes", () => {
 
       expect(await screen.findByRole("header", { name: "Đăng nhập" })).toBeOnTheScreen();
       expect(screen).toHavePathname("/sign-in");
-      expect(screen.getByText("Phiên đăng nhập đã kết thúc. Vui lòng đăng nhập lại.")).toBeOnTheScreen();
+      expect(screen.getByText("Phiên đăng nhập đã hết. Vui lòng đăng nhập lại. Bản nháp đã lưu vẫn còn.")).toBeOnTheScreen();
     } finally {
       server.restore();
     }
@@ -183,13 +183,13 @@ describe("account routes", () => {
     });
     try {
       await renderRouter("./src/app", { initialUrl: "/parent/security" });
-      const signOut = await screen.findByRole("button", { name: "Đăng xuất" });
+      const signOut = await screen.findByRole("button", { name: "Đăng xuất tài khoản" });
 
       await act(async () => fireEvent.press(signOut));
 
       expect(await screen.findByRole("header", { name: "Đăng nhập" })).toBeOnTheScreen();
       expect(screen.getByText("Bạn đã đăng xuất.")).toBeOnTheScreen();
-      expect(screen.queryByText(/Phiên đăng nhập đã kết thúc/)).toBeNull();
+      expect(screen.queryByText(/Phiên đăng nhập đã hết/)).toBeNull();
     } finally {
       server.restore();
     }
@@ -199,7 +199,7 @@ describe("account routes", () => {
     storeSession(fakeSession("TUTOR"));
     await renderRouter("./src/app", { initialUrl: "/register" });
 
-    expect(await screen.findByRole("header", { name: "Trang chủ gia sư" })).toBeOnTheScreen();
+    expect(await screen.findByRole("header", { name: "Tổng quan" })).toBeOnTheScreen();
     expect(screen).toHavePathname("/tutor");
   });
 });

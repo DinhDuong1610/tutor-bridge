@@ -38,6 +38,14 @@ class CalendarRepository {
                 .params(ownerKind, ownerId).query(Version.class).optional();
     }
 
+    record Owner(String kind, UUID id) {}
+
+    /** Whose calendar a version is, for the command status lookup (TB-22). */
+    Optional<Owner> findOwner(UUID calendarId) {
+        return jdbc.sql("select owner_kind, owner_id from calendars where id = ?").param(calendarId)
+                .query((rs, n) -> new Owner(rs.getString(1), rs.getObject(2, UUID.class))).optional();
+    }
+
     Optional<Version> findVersion(UUID calendarId, String ownerKind, UUID ownerId) {
         return jdbc.sql("select id, version from calendars where id = ? and owner_kind = ? and owner_id = ?")
                 .params(calendarId, ownerKind, ownerId).query(Version.class).optional();

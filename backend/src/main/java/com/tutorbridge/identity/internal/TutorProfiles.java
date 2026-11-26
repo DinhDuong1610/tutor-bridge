@@ -50,7 +50,7 @@ public class TutorProfiles {
     /** R0 segment (INV-30). */
     static final String SUBJECT = "MATH8_ALGEBRA";
     static final String SAVE = "SAVE_TUTOR_PROFILE";
-    private static final String RESULT_TYPE = "TUTOR_PROFILE";
+    static final String RESULT_TYPE = "TUTOR_PROFILE";
     private static final String VERSION_KEY = "tutor_profiles_tutor_id_version_key";
 
     private final TutorProfileRepository profiles;

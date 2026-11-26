@@ -44,7 +44,7 @@ public class StudentProfiles {
     static final int GOAL_MAX = 2000;
     static final String CREATE = "CREATE_STUDENT";
     static final String PATCH = "PATCH_STUDENT";
-    private static final String RESULT_TYPE = "STUDENT";
+    static final String RESULT_TYPE = "STUDENT";
 
     private final StudentRepository students;
     private final CommandReceipts receipts;

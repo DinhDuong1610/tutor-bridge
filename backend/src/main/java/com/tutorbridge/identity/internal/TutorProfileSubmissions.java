@@ -53,7 +53,7 @@ public class TutorProfileSubmissions {
     static final String SUBMIT = "SUBMIT_TUTOR_PROFILE";
     static final int EVIDENCE_MAX = 10;
     static final String UNUSABLE_EVIDENCE = "Minh chứng này không dùng được. Vui lòng chọn lại.";
-    private static final String RESULT_TYPE = "TUTOR_VERIFICATION";
+    static final String RESULT_TYPE = "TUTOR_VERIFICATION";
     private static final String NEW_STATUS = "PENDING";
     private static final long NEW_REVISION = 1;
 

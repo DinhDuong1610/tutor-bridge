@@ -254,6 +254,32 @@ class VerificationDecisionsHttpTest extends HttpTest {
     }
 
     @Test
+    void an_admin_without_VERIFY_is_403_before_any_record_is_read_as_on_the_queue() throws Exception {
+        Actor owner = verifier();
+        UUID theirsVersion = version(newActor(Actor.Role.TUTOR), 1, "PENDING", false);
+        UUID theirs = record(theirsVersion, owner);
+        Actor support = newActor(Actor.Role.ADMIN);
+        jdbc.sql("insert into admin_assignments(account_id, capability, granted_by) values (?, 'SUPPORT', ?)")
+                .params(support.accountId(), support.accountId()).update();
+
+        // Someone else's record and an unknown id get the same 403: the answer does not depend on the record.
+        String onTheirs = decide(support, theirs, theirsVersion, "VERIFIED").andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("ACCESS_DENIED"))
+                .andReturn().getResponse().getContentAsString();
+        String onUnknown = decide(support, UUID.randomUUID(), theirsVersion, "VERIFIED")
+                .andExpect(status().isForbidden())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(withoutTrace(onTheirs)).isEqualTo(withoutTrace(onUnknown));
+        assertThat(receipts(support)).isZero();
+        assertUnchanged(theirs, theirsVersion, owner);
+    }
+
+    private static String withoutTrace(String problem) {
+        return problem.replaceAll("\"traceId\":\"[^\"]*\",?", "");
+    }
+
+    @Test
     void the_same_key_with_another_body_is_409_and_changes_nothing() throws Exception {
         Actor me = verifier();
         UUID submitted = version(newActor(Actor.Role.TUTOR), 1, "PENDING", false);

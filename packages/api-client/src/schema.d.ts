@@ -276,6 +276,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/classes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List own classes, each with its next session
+         * @description OP-27 (#97): a PARENT lists the classes of their children, one child with studentId (another family's child answers the same 404 as an unknown id); a TUTOR lists their own classes and sends no studentId. Newest class first by the keyset (createdAt, id). nextSession is the class's earliest SCHEDULED session that has not ended, or null.
+         */
+        get: operations["listClasses"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/classes/{classId}": {
         parameters: {
             query?: never;
@@ -2518,6 +2538,8 @@ export interface components {
             id: string;
             /** Format: uuid */
             studentId: string;
+            /** @description OP-25, to the parent and the tutor of the class; a pending offer carries no student name. */
+            studentDisplayName: string;
             /** Format: uuid */
             tutorId: string;
             /** Format: int64 */
@@ -2530,6 +2552,15 @@ export interface components {
             /** Format: uuid */
             effectiveGoalVersionId: string;
             goal: string;
+        };
+        ClassListItem: {
+            class: components["schemas"]["Class"];
+            /** @description The earliest SCHEDULED session that has not ended, or null (OP-27). */
+            nextSession: components["schemas"]["Session"] | null;
+        };
+        ClassPage: {
+            items: components["schemas"]["ClassListItem"][];
+            nextCursor: string | null;
         };
         Session: {
             /** Format: uuid */
@@ -4378,6 +4409,45 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Offer"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            412: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+            428: components["responses"]["Problem"];
+            429: components["responses"]["Problem"];
+            500: components["responses"]["Problem"];
+            503: components["responses"]["Problem"];
+        };
+    };
+    listClasses: {
+        parameters: {
+            query?: {
+                /** @description PARENT only, one of their own children */
+                studentId?: string;
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    /** @description Strong version ETag */
+                    ETag?: string;
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassPage"];
                 };
             };
             400: components["responses"]["Problem"];

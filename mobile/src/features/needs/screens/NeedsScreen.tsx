@@ -83,8 +83,10 @@ function ChildNeeds({
   // Counts and names on the cards. Loading them is not needed to read the list, so a failure only
   // leaves those words out; the cards and their actions stay.
   const offers = useFirstOffers().data?.items ?? [];
-  const tutorNames = useTutorNames(offers);
   const loaded: Need[] = needs.data?.pages.flatMap((page) => page.items) ?? [];
+  // Names only for the closed needs on screen: the first page of offers spans every child and class.
+  const closedIds = new Set(loaded.filter((need) => need.status === "CLOSED").map((need) => need.id));
+  const tutorNames = useTutorNames(offers.filter((offer) => closedIds.has(offer.needId)));
   const isEmpty = needs.data !== undefined && loaded.length === 0;
   // The open need is the newest one: a child gets a new need only after the last one closed (#16 Q4).
   const canCreate = needs.data !== undefined && !hasOpenNeed(loaded);

@@ -103,6 +103,8 @@ describe("PH03 Nhu cầu của con", () => {
     expect(await screen.findByText("Đã chốt lớp với Nguyễn Thị Lan. Bản này chỉ để đối chiếu.")).toBeOnTheScreen();
     expect(screen.queryByRole("button", { name: "Tìm gia sư" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Xem đề nghị" })).toBeNull();
+    // One name, for the closed need on screen.
+    expect(paths(server).filter((path) => path.startsWith("/tutors/"))).toEqual([`/tutors/${TUTOR}/public-profile`]);
 
     await press("Tiếp tục nhập");
     await press("Xem lớp");
@@ -110,6 +112,20 @@ describe("PH03 Nhu cầu của con", () => {
       [{ kind: "edit", title: "Tiếp tục nhập", needId: DRAFT.id }],
       [{ kind: "class", title: "Xem lớp", classId: CLASS }],
     ]);
+  });
+
+  it("reads no tutor name for accepted offers of needs not on screen", async () => {
+    // The first page of offers spans every child; another child's class must not cost a request here.
+    server = mockApi({
+      "GET /students": () => page([MINH]),
+      "GET /students/{studentId}/needs": () => page([CONFIRMED]),
+      "GET /me/offers": () => page([offer("b6875fe9-d50c-4f23-a5fe-18b4b7d69a24", "c7986ffa-e61d-4034-b60f-29c5c8e7ab35", "ACCEPTED", CLASS)]),
+    });
+    await renderNeeds();
+    expect(await screen.findByText("90 phút, 2 buổi mỗi tuần, tối đa 400.000 ₫ / buổi. Bắt đầu 18/11/2026.")).toBeOnTheScreen();
+
+    expect(paths(server).some((path) => path.startsWith("/tutors/"))).toBe(false);
+    expect(server.unexpected).toEqual([]);
   });
 
   it("opens search and offers of a confirmed need", async () => {

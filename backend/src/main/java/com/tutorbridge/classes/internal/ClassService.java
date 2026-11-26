@@ -67,10 +67,7 @@ public class ClassService {
         });
     }
 
-    /**
-     * Whether this actor reads this class now. For the {@code CLASS} result of getCommandStatus once #222
-     * brings {@code CommandResults} (TB-22).
-     */
+    /** Whether this actor reads this class now; also the {@code CLASS} result of getCommandStatus (TB-22). */
     public boolean mayRead(Actor actor, UUID classId) {
         return (actor.role() == Actor.Role.PARENT || actor.role() == Actor.Role.TUTOR)
                 && classes.find(classId).filter(row -> isParty(actor, row)).isPresent();

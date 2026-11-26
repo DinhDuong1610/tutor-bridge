@@ -1,6 +1,12 @@
-// GS02 Hồ sơ chuyên môn và học phí. Placeholder route until TB-14 builds the screen.
-import { ComingSoon } from "@/shared/ui/ComingSoon";
+// GS02 Hồ sơ chuyên môn và học phí (TB-14). Thiết kế: docs/design/ui/screens/GS02.md
+import { router } from "expo-router";
+import { TutorProfileScreen } from "@/features/tutor-profile/screens/TutorProfileScreen";
 
 export default function TutorProfileRoute() {
-  return <ComingSoon title="Hồ sơ chuyên môn và học phí" />;
+  return (
+    <TutorProfileScreen
+      onBack={() => (router.canGoBack() ? router.back() : router.replace("/tutor"))}
+      onNext={() => router.push("/tutor/evidence")}
+    />
+  );
 }

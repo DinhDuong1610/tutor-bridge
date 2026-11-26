@@ -1,7 +1,8 @@
 import { createApiClient, type ApiClient } from "@tutorbridge/api-client";
 
 // Expo inlines EXPO_PUBLIC_ variables at build time, so this must never hold a secret.
-const DEFAULT_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://10.0.2.2:8080/api/v1";
+/** The API root every request starts from; also what an upload URL from the server is checked against. */
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://10.0.2.2:8080/api/v1";
 
 /** Returns the session token to send, or null when signed out. The session module (M3) provides it. */
 export type TokenSource = () => string | null | Promise<string | null>;
@@ -21,7 +22,7 @@ export function createClient(options: {
 } = {}): ApiClient {
   // Look fetch up on each request, so screen tests can replace it (shared/test/mockApi).
   const fetch = options.fetch ?? ((request: Request) => globalThis.fetch(request));
-  const client = createApiClient({ baseUrl: options.baseUrl ?? DEFAULT_BASE_URL, fetch });
+  const client = createApiClient({ baseUrl: options.baseUrl ?? API_BASE_URL, fetch });
   const token = options.token ?? (() => currentTokenSource());
   client.use({
     async onRequest({ request }) {

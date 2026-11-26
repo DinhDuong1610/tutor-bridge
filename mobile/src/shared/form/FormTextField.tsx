@@ -7,8 +7,9 @@ import { TextField, type TextFieldInputProps } from "@/shared/ui/TextField";
  */
 type InputProps = Omit<TextFieldInputProps, "value" | "defaultValue" | "onChangeText" | "onChange" | "onBlur">;
 
-type Props<T extends FieldValues> = InputProps & {
-  control: Control<T>;
+type Props<T extends FieldValues, TOut extends FieldValues> = InputProps & {
+  /** `TOut` is what the schema turns the typed values into, such as a number from a text input. */
+  control: Control<T, unknown, TOut>;
   name: Path<T>;
   label: string;
   hint?: string;
@@ -19,7 +20,13 @@ type Props<T extends FieldValues> = InputProps & {
  * TextInput options (`secureTextEntry`, `autoComplete`, `keyboardType`, `autoCapitalize`,
  * `multiline`...) pass through to the input.
  */
-export function FormTextField<T extends FieldValues>({ control, name, label, hint, ...input }: Props<T>) {
+export function FormTextField<T extends FieldValues, TOut extends FieldValues = T>({
+  control,
+  name,
+  label,
+  hint,
+  ...input
+}: Props<T, TOut>) {
   return (
     <Controller
       control={control}

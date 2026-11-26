@@ -44,5 +44,6 @@ export async function renderScreen(ui: ReactElement, { session }: { session?: Se
   // Waits until the screen has drawn its title. A screen may have more than one header (section
   // titles help screen reader users jump through the page), so do not expect exactly one.
   await screen.findAllByRole("header");
-  return result;
+  // The client, so a test can make a mounted screen read again as the app does on focus or after a write.
+  return Object.assign(result, { queryClient: client });
 }

@@ -41,6 +41,7 @@ Mục ghi **TBD** là quyết định còn mở, chưa được tự chọn.
 - Test HTTP của chức năng: kế thừa `HttpTest` (toàn ứng dụng, PostgreSQL thật), tạo người gọi bằng `newActor(role)`, gửi bằng `.with(sessions().as(actor))`, và mọi phản hồi qua `.andExpect(Contract.matches())`. Xem `HttpTestExampleTest`.
 - Test riêng tầng web không cần DB: `@WebMvcTest` kèm `@Import(WebSecurityTestConfig.class)` và `TestSessions`.
 - Ca âm quyền luôn có: không phiên, sai vai trò, đối tượng của người khác.
+- Lệnh ghi receipt bằng một `resultType` mới (`CommandReceipts.succeed`) thì khai loại đó trong bean `CommandResults` của mô-đun mình, cùng điều kiện chủ sở hữu như lần đọc kết quả. Loại chưa khai thì `getCommandStatus` và `findCommandStatus` ẩn `resultType`, `resultId` (TX16, INV-22; Huy, 24/11/2026). Ví dụ: `ClassesCommandResults`, `IdentityCommandResults`.
 
 ### Thêm một chức năng backend
 ```text

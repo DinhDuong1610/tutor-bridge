@@ -74,7 +74,7 @@ public class NeedService {
     static final String CREATE = "CREATE_NEED_DRAFT";
     static final String UPDATE = "UPDATE_NEED_DRAFT";
     static final String CONFIRM = "CONFIRM_NEED";
-    private static final String RESULT_TYPE = "NEED";
+    static final String RESULT_TYPE = "NEED";
 
     private final NeedRepository needs;
     private final ResourceLocks locks;

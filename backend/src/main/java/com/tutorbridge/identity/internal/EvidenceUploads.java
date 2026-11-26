@@ -56,7 +56,7 @@ public class EvidenceUploads {
     static final String PUT_CONTENT = "UPLOAD_EVIDENCE_CONTENT";
     static final String COMPLETE = "COMPLETE_EVIDENCE_UPLOAD";
     private static final String CLOSED = "EVIDENCE_UPLOAD_CLOSED";
-    private static final String RESULT_TYPE = "EVIDENCE_UPLOAD";
+    static final String RESULT_TYPE = "EVIDENCE_UPLOAD";
     private static final Pattern SHA256 = Pattern.compile("[0-9a-f]{64}");
 
     private final EvidenceUploadRepository uploads;

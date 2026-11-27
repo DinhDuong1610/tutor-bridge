@@ -26,8 +26,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * #182: the evidence cleanup job. Real PostgreSQL; the store is a directory of this test only, so the job
- * never removes the bytes of another test, and every check looks at its own uploads. The keep times are the
- * defaults (24 h past the ticket, 7 days for FAILED, 24 h for orphans), TBD on #182 Q1.
+ * never removes the bytes of another test, and every check looks at its own uploads. The approved default keep
+ * times are 24 h past the ticket, 7 days for FAILED, and 24 h for orphans.
  */
 class EvidenceCleanupTest extends IntegrationTest {
 

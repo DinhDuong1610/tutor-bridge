@@ -76,7 +76,7 @@ tutorbridge:
       batch-size: 500
       max-batches: 40
       outbox-keep: P7D
-    # Evidence cleanup (#182): unused evidence bytes. Keep times TBD (#182 Q1, Đính); these are the proposal.
+    # Evidence cleanup (#182): defaults approved by Đính (24 h past ticket, 7 days FAILED, 24 h orphan/staged).
     evidence-cleanup:
       interval: PT1H
       batch-size: 100

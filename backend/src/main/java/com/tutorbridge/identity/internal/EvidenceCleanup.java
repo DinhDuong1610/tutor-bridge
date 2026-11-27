@@ -39,7 +39,8 @@ import org.springframework.transaction.support.TransactionOperations;
  * can run again after a crash, and several worker instances can run it at once. The log names no key or
  * path (AC-UC03-03), only counts.
  *
- * <p>The keep times are TBD (#182 Q1, Đính): the defaults below are the agent's proposal on #182.
+ * <p>The configured default keep times were approved by Đính on #182: 24 hours past the ticket for
+ * UPLOADING, seven days for FAILED, and 24 hours for orphaned or staged bytes.
  */
 @Component
 class EvidenceCleanup {
@@ -63,7 +64,6 @@ class EvidenceCleanup {
             Clock clock,
             @Value("${tutorbridge.worker.evidence-cleanup.batch-size:100}") int batchSize,
             @Value("${tutorbridge.worker.evidence-cleanup.max-batches:20}") int maxBatches,
-            // TBD #182 Q1 (Đính): proposal 24 h past the ticket, 7 days for FAILED, 24 h for orphans.
             @Value("${tutorbridge.worker.evidence-cleanup.expired-keep:PT24H}") Duration expiredKeep,
             @Value("${tutorbridge.worker.evidence-cleanup.failed-keep:P7D}") Duration failedKeep,
             @Value("${tutorbridge.worker.evidence-cleanup.orphan-keep:PT24H}") Duration orphanKeep) {

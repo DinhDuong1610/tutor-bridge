@@ -37,6 +37,23 @@ const offer = (id: string, needId: string, state: Offer["state"], classId: strin
 
 const page = (items: unknown[], nextCursor: string | null = null) => json(200, { items, nextCursor });
 const press = (name: string) => act(async () => fireEvent.press(screen.getByRole("button", { name })));
+/** A calendar with free time: Thứ 2 18:00–21:00 on 18/11/2026. PH03 reads it to name missing free time (#70). */
+const freeCalendar = () =>
+  new Response(
+    JSON.stringify({
+      id: "6a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+      version: 1,
+      timezone: "Asia/Ho_Chi_Minh",
+      windows: [{ start: "2026-11-23T11:00:00Z", end: "2026-11-23T14:00:00Z", kind: "AVAILABLE" }],
+    }),
+    { status: 200, headers: { "Content-Type": "application/json", ETag: '"1"' } },
+  );
+
+/** PH03 also reads the child's calendar; by default the child has free time, so the cards read as before. */
+function serve(routes: Parameters<typeof mockApi>[0]) {
+  return mockApi({ "GET /students/{studentId}/calendar": freeCalendar, ...routes });
+}
+
 const paths = (server: ReturnType<typeof mockApi>) => server.requests.map((r) => new URL(r.url).pathname.replace(/^\/api\/v1/, ""));
 
 describe("PH03 Nhu cầu của con", () => {
@@ -55,7 +72,7 @@ describe("PH03 Nhu cầu của con", () => {
   }
 
   it("lists the child's needs with their status in words, the terms of a confirmed one and its pending offers", async () => {
-    server = mockApi({
+    server = serve({
       "GET /students": () => page([MINH]),
       "GET /students/{studentId}/needs": () => page([CONFIRMED]),
       "GET /me/offers": () =>
@@ -87,7 +104,7 @@ describe("PH03 Nhu cầu của con", () => {
   });
 
   it("a draft only continues; a closed need is for reference, with its class and tutor, never search or offers", async () => {
-    server = mockApi({
+    server = serve({
       "GET /students": () => page([MINH]),
       "GET /students/{studentId}/needs": () => page([DRAFT, CLOSED]),
       "GET /me/offers": () => page([offer("94653fc7-b3ea-4d01-83dc-f69295b47802", CLOSED.id, "ACCEPTED", CLASS)]),
@@ -116,7 +133,7 @@ describe("PH03 Nhu cầu của con", () => {
 
   it("reads no tutor name for accepted offers of needs not on screen", async () => {
     // The first page of offers spans every child; another child's class must not cost a request here.
-    server = mockApi({
+    server = serve({
       "GET /students": () => page([MINH]),
       "GET /students/{studentId}/needs": () => page([CONFIRMED]),
       "GET /me/offers": () => page([offer("b6875fe9-d50c-4f23-a5fe-18b4b7d69a24", "c7986ffa-e61d-4034-b60f-29c5c8e7ab35", "ACCEPTED", CLASS)]),
@@ -129,7 +146,7 @@ describe("PH03 Nhu cầu của con", () => {
   });
 
   it("opens search and offers of a confirmed need", async () => {
-    server = mockApi({
+    server = serve({
       "GET /students": () => page([MINH]),
       "GET /students/{studentId}/needs": () => page([CONFIRMED]),
       "GET /me/offers": () => page([]),
@@ -147,7 +164,7 @@ describe("PH03 Nhu cầu của con", () => {
   });
 
   it("offers a new need once every need is closed", async () => {
-    server = mockApi({
+    server = serve({
       "GET /students": () => page([MINH]),
       "GET /students/{studentId}/needs": () => page([CLOSED]),
       "GET /me/offers": () => page([]),
@@ -161,7 +178,7 @@ describe("PH03 Nhu cầu của con", () => {
   });
 
   it("shows the empty state named after the child, with the create button", async () => {
-    server = mockApi({
+    server = serve({
       "GET /students": () => page([NGOC]),
       "GET /students/{studentId}/needs": () => page([]),
       "GET /me/offers": () => page([]),
@@ -175,7 +192,7 @@ describe("PH03 Nhu cầu của con", () => {
 
   it("AC-UC02-01 changing the child loads that child's needs only, never mixed with the other's", async () => {
     const NGOC_NEED = need("a5764fd8-c4fb-4e12-94ed-07a3a6c58913", "DRAFT", { goal: "phân tích đa thức thành nhân tử" }, NGOC.id);
-    server = mockApi({
+    server = serve({
       "GET /students": () => page([MINH, NGOC]),
       "GET /students/{studentId}/needs": (request) => page(request.url.includes(NGOC.id) ? [NGOC_NEED] : [CONFIRMED]),
       "GET /me/offers": () => page([]),
@@ -192,7 +209,7 @@ describe("PH03 Nhu cầu của con", () => {
   });
 
   it("loads the next page with the cursor of the previous one", async () => {
-    server = mockApi({
+    server = serve({
       "GET /students": () => page([MINH]),
       "GET /students/{studentId}/needs": (request) =>
         new URL(request.url).searchParams.get("cursor") === "c1" ? page([CLOSED]) : page([DRAFT], "c1"),
@@ -214,7 +231,7 @@ describe("PH03 Nhu cầu của con", () => {
   it("keeps the child switcher and offers a retry when the needs fail to load", async () => {
     // Reads retry twice on 5xx with the default backoff before the error shows.
     let attempts = 0;
-    server = mockApi({
+    server = serve({
       "GET /students": () => page([MINH]),
       "GET /students/{studentId}/needs": () => {
         attempts += 1;
@@ -233,7 +250,7 @@ describe("PH03 Nhu cầu của con", () => {
   }, 15_000);
 
   it("shows lost access when the server refuses the child's needs", async () => {
-    server = mockApi({
+    server = serve({
       "GET /students": () => page([MINH]),
       "GET /students/{studentId}/needs": () => problem(403, "ACCESS_UNAVAILABLE", "Bạn không có quyền."),
       "GET /me/offers": () => page([]),
@@ -245,7 +262,7 @@ describe("PH03 Nhu cầu của con", () => {
   });
 
   it("still lists the needs when the offers fail, only without the count", async () => {
-    server = mockApi({
+    server = serve({
       "GET /students": () => page([MINH]),
       "GET /students/{studentId}/needs": () => page([CONFIRMED]),
       "GET /me/offers": () => problem(403, "ACCESS_UNAVAILABLE", "Bạn không có quyền."),
@@ -257,12 +274,26 @@ describe("PH03 Nhu cầu của con", () => {
   });
 
   it("without a child, leads to PH02 with PH01's reminder", async () => {
-    server = mockApi({ "GET /students": () => page([]) });
+    server = serve({ "GET /students": () => page([]) });
     const { onAddStudent } = await renderNeeds();
 
     expect(await screen.findByText("Tạo hồ sơ cho con trước. Mọi việc tìm gia sư, lịch và lớp đều gắn với một con.")).toBeOnTheScreen();
     await press("Thêm hồ sơ con");
     expect(onAddStudent).toHaveBeenCalledTimes(1);
     expect(paths(server)).toEqual(["/students"]);
+  });
+
+  it("#70 a draft names the child's free time in 'Cần thêm' when the child's calendar has none", async () => {
+    server = serve({
+      "GET /students": () => page([MINH]),
+      "GET /students/{studentId}/needs": () => page([DRAFT]),
+      "GET /me/offers": () => page([]),
+      "GET /students/{studentId}/calendar": () => problem(404, "CALENDAR_NOT_FOUND", "Chưa có lịch rảnh."),
+    });
+    await renderNeeds();
+
+    expect(
+      await screen.findByText("Cần thêm: ngân sách, giờ rảnh của con. Chưa thể tìm gia sư từ bản nháp."),
+    ).toBeOnTheScreen();
   });
 });

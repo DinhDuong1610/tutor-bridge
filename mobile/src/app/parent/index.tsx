@@ -10,6 +10,8 @@ export default function ParentHomeRoute() {
       onManageStudents={() => router.push("/parent/account/students")}
       onSecurity={() => router.push("/parent/security")}
       onNeeds={() => router.push("/parent/needs")}
+      onCreateNeed={() => router.push("/parent/needs/new")}
+      onContinueNeed={(needId) => router.push({ pathname: "/parent/needs/[needId]/edit", params: { needId } })}
     />
   );
 }

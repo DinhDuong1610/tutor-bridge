@@ -1,10 +1,12 @@
-// PH04 Nhập nhu cầu học kèm (UC04, FR-04, BR02). Thiết kế: docs/design/ui/screens/PH04.md
-// PR 3a of #70: the need's fields only. The child's free time (WeekAvailability, replaceStudentCalendar) is PR 3b.
+// PH04 Nhập nhu cầu học kèm (UC04, UC07, FR-04, FR-19, BR02, BR04). Thiết kế: docs/design/ui/screens/PH04.md
+// #70 PR 3a (the need's fields) and PR 3b (the child's free time). "Giờ ưu tiên" has no input yet (#70 Q6, TBD Đính).
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { KeyboardAvoidingView, ScrollView, StyleSheet, Text, View } from "react-native";
-import { vietnamDate } from "@/features/calendar/weekly";
+import { useReplaceStudentCalendar, useStudentCalendar, type CalendarRevision } from "@/features/calendar/api";
+import { WeekAvailability } from "@/features/calendar/components/WeekAvailability";
+import { readWeek, spreadWeek, vietnamDate, type WeekPattern } from "@/features/calendar/weekly";
 import { useStudents } from "@/features/students/api";
 import { useSelectedStudent } from "@/features/students/selection";
 import { formatThousands } from "@/features/tutor-profile/schemas";
@@ -14,7 +16,7 @@ import { useServerErrors } from "@/shared/form/serverErrors";
 import { Button } from "@/shared/ui/Button";
 import { CommandStatus } from "@/shared/ui/CommandStatus";
 import { Notice } from "@/shared/ui/Notice";
-import { QueryScreen, type QueryState } from "@/shared/ui/QueryScreen";
+import { QueryBody, QueryScreen, type QueryState } from "@/shared/ui/QueryScreen";
 import { StickyActionBar } from "@/shared/ui/StickyActionBar";
 import { colors, spacing, typography } from "@/shared/ui/theme";
 import { useNeed, useSaveNeedDraft, type NeedRevision } from "../api";
@@ -31,18 +33,28 @@ import {
   type DraftForm,
   type DraftFormValues,
 } from "../draftForm";
+import { FREE_TIME, hasFreeTime, sameWeek, shortfall } from "../freeTime";
 import { missingFields } from "../summary";
 
 const TITLE = "Nhu cầu học kèm";
 const FIELDS = ["goal", "durationMinutes", "frequencyPer7Days", "budgetVndSession", "cycleStartDate"] as const;
+const STALE = "Dữ liệu đã thay đổi từ lúc bạn mở. Tải lại để xem bản mới; phần bạn đã nhập hợp lệ được giữ lại.";
 
 type Child = { id: string; displayName: string; grade: number };
 type Common = {
   onBack: () => void;
   /** "Xem lại": PH05 for the saved need (#70 PR 4). */
   onReview: (needId: string) => void;
-  /** The clock, so a test can fix "today"; the start date runs from today's Vietnam date. */
+  /** The clock, so a test can fix "today"; the start date and the free time run from today's Vietnam date. */
   now?: () => Date;
+};
+type FormProps = {
+  child: Child;
+  /** The query's newest answer, every render; `null` for a new draft. */
+  latest: NeedRevision | null;
+  onReload: (() => Promise<{ isSuccess: boolean; data?: NeedRevision }>) | null;
+  onReview: (needId: string) => void;
+  now: () => Date;
 };
 
 /** `/parent/needs/new`: a new draft for the child chosen on PH01 or PH03 (StudentSwitcher). */
@@ -61,7 +73,7 @@ function NewNeed({ students, onReview, now }: { students: Child[]; onReview: (ne
   if (!selected) {
     return <Notice tone="info" message="Chưa có hồ sơ con nào." />;
   }
-  return <NeedForm child={selected} latest={null} onReload={null} onReview={onReview} now={now} />;
+  return <WithCalendar child={selected} latest={null} onReload={null} onReview={onReview} now={now} />;
 }
 
 /** `/parent/needs/[needId]/edit`: the need's current draft, saved against its ETag (INV-23). */
@@ -79,7 +91,7 @@ export function EditNeedScreen({ needId, onBack, onReview, now = () => new Date(
   return (
     <QueryScreen title={TITLE} onBack={onBack} query={query}>
       {(loaded) => (
-        <NeedForm
+        <WithCalendar
           // A child past the first page of 50 is not in the list: the need still opens, without the child's name.
           child={loaded.students.find((child) => child.id === loaded.need.data.studentId) ?? { id: loaded.need.data.studentId, displayName: "", grade: 8 }}
           latest={loaded.need}
@@ -95,19 +107,37 @@ export function EditNeedScreen({ needId, onBack, onReview, now = () => new Date(
   );
 }
 
+/** The child's calendar loads with the form: its free time is part of the draft PH04 saves (#16 Q1). */
+function WithCalendar(props: FormProps) {
+  const calendar = useStudentCalendar(props.child.id);
+  return (
+    <QueryBody query={calendar}>
+      {(loaded) => (
+        <NeedForm
+          {...props}
+          calendar={loaded}
+          onReloadCalendar={async () => {
+            const result = await calendar.refetch();
+            return { isSuccess: result.isSuccess, data: result.data };
+          }}
+        />
+      )}
+    </QueryBody>
+  );
+}
+
 function NeedForm({
   child,
   latest,
   onReload,
   onReview,
   now,
-}: {
-  child: Child;
-  /** The query's newest answer, every render; `null` for a new draft. */
-  latest: NeedRevision | null;
-  onReload: (() => Promise<{ isSuccess: boolean; data?: NeedRevision }>) | null;
-  onReview: (needId: string) => void;
-  now: () => Date;
+  calendar,
+  onReloadCalendar,
+}: FormProps & {
+  /** The child's calendar as loaded; `null` before the first save. */
+  calendar: CalendarRevision | null;
+  onReloadCalendar: () => Promise<{ isSuccess: boolean; data?: CalendarRevision | null }>;
 }) {
   const today = vietnamDate(now());
   const [schema] = useState(() => draftFormSchema(today));
@@ -135,35 +165,83 @@ function NeedForm({
     if (latest && newestEtag !== (base?.etag ?? null) && safe) setBase(latest);
   }
 
-  // What the fields hold now, if they are valid: "Xem lại" needs a complete draft (PH04 "Hành vi").
+  // The child's free time: the weekly pattern read from the child's calendar, edited, and saved over 56 days
+  // (OP-26). Saving replaces the whole calendar, as the approved warning says (#70 Q2); the stored PREFERRED
+  // pattern is kept, since PH04 has no input for it yet (#70 Q6).
+  const [calendarBase, setCalendarBase] = useState<CalendarRevision | null>(calendar);
+  const stored = readWeek(calendarBase?.data.windows ?? [], today);
+  const [week, setWeek] = useState<WeekPattern>(stored.available);
+  const weekChanged = !sameWeek(week, stored.available);
+  const saveCalendar = useReplaceStudentCalendar();
+  const calendarStale = saveCalendar.state === "failed" && saveCalendar.error?.kind === "stale";
+  const windows = spreadWeek(week, stored.preferred, today);
+
+  // What the fields hold now, if they are valid: "Xem lại" needs a complete draft and enough free time.
   const parsed = schema.safeParse(values);
-  const missingNow = parsed.success ? missingFields(toDraftInput(parsed.data)) : null;
-  const missingSaved = base ? missingFields(base.data.draft) : [];
-  const busy = save.state === "sending";
-  const blocked = save.state === "unknown" || stale;
-  // Set by the button that started the save: "Xem lại" goes on to PH05 once it is confirmed.
+  const draftNow = parsed.success ? toDraftInput(parsed.data) : null;
+  const missingNow = draftNow ? [...missingFields(draftNow), ...(hasFreeTime(windows) ? [] : [FREE_TIME])] : null;
+  const notEnough = draftNow ? shortfall(windows, draftNow, now()) : null;
+  const missingSaved = base
+    ? [...missingFields(base.data.draft), ...(hasFreeTime(calendarBase?.data.windows ?? []) ? [] : [FREE_TIME])]
+    : [];
+  const busy = save.state === "sending" || saveCalendar.state === "sending";
+  const blocked = save.state === "unknown" || stale || saveCalendar.state === "unknown" || calendarStale;
+  const unsaved = !base || hasChanges || weekChanged;
+  // Set by the button that started the save: "Xem lại" goes on to PH05 once both saves are confirmed.
   const reviewAfterSave = useRef(false);
 
-  const applySaved = (saved: NeedRevision | undefined, review: boolean) => {
-    if (!saved) return;
+  const applyNeed = (saved: NeedRevision) => {
     setBase(saved);
     setSeenEtag(saved.etag);
     form.reset(toFormValues(saved.data.draft));
-    if (review) onReview(saved.data.id);
+  };
+  // Huy, 28/11/2026: the need first, the child's calendar only once the need is confirmed; a failed calendar
+  // save says the need is saved and retries the calendar alone.
+  const saveFreeTime = async (need: NeedRevision) => {
+    if (weekChanged) {
+      const saved = await saveCalendar.submit({ studentId: child.id, etag: calendarBase?.etag ?? null, windows });
+      if (!saved) return;
+      setCalendarBase(saved);
+      setWeek(readWeek(saved.data.windows, today).available);
+    }
+    if (reviewAfterSave.current) onReview(need.data.id);
   };
   const submit = (review: boolean) =>
     form.handleSubmit(async (input) => {
       reviewAfterSave.current = review;
-      const draft = toDraftInput(input);
-      const result = await save.submit(
-        base
-          ? { kind: "update", needId: base.data.id, etag: base.etag, draft }
-          : { kind: "create", studentId: child.id, draft },
-      );
-      applySaved(result, review);
+      saveCalendar.reset();
+      let need = base;
+      if (!base || hasChanges) {
+        const draft = toDraftInput(input);
+        const saved = await save.submit(
+          base ? { kind: "update", needId: base.data.id, etag: base.etag, draft } : { kind: "create", studentId: child.id, draft },
+        );
+        if (!saved) return;
+        applyNeed(saved);
+        need = saved;
+      }
+      if (need) await saveFreeTime(need);
     })();
   // A retry after an unknown outcome ends like the press that started it.
-  const command = { ...save, retry: async () => applySaved(await save.retry(), reviewAfterSave.current) };
+  const needCommand = {
+    ...save,
+    retry: async () => {
+      const saved = await save.retry();
+      if (!saved) return;
+      applyNeed(saved);
+      await saveFreeTime(saved);
+    },
+  };
+  const calendarCommand = {
+    ...saveCalendar,
+    retry: async () => {
+      const saved = await saveCalendar.retry();
+      if (!saved) return;
+      setCalendarBase(saved);
+      setWeek(readWeek(saved.data.windows, today).available);
+      if (reviewAfterSave.current && base) onReview(base.data.id);
+    },
+  };
   const reload = async () => {
     if (!onReload) return;
     const result = await onReload();
@@ -173,27 +251,37 @@ function NeedForm({
       save.reset();
     }
   };
+  // The pattern being edited is kept: only the calendar's base and ETag move to the newest version.
+  const reloadCalendar = async () => {
+    const result = await onReloadCalendar();
+    if (result.isSuccess && result.data !== undefined) {
+      setCalendarBase(result.data);
+      saveCalendar.reset();
+    }
+  };
 
   const goal = (values.goal ?? "").trim();
   const start = parsed.success ? parsed.data.cycleStartDate : undefined;
+  const calendarFailed = saveCalendar.state === "failed" || saveCalendar.state === "unknown";
 
   return (
     <KeyboardAvoidingView style={styles.fill} behavior="padding">
       <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
         {stale ? (
-          <Notice
-            tone="warning"
-            message="Dữ liệu đã thay đổi từ lúc bạn mở. Tải lại để xem bản mới; phần bạn đã nhập hợp lệ được giữ lại."
-            action={<Button variant="secondary" title="Tải lại" onPress={() => void reload()} />}
-          />
+          <Notice tone="warning" message={STALE} action={<Button variant="secondary" title="Tải lại" onPress={() => void reload()} />} />
         ) : null}
-        {base && !hasChanges && !stale && missingSaved.length > 0 ? (
+        {calendarStale ? (
+          <Notice tone="warning" message={STALE} action={<Button variant="secondary" title="Tải lại" onPress={() => void reloadCalendar()} />} />
+        ) : null}
+        {base && !unsaved && !stale && missingSaved.length > 0 ? (
           <Notice
             tone="warning"
             message={`Đã lưu nháp. Cần thêm: ${missingSaved.join(", ")}. Chưa thể tìm gia sư từ bản nháp.`}
           />
         ) : null}
-        {save.state === "confirmed" && !hasChanges && missingSaved.length === 0 ? <Notice tone="success" message="Đã lưu nháp." /> : null}
+        {save.state === "confirmed" && !unsaved && !calendarFailed && missingSaved.length === 0 ? (
+          <Notice tone="success" message="Đã lưu nháp." />
+        ) : null}
         <View style={styles.child}>
           <Text style={styles.label}>Cho con</Text>
           {child.displayName ? <Text style={styles.childName}>{`${child.displayName}, lớp ${child.grade}`}</Text> : null}
@@ -239,9 +327,29 @@ function NeedForm({
           hint={start ? `${weekdayLabel(start)}. ${startDateHint(today)}` : startDateHint(today)}
           keyboardType="numbers-and-punctuation"
         />
+        <View style={styles.section}>
+          <Text accessibilityRole="header" style={styles.heading}>
+            Giờ con rảnh mỗi tuần
+          </Text>
+          <Text style={styles.caption}>Giờ Việt Nam. Chỉ gợi ý gia sư rảnh trùng giờ này cho đủ cả chu kỳ.</Text>
+          {stored.irregular ? (
+            <Notice
+              tone="warning"
+              message="Lịch rảnh của con có ngày khác mẫu tuần. Lưu ở đây sẽ thay toàn bộ lịch bằng mẫu tuần dưới đây."
+            />
+          ) : null}
+          <WeekAvailability value={week} onChange={setWeek} saved={stored.available} />
+          {notEnough ? <Notice tone="warning" message={notEnough} /> : null}
+        </View>
+        <View style={styles.section}>
+          <Text accessibilityRole="header" style={styles.heading}>
+            Giờ ưu tiên (không bắt buộc)
+          </Text>
+          <Text style={styles.caption}>Gia sư rảnh vào giờ ưu tiên được xếp trước. Không chọn cũng được.</Text>
+        </View>
       </ScrollView>
       <StickyActionBar>
-        {stale ? null : (
+        {stale || calendarStale ? null : (
           <>
             {otherErrors.map((message) => (
               <Notice key={message} tone="danger" message={message} />
@@ -249,14 +357,21 @@ function NeedForm({
             {hasFieldErrors && save.state !== "unknown" ? (
               <Notice tone="danger" message="Vui lòng sửa các ô được đánh dấu rồi gửi lại." />
             ) : save.state === "confirmed" ? null : (
-              <CommandStatus command={command} confirmedMessage="" />
+              <CommandStatus command={needCommand} confirmedMessage="" />
+            )}
+            {calendarFailed ? (
+              // TBD #70: no approved copy for a need saved without its free time (Huy's order, 28/11/2026).
+              <Notice tone="warning" message="Đã lưu nhu cầu, chưa lưu giờ rảnh của con." />
+            ) : null}
+            {saveCalendar.state === "confirmed" || saveCalendar.state === "idle" ? null : (
+              <CommandStatus command={calendarCommand} confirmedMessage="" />
             )}
           </>
         )}
         <Button
           title="Xem lại"
-          disabled={busy || blocked || missingNow === null || missingNow.length > 0}
-          onPress={() => (base && !hasChanges ? onReview(base.data.id) : void submit(true))}
+          disabled={busy || blocked || missingNow === null || missingNow.length > 0 || notEnough !== null}
+          onPress={() => (base && !unsaved ? onReview(base.data.id) : void submit(true))}
         />
         <Button variant="secondary" title="Lưu nháp" busy={busy} disabled={blocked} onPress={() => void submit(false)} />
       </StickyActionBar>
@@ -268,7 +383,9 @@ const styles = StyleSheet.create({
   fill: { flex: 1 },
   form: { gap: spacing.lg, paddingBottom: spacing.lg },
   child: { gap: spacing.xs },
+  section: { gap: spacing.sm },
   label: { ...typography.label, color: colors.text },
+  heading: { ...typography.heading, color: colors.text },
   childName: { ...typography.bodyStrong, color: colors.text },
   caption: { ...typography.caption, color: colors.textMuted },
 });

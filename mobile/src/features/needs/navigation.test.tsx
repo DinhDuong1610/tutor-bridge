@@ -35,7 +35,8 @@ function serve(needs: Need[], offers: Offer[] = []) {
     "GET /students/{studentId}/needs": () => json(200, { items: needs, nextCursor: null }),
     "GET /me/offers": () => json(200, { items: offers, nextCursor: null }),
     "GET /tutors/{tutorId}/public-profile": () => json(404, {}),
-    // PH04 reads the need it edits with its ETag (#70 PR 3a).
+    // PH04 reads the child's calendar (#70 PR 3b) and the need it edits, with their ETags (#70 PR 3a).
+    "GET /students/{studentId}/calendar": () => problem(404, "CALENDAR_NOT_FOUND", "Chưa có lịch rảnh."),
     "GET /needs/{needId}": (request) => {
       const found = needs.find((n) => request.url.endsWith(`/needs/${n.id}`));
       return found

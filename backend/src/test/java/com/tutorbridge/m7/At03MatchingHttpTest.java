@@ -166,9 +166,14 @@ class At03MatchingHttpTest extends HttpTest {
                 .setScale(6, RoundingMode.HALF_UP);
     }
 
-    /** A cycle start far ahead, past every cycle of MatchingRunsHttpTest, unused by any other run here. */
+    /**
+     * A cycle start far ahead, unused by any other test of the shared database. AT03 counts every tutor that
+     * passes, so a tutor another test leaves free in this cycle would join the list. MatchingRunsHttpTest starts
+     * at 120 days and OfferHttpFixture at 3000 days, both 35 days more per use; OfferHttpFixture passed 5000 days
+     * once the tests of #237, #238 and #240 used it (27/11/2026). 20000 days leaves it about 480 more uses.
+     */
     private static LocalDate farCycle() {
-        return LocalDate.now(VIETNAM).plusDays(5000L + 35L * CYCLES.getAndIncrement());
+        return LocalDate.now(VIETNAM).plusDays(20000L + 35L * CYCLES.getAndIncrement());
     }
 
     private static ZonedDateTime at(LocalDate day, int hour) {

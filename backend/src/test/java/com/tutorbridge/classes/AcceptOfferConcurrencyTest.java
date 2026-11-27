@@ -125,12 +125,23 @@ class AcceptOfferConcurrencyTest extends IntegrationTest {
                 .satisfies(outcome -> assertThat(outcome.rejected().code()).isEqualTo(loserCode));
     }
 
+    /**
+     * No class in the database lacks a session of its accepted offer, nor two bookings per session. Every
+     * class counts, also those of other test classes (TB-19's HTTP tests make 6-session classes), so the
+     * count is the offer's own, not this fixture's 4.
+     */
     private void assertNoOrphans() {
         assertThat(fixture.count("""
                 select count(*) from classes c
-                where (select count(*) from lesson_sessions s where s.class_id = c.id) <> 4
+                where (select count(*) from lesson_sessions s where s.class_id = c.id)
+                      <> (select count(*) from offer_sessions o where o.offer_id = c.accepted_offer_id)
                    or (select count(*) from resource_bookings b join lesson_sessions s on s.id = b.session_id
-                       where s.class_id = c.id) <> 8
+                       where s.class_id = c.id)
+                      <> 2 * (select count(*) from offer_sessions o where o.offer_id = c.accepted_offer_id)
+                """)).isZero();
+        assertThat(fixture.count("""
+                select count(*) from lesson_sessions s
+                where not exists (select 1 from classes c where c.id = s.class_id)
                 """)).isZero();
     }
 

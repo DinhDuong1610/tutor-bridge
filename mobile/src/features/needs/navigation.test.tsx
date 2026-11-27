@@ -35,6 +35,13 @@ function serve(needs: Need[], offers: Offer[] = []) {
     "GET /students/{studentId}/needs": () => json(200, { items: needs, nextCursor: null }),
     "GET /me/offers": () => json(200, { items: offers, nextCursor: null }),
     "GET /tutors/{tutorId}/public-profile": () => json(404, {}),
+    // PH04 reads the need it edits with its ETag (#70 PR 3a).
+    "GET /needs/{needId}": (request) => {
+      const found = needs.find((n) => request.url.endsWith(`/needs/${n.id}`));
+      return found
+        ? new Response(JSON.stringify(found), { status: 200, headers: { "Content-Type": "application/json", ETag: `"${found.revision}"` } })
+        : problem(404, "NEED_NOT_FOUND", "Không tìm thấy nhu cầu.");
+    },
   });
 }
 
@@ -74,7 +81,9 @@ describe("PH03 routes", () => {
 
     await press("Tiếp tục nhập");
 
-    expect(await screen.findByRole("header", { name: "Nhập nhu cầu học kèm" })).toBeOnTheScreen();
+    // PH04 opens on the draft it continues (#70 PR 3a).
+    expect(await screen.findByRole("header", { name: "Nhu cầu học kèm" })).toBeOnTheScreen();
+    expect(await screen.findByDisplayValue("ôn thi học kỳ 2")).toBeOnTheScreen();
     expect(screen).toHavePathname(`/parent/needs/${DRAFT.id}/edit`);
   });
 
@@ -95,7 +104,8 @@ describe("PH03 routes", () => {
 
     await press("Tạo nhu cầu mới");
 
-    expect(await screen.findByRole("header", { name: "Nhập nhu cầu học kèm" })).toBeOnTheScreen();
+    expect(await screen.findByRole("header", { name: "Nhu cầu học kèm" })).toBeOnTheScreen();
+    expect(await screen.findByText("Minh An, lớp 8")).toBeOnTheScreen();
     expect(screen).toHavePathname("/parent/needs/new");
   });
 

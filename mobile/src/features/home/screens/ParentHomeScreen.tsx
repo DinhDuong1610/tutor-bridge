@@ -4,11 +4,11 @@
 import type { ReactNode } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useStudents } from "@/features/students/api";
-import { useSelectedStudent } from "@/features/students/selection";
+import { studentChoices, useSelectedStudent } from "@/features/students/selection";
 import { Button } from "@/shared/ui/Button";
 import { Notice } from "@/shared/ui/Notice";
 import { QueryScreen } from "@/shared/ui/QueryScreen";
-import { StudentSwitcher, type StudentChoice } from "@/shared/ui/StudentSwitcher";
+import { StudentSwitcher } from "@/shared/ui/StudentSwitcher";
 import { colors, spacing, typography } from "@/shared/ui/theme";
 
 type Props = {
@@ -16,11 +16,13 @@ type Props = {
   onManageStudents: () => void;
   /** Temporary way in to AUTH06 until the Account tab exists (#119); goes with the tab bar. */
   onSecurity: () => void;
+  /** Temporary way in to PH03 until the "Tìm gia sư" tab exists (#205); goes with the tab bar (Huy, #70 PR 2 Q4). */
+  onNeeds: () => void;
 };
 
 type StudentItem = { id: string; displayName: string; grade: number };
 
-export function ParentHomeScreen({ onAddStudent, onManageStudents, onSecurity }: Props) {
+export function ParentHomeScreen({ onAddStudent, onManageStudents, onSecurity, onNeeds }: Props) {
   const students = useStudents();
   return (
     // The approved "Dữ liệu cũ" frame puts the warning below the child switcher, not above it.
@@ -30,7 +32,12 @@ export function ParentHomeScreen({ onAddStudent, onManageStudents, onSecurity }:
       placesStaleNotice
       // Outside the data so it stays while the list loads or fails (Codex review of #192): the
       // parent can still change the password or sign out.
-      footer={<Button variant="secondary" title="Bảo mật" onPress={onSecurity} />}
+      footer={
+        <View style={styles.footer}>
+          <Button variant="secondary" title="Tìm gia sư" onPress={onNeeds} />
+          <Button variant="secondary" title="Bảo mật" onPress={onSecurity} />
+        </View>
+      }
     >
       {(data, staleNotice) => (
         <Home
@@ -52,7 +59,7 @@ function Home({
   staleNotice,
   onAddStudent,
   onManageStudents,
-}: Omit<Props, "onSecurity"> & { items: StudentItem[]; staleNotice: ReactNode }) {
+}: Omit<Props, "onSecurity" | "onNeeds"> & { items: StudentItem[]; staleNotice: ReactNode }) {
   const { selected, select } = useSelectedStudent(items);
 
   if (!selected) {
@@ -67,13 +74,7 @@ function Home({
     );
   }
 
-  const choices: StudentChoice[] = items.map((student) => ({
-    id: student.id,
-    name: student.displayName,
-    label: `${student.displayName}, lớp ${student.grade}`,
-    // The approved sheet also counts classes and offers; those APIs are not merged yet (TBD in handoff).
-    detail: `Lớp ${student.grade}.`,
-  }));
+  const choices = studentChoices(items);
 
   return (
     // Edge to edge so the switcher bar spans the screen as in Figma 18:471; the rest keeps the padding.
@@ -90,4 +91,5 @@ const styles = StyleSheet.create({
   edgeToEdge: { marginHorizontal: -spacing.md },
   padded: { paddingHorizontal: spacing.md },
   greeting: { ...typography.heading, color: colors.text },
+  footer: { gap: spacing.sm },
 });

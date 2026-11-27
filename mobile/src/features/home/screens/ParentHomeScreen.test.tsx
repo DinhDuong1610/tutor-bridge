@@ -15,7 +15,7 @@ const NGOC = { id: "1c8d5a4f-3b62-4b9f-8b54-7e2a1d3c0f21", displayName: "Bảo N
 const page = (items: unknown[]) => json(200, { items, nextCursor: null });
 
 async function renderHome() {
-  const handlers = { onAddStudent: jest.fn(), onManageStudents: jest.fn(), onSecurity: jest.fn() };
+  const handlers = { onAddStudent: jest.fn(), onManageStudents: jest.fn(), onSecurity: jest.fn(), onNeeds: jest.fn() };
   await renderScreen(
     <SelectedStudentProvider>
       <ParentHomeScreen {...handlers} />
@@ -112,6 +112,16 @@ describe("PH01 Trang chủ phụ huynh", () => {
     await act(async () => fireEvent.press(screen.getByRole("button", { name: "Bảo mật" })));
 
     expect(onSecurity).toHaveBeenCalledTimes(1);
+  });
+
+  it("has a temporary way in to PH03 until the tab bar exists (#70 PR 2 Q4)", async () => {
+    server = mockApi({ "GET /students": () => page([MINH]) });
+    const { onNeeds } = await renderHome();
+    await screen.findByText("Minh An, lớp 8");
+
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Tìm gia sư" })));
+
+    expect(onNeeds).toHaveBeenCalledTimes(1);
   });
 
   it("keeps the way in to AUTH06 while the list is loading and after it fails (Codex, #192)", async () => {

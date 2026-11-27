@@ -3,7 +3,10 @@ package com.tutorbridge.identity.internal;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -69,6 +72,44 @@ class EvidenceUploadRepository {
         if (updated != 1) {
             throw new IllegalStateException("Upload " + id + " is not " + from);
         }
+    }
+
+    /**
+     * #182: marks DELETED, and returns the keys of, at most {@code limit} uploads whose bytes nothing can use
+     * any more: UPLOADING that expired before {@code expiredBefore}, and FAILED whose ticket expired before
+     * {@code failedBefore}. A FAILED upload failed before its ticket expired, so it is at least that old.
+     * Neither state can change once expired, so this needs no other check; an upload linked to a profile
+     * version is never taken, whatever its state. SKIP LOCKED: a row another transaction holds waits.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    List<String> markUnusedDeleted(Instant expiredBefore, Instant failedBefore, int limit) {
+        return jdbc.sql("""
+                with due as (
+                    select u.id from tutor_evidence_uploads u
+                    where ((u.state = 'UPLOADING' and u.expires_at < ?) or (u.state = 'FAILED' and u.expires_at < ?))
+                      and not exists (select 1 from tutor_profile_evidence e where e.upload_id = u.id)
+                    order by u.expires_at
+                    limit ?
+                    for update of u skip locked)
+                update tutor_evidence_uploads u set state = 'DELETED' from due where u.id = due.id
+                returning u.object_key
+                """).params(at(expiredBefore), at(failedBefore), limit).query(String.class).list();
+    }
+
+    /**
+     * #182: which of {@code objectKeys} still name bytes in use: any state but DELETED, or linked to a profile
+     * version. A key with no row at all is not in use.
+     */
+    Set<String> inUse(Collection<String> objectKeys) {
+        if (objectKeys.isEmpty()) {
+            return Set.of();
+        }
+        return Set.copyOf(jdbc.sql("""
+                select u.object_key from tutor_evidence_uploads u
+                where u.object_key = any(?)
+                  and (u.state <> 'DELETED'
+                       or exists (select 1 from tutor_profile_evidence e where e.upload_id = u.id))
+                """).param(objectKeys.toArray(String[]::new)).query(String.class).list());
     }
 
     private static OffsetDateTime at(Instant instant) {

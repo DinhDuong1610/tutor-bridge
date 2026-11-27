@@ -2,6 +2,8 @@ package com.tutorbridge.identity.internal;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Instant;
+import java.util.stream.Stream;
 
 /**
  * Private storage for evidence bytes (#12 Q1). R0 writes to a local directory ({@link LocalObjectStore});
@@ -21,6 +23,15 @@ interface ObjectStore {
 
     /** The committed bytes; {@link java.nio.file.NoSuchFileException} when there are none. */
     InputStream open(String objectKey) throws IOException;
+
+    /** Removes the committed bytes of {@code objectKey}; finding none is not an error (#182). */
+    void delete(String objectKey) throws IOException;
+
+    /** Keys whose bytes were last written before {@code cutoff}, for the orphan sweep (#182). The caller closes it. */
+    Stream<String> keysWrittenBefore(Instant cutoff) throws IOException;
+
+    /** Removes staged bytes last written before {@code cutoff}: left by a process that died mid-PUT (#182). */
+    int deleteStagedBefore(Instant cutoff) throws IOException;
 
     /** Bytes in the staging area. Closing it removes them unless {@link #commit} moved them first. */
     interface Staged extends AutoCloseable {

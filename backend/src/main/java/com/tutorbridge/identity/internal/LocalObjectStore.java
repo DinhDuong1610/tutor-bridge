@@ -11,9 +11,11 @@ import java.nio.file.StandardCopyOption;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
 import java.util.HexFormat;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 import org.springframework.stereotype.Component;
 
 /**
@@ -71,6 +73,42 @@ class LocalObjectStore implements ObjectStore {
     @Override
     public InputStream open(String objectKey) throws IOException {
         return Files.newInputStream(object(objectKey));
+    }
+
+    @Override
+    public void delete(String objectKey) throws IOException {
+        Files.deleteIfExists(object(objectKey));
+    }
+
+    /** Only names that are keys: anything else in {@code objects} was not put there by this service. */
+    @Override
+    public Stream<String> keysWrittenBefore(Instant cutoff) throws IOException {
+        return Files.list(objects)
+                .filter(path -> KEY.matcher(path.getFileName().toString()).matches())
+                .filter(path -> writtenBefore(path, cutoff))
+                .map(path -> path.getFileName().toString());
+    }
+
+    @Override
+    public int deleteStagedBefore(Instant cutoff) throws IOException {
+        int deleted = 0;
+        try (Stream<Path> files = Files.list(staging)) {
+            for (Path file : (Iterable<Path>) files::iterator) {
+                if (writtenBefore(file, cutoff) && Files.deleteIfExists(file)) {
+                    deleted++;
+                }
+            }
+        }
+        return deleted;
+    }
+
+    /** A file gone meanwhile, or one that cannot be read, is not old: it is left for the next run. */
+    private static boolean writtenBefore(Path file, Instant cutoff) {
+        try {
+            return Files.isRegularFile(file) && Files.getLastModifiedTime(file).toInstant().isBefore(cutoff);
+        } catch (IOException e) {
+            return false;
+        }
     }
 
     /** Only keys minted by this service, so no key can name a file outside {@code objects}. */

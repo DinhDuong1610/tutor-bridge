@@ -119,7 +119,7 @@ public class EvidenceUploads {
      *       now), upload {@code FOR UPDATE}, then UPLOADING and expiresAt checked again at commit.
      * </ol>
      * If step 4 refuses after step 3 moved the bytes, they are the declared bytes of an upload that no
-     * longer takes any; cleaning them up is a later Issue (TB-12b plan).
+     * longer takes any; {@link EvidenceCleanup} removes them later as orphans (#182).
      */
     public Evidence putContent(Actor actor, UUID uploadId, IdempotencyKey key, String contentType, InputStream body) {
         requireTutorRole(actor);

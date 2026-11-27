@@ -76,6 +76,14 @@ tutorbridge:
       batch-size: 500
       max-batches: 40
       outbox-keep: P7D
+    # Evidence cleanup (#182): unused evidence bytes. Keep times TBD (#182 Q1, Đính); these are the proposal.
+    evidence-cleanup:
+      interval: PT1H
+      batch-size: 100
+      max-batches: 20
+      expired-keep: PT24H
+      failed-keep: P7D
+      orphan-keep: PT24H
 management:
   endpoints:
     web:

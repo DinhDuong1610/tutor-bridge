@@ -39,6 +39,8 @@ Ba chỗ trong `mobile/` giữ việc này:
 - `src/shared/test/preloadRoutes.ts`: các file test dùng `renderRouter` gọi `beforeAll(preloadRoutes, 120_000)`. Hàm này nạp cả cây `src/app` theo cách `renderRouter` đọc nó, nên phần biên dịch nằm trong `beforeAll` có hạn riêng, không nằm trong ca test. File test route mới cũng cần dòng này.
 - `maxWorkers: "50%"` trong cấu hình Jest. Với mặc định (số luồng trừ một), các worker tranh CPU tới mức ca vẫn hết giờ khi cache đã ấm, và thỉnh thoảng gặp `EPERM` khi cùng ghi cache trên Windows.
 
+Trước đây (15/11/2026) chỉ nạp sẵn trong `setupFilesAfterEnv` đã gặp `EPERM` và bị bỏ. `EPERM` đó đến từ số worker mặc định cùng ghi cache: trong bảng dưới nó còn xuất hiện ở 19 worker, và không xuất hiện ở `maxWorkers: "50%"`. Vì vậy ba chỗ trên phải đi cùng nhau.
+
 Không tăng `testTimeout` toàn cục.
 
 Số đo trên máy Huy (Windows, 20 luồng, 323 ca, 27/11/2026), mỗi lần sau `npx jest --clearCache`:

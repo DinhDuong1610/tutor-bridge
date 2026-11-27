@@ -36,7 +36,8 @@ describe("theme tokens", () => {
     const actual = Object.fromEntries(
       Object.entries(typography).map(([name, style]) => [name, { size: style.fontSize, line: style.lineHeight, weight: weightOf[style.fontFamily] }]),
     );
-    expect(Object.keys(documented)).toHaveLength(7);
+    // 7 styles of the Figma type table plus `badge` (Figma 8:232; Đính, 22/11/2026, #95).
+    expect(Object.keys(documented)).toHaveLength(8);
     expect(actual).toEqual(documented);
   });
 

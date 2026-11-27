@@ -13,7 +13,7 @@ import { StatusLabel } from "./StatusLabel";
 import { StickyActionBar } from "./StickyActionBar";
 import { TextField } from "./TextField";
 import { TopAppBar } from "./TopAppBar";
-import { colors, radius, typography } from "./theme";
+import { colors, fonts, radius, typography } from "./theme";
 
 const problem = (status: number, title = "Không được phép.") =>
   new ApiError({
@@ -145,6 +145,20 @@ describe("Button", () => {
     expect(label).toHaveStyle({ flexShrink: 1, ...typography.label });
     expect(label.props.numberOfLines).toBeUndefined();
   });
+
+  it.each(["primary", "secondary"] as const)(
+    "draws a disabled %s button as Figma State=Disabled: surface, border, textMuted, not see-through (Đính, #95)",
+    async (variant) => {
+      expect(StyleSheet.flatten(buttonStyle(variant, false, true))).toMatchObject({
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.border,
+      });
+      expect(StyleSheet.flatten(buttonStyle(variant, false, true))).not.toHaveProperty("opacity");
+      await render(<Button title="Lưu" variant={variant} onPress={() => undefined} disabled />);
+      expect(screen.getByText("Lưu")).toHaveStyle({ color: colors.textMuted });
+    },
+  );
 
   it("ignores presses while disabled", async () => {
     const onPress = jest.fn();
@@ -324,11 +338,23 @@ describe("NavigationBar", () => {
     expect(screen.queryByText("0")).toBeNull();
   });
 
-  it("limits only the tab labels to 1.3x text (OP-22)", async () => {
+  it("limits the tab labels and the badge count to 1.3x text (OP-22, Đính 22/11/2026 on #95)", async () => {
     await render(wrap(<NavigationBar tabs={TABS} selectedKey="home" onSelect={() => undefined} />));
 
     for (const tab of TABS) expect(screen.getByText(tab.label)).toHaveProp("maxFontSizeMultiplier", 1.3);
-    expect(screen.getByText("2")).not.toHaveProp("maxFontSizeMultiplier");
+    // At 200% a fully scaled count would cover the icon; the tab's name still reads the whole count.
+    expect(screen.getByText("2", { includeHiddenElements: true })).toHaveProp("maxFontSizeMultiplier", 1.3);
+    expect(screen.getByRole("tab", { name: "Thông báo, 2 thông báo chưa đọc" })).toBeOnTheScreen();
+  });
+
+  it("draws the badge count Regular 11/16 and pads the bar 12 above and 16 below (Figma 8:232, #95)", async () => {
+    await render(wrap(<NavigationBar tabs={TABS} selectedKey="home" onSelect={() => undefined} />));
+
+    expect(screen.getByText("2", { includeHiddenElements: true })).toHaveStyle({ fontFamily: fonts.regular, fontSize: 11, lineHeight: 16 });
+    // The tablist View is not itself accessible, so it is reached as the parent of a tab.
+    const bar = StyleSheet.flatten(screen.getByRole("tab", { name: "Tổng quan" }).parent?.props.style);
+    // The test's safe area is 0 at the bottom, so the bottom padding is the Figma 16 alone.
+    expect(bar).toMatchObject({ paddingTop: 12, paddingBottom: 16 });
   });
 
   it("puts the infoSurface pill only behind the selected tab", async () => {

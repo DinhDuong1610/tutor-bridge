@@ -6,6 +6,13 @@ vi.mock("next/headers", () => ({
   headers: async () => new Headers(forwardedFor === null ? {} : { "x-forwarded-for": forwardedFor }),
 }));
 
+const order: string[] = [];
+vi.mock("next/server", () => ({
+  connection: async () => {
+    order.push("connection");
+  },
+}));
+
 const { adminApi } = await import("./server");
 
 async function capture(token: string | null, send: (api: Awaited<ReturnType<typeof adminApi>>) => Promise<unknown>) {
@@ -33,6 +40,22 @@ describe("adminApi", () => {
     forwardedFor = null;
     const none = await capture(null, (api) => api.GET("/me/sessions", {}));
     expect(none.headers.has("X-TB-Client-IP")).toBe(false);
+  });
+
+  it("waits for the request before it builds a client, so no API call runs at prerender (#254)", async () => {
+    order.length = 0;
+    await adminApi({
+      token: null,
+      fetch: async () => {
+        order.push("fetch");
+        return new Response(JSON.stringify({ items: [], nextCursor: null }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      },
+    }).then((api) => api.GET("/me/sessions", {}));
+
+    expect(order).toEqual(["connection", "fetch"]);
   });
 
   it("sends the session cookie on reads, without CSRF", async () => {

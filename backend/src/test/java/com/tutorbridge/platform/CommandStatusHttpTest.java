@@ -27,7 +27,7 @@ import tools.jackson.databind.json.JsonMapper;
 /**
  * getCommandStatus and findCommandStatus (TX16, FR-37, TB-22). Decisions of Huy, 24/11/2026: a result the
  * actor can no longer see is left out of a 200; a receipt past its expiry is 404; a result type no module
- * answers for, CLASS until TB-20, is left out too.
+ * answers for is left out too.
  */
 @ExtendWith(OutputCaptureExtension.class)
 class CommandStatusHttpTest extends HttpTest {
@@ -38,6 +38,9 @@ class CommandStatusHttpTest extends HttpTest {
 
     @Autowired
     TransactionTemplate tx;
+
+    @Autowired
+    com.tutorbridge.classes.api.AcceptOffer acceptOffer;
 
     // ---------------------------------------------------------------- after real commands
 
@@ -244,7 +247,40 @@ class CommandStatusHttpTest extends HttpTest {
     }
 
     @Test
-    void a_class_until_TB_20_an_unknown_type_and_a_result_that_is_gone_are_left_out() throws Exception {
+    void INV_22_a_class_is_shown_as_getClass_reads_it_to_its_tutor_and_the_parent_of_its_student()
+            throws Exception {
+        // acceptOffer (TX05) keeps CLASS as its result, with the tutor as the actor.
+        com.tutorbridge.classes.OfferFixture fixture = new com.tutorbridge.classes.OfferFixture(jdbc, tx);
+        com.tutorbridge.classes.OfferFixture.Student child = fixture.student();
+        com.tutorbridge.classes.OfferFixture.Tutor to = fixture.tutor();
+        UUID offer = fixture.offer(fixture.need(child), to);
+        String key = newKey();
+        UUID classId = acceptOffer.accept(to.id(), offer, 1, key).id();
+        Actor tutor = new Actor(to.id(), Actor.Role.TUTOR, UUID.randomUUID());
+        Actor parent = new Actor(child.parentId(), Actor.Role.PARENT, UUID.randomUUID());
+
+        JsonNode found = body(find(tutor, key, "ACCEPT_OFFER").andExpect(status().isOk()));
+        assertThat(found.get("state").asString()).isEqualTo("SUCCEEDED");
+        assertThat(found.get("resultType").asString()).isEqualTo("CLASS");
+        assertThat(found.get("resultId").asString()).isEqualTo(classId.toString());
+        assertShown(parent, "ACCEPT_OFFER", "CLASS", classId);
+
+        // Another tutor or another family under their own receipt: the status, never the result.
+        Actor otherTutor = newActor(Actor.Role.TUTOR);
+        Actor otherParent = newActor(Actor.Role.PARENT);
+        assertHidden(body(read(otherTutor, receipt(otherTutor, "ACCEPT_OFFER", "SUCCEEDED", "CLASS", classId, null))
+                .andExpect(status().isOk())), "SUCCEEDED");
+        assertHidden(body(read(otherParent, receipt(otherParent, "ACCEPT_OFFER", "SUCCEEDED", "CLASS", classId,
+                null)).andExpect(status().isOk())), "SUCCEEDED");
+
+        // The parent who loses the student loses the result too (INV-22).
+        jdbc.sql("update students set parent_id = ? where id = ?").params(otherParent.accountId(), child.id()).update();
+        assertHidden(body(read(parent, receipt(parent, "ACCEPT_OFFER", "SUCCEEDED", "CLASS", classId, null))
+                .andExpect(status().isOk())), "SUCCEEDED");
+    }
+
+    @Test
+    void an_unknown_type_and_a_result_that_is_gone_are_left_out() throws Exception {
         Actor tutor = newActor(Actor.Role.TUTOR);
 
         for (UUID receipt : new UUID[] {

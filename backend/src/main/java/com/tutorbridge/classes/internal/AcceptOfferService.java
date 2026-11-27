@@ -2,10 +2,13 @@ package com.tutorbridge.classes.internal;
 
 import com.tutorbridge.classes.api.AcceptOffer;
 import com.tutorbridge.identity.api.Parties;
+import com.tutorbridge.platform.api.Actor;
 import com.tutorbridge.platform.api.ApiException;
 import com.tutorbridge.platform.api.CommandReceipts;
 import com.tutorbridge.platform.api.CommandReceipts.Receipt;
+import com.tutorbridge.platform.api.IdempotencyKey;
 import com.tutorbridge.platform.api.Outbox;
+import com.tutorbridge.platform.api.WritePrecondition;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.List;
@@ -19,9 +22,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
-class AcceptOfferService implements AcceptOffer {
+public class AcceptOfferService implements AcceptOffer {
 
     private static final String COMMAND = "ACCEPT_OFFER";
+    static final String RESULT_TYPE = "CLASS";
     private static final int MAX_ATTEMPTS = 3;
     private static final String EXCLUSION_VIOLATION = "23P01";
     private static final String UNIQUE_VIOLATION = "23505";
@@ -54,6 +58,17 @@ class AcceptOfferService implements AcceptOffer {
         this.resourceLocks = resourceLocks;
     }
 
+    /**
+     * acceptOffer over HTTP (TB-19). Only a tutor accepts, as only the parent cancels (TX06, #235): any other
+     * role is 403 before anything is read. A tutor who is not the recipient gets 404 (INV-06).
+     */
+    public AcceptedClass accept(Actor actor, UUID offerId, WritePrecondition.Expected expected, IdempotencyKey key) {
+        if (actor.role() != Actor.Role.TUTOR) {
+            throw accessUnavailable();
+        }
+        return accept(actor.accountId(), offerId, expected.version(), key.value());
+    }
+
     @Override
     public AcceptedClass accept(UUID actorId, UUID offerId, long expectedRevision, String idempotencyKey) {
         for (int attempt = 1; ; attempt++) {
@@ -83,19 +98,22 @@ class AcceptOfferService implements AcceptOffer {
     }
 
     private AcceptedClass acceptInTransaction(UUID actorId, UUID offerId, long expectedRevision, String key) {
+        // ADR-0007 for every wait of this transaction, the receipt, the need and the offer included, not only
+        // from the resource locks on: a sendOffer holding the need must not keep TX05 waiting without end.
+        resourceLocks.limitWait();
+        // Read without a lock, so a stranger never waits on someone else's offer (INV-06, as TX06).
         OfferRef ref = jdbc.sql("select need_id, tutor_id from class_offers where id = ?")
                 .param(offerId).query(OfferRef.class).optional()
                 .filter(offer -> offer.tutorId().equals(actorId))
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "OFFER_NOT_FOUND",
                         "Không tìm thấy đề nghị."));
-        if (!parties.isActiveTutor(actorId)) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "ACCESS_UNAVAILABLE",
-                    "Tài khoản không thể thực hiện thao tác này.");
-        }
 
         Receipt receipt = receipts.begin(actorId, COMMAND, key,
                 Map.of("offerId", offerId, "expectedRevision", expectedRevision));
         if (receipt.replay()) {
+            // INV-22 under FOR SHARE, after the wait on the receipt: an account locked meanwhile is refused,
+            // as in TX06 (Codex, #235 round 2).
+            requireActiveTutor(actorId);
             return load(receipt.resultId(), receipt.id());
         }
 
@@ -106,6 +124,9 @@ class AcceptOfferService implements AcceptOffer {
                        duration_minutes, rate_vnd_60 as rate_vnd60, price_vnd_session, sent_at, expires_at
                 from class_offers where id = ? for update
                 """).param(offerId).query(Offer.class).single();
+        // Need, offer, then the account, under FOR SHARE (INV-16; TX06 takes offer then account too): locked
+        // while this waited, the tutor is refused; locked from now on, the lock waits for this answer.
+        requireActiveTutor(actorId);
         if ("EXPIRED".equals(offer.state())) {
             throw offerExpired();
         }
@@ -123,11 +144,7 @@ class AcceptOfferService implements AcceptOffer {
         lockResources(need.studentId(), offer.tutorId());
 
         // Measured after the locks: the wait for them must not extend the deadline.
-        boolean expired = jdbc.sql("select clock_timestamp() >= ?")
-                .param(java.sql.Timestamp.from(offer.expiresAt())).query(Boolean.class).single();
-        if (expired) {
-            throw offerExpired();
-        }
+        requireNotExpired(offer);
         UUID parentId = parties.lockAgreementParties(
                 offer.tutorId(), offer.profileId(), offer.rateVnd60(), need.studentId())
                 .orElseThrow(AcceptOfferService::scopeChanged);
@@ -156,6 +173,10 @@ class AcceptOfferService implements AcceptOffer {
                 """).params(offer.needId(), offerId).query(UUID.class).list();
         jdbc.sql("update learning_needs set status = 'CLOSED', revision = revision + 1 where id = ?")
                 .param(offer.needId()).update();
+        // Again after the last statement that may wait (Codex on #238): on the accounts, the profile and the
+        // child in lockAgreementParties, or on a competing offer a reject or a cancel holds (TX06 locks only
+        // the offer). An offer that ran out meanwhile makes no class: this rolls back every write (BR05, UC06).
+        requireNotExpired(offer);
 
         outbox.publish("CLASS", classId, "CLASS_CREATED", Map.of("classId", classId, "offerId", offerId),
                 "CLASS_CREATED:" + classId);
@@ -163,7 +184,7 @@ class AcceptOfferService implements AcceptOffer {
             outbox.publish("OFFER", competingId, "OFFER_CANCELLED", Map.of("offerId", competingId),
                     "OFFER_CANCELLED:" + competingId);
         }
-        receipts.succeed(receipt.id(), "CLASS", classId);
+        receipts.succeed(receipt.id(), RESULT_TYPE, classId);
 
         return new AcceptedClass(classId, need.studentId(), offer.tutorId(), 1, "WAITING", offer.priceVndSession(),
                 offer.durationMinutes(), goalId, offer.goalSnapshot(), receipt.id());
@@ -235,6 +256,26 @@ class AcceptOfferService implements AcceptOffer {
             }
         }
         return null;
+    }
+
+    /** By the database clock, the one every replica shares. */
+    private void requireNotExpired(Offer offer) {
+        boolean expired = jdbc.sql("select clock_timestamp() >= ?")
+                .param(java.sql.Timestamp.from(offer.expiresAt())).query(Boolean.class).single();
+        if (expired) {
+            throw offerExpired();
+        }
+    }
+
+    private void requireActiveTutor(UUID actorId) {
+        if (!parties.lockActiveTutor(actorId)) {
+            throw accessUnavailable();
+        }
+    }
+
+    private static ApiException accessUnavailable() {
+        return new ApiException(HttpStatus.FORBIDDEN, "ACCESS_UNAVAILABLE",
+                "Tài khoản không thể thực hiện thao tác này.");
     }
 
     private static ApiException scheduleConflict() {

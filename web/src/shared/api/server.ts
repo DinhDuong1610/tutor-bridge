@@ -1,6 +1,7 @@
 import "server-only";
 import { createApiClient, type ApiClient } from "@tutorbridge/api-client";
 import { headers } from "next/headers";
+import { connection } from "next/server";
 import { readSessionToken, SESSION_COOKIE } from "@/shared/session/cookies";
 import { clientIpFrom, clientIpHops } from "./client-ip";
 
@@ -26,6 +27,9 @@ const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 export async function adminApi(
   options: { fetch?: (request: Request) => Promise<Response>; token?: string | null } = {},
 ): Promise<ApiClient> {
+  // Every call happens at request time, never while Next prerenders (cacheComponents): openapi-fetch
+  // makes a request id with Math.random(), which Next refuses there (#254).
+  await connection();
   const token = options.token !== undefined ? options.token : await readSessionToken();
   // The API counts sign-in failures by this address, and believes it only from this server (#252).
   const clientIp = clientIpFrom((await headers()).get("x-forwarded-for"), CLIENT_IP_HOPS);

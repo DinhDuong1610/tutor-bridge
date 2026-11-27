@@ -278,13 +278,16 @@ public class OfferService {
         Receipt receipt = receipts.begin(actor.accountId(), response.command, key.value(), payload);
         // AC-UC06-01: only the recipient tutor or the parent of the child; anyone else learns nothing (INV-06).
         // Checked before the lock too, so a stranger never waits on someone else's offer.
-        offers.find(offerId).filter(o -> mayRead(actor, o)).orElseThrow(OfferService::offerNotFound);
+        // Who the parties are, not whether their accounts are ACTIVE: that is the check under lock below (#246).
+        offers.find(offerId).filter(o -> isParty(actor, o)).orElseThrow(OfferService::offerNotFound);
         OfferRepository.Row offer = offers.lock(offerId).orElseThrow(OfferService::offerNotFound);
         // INV-01 (Codex, #235): checked again once the offer is held, under FOR SHARE, so an account locked
         // while this waited, on the receipt or on the offer, is refused, and one locked from now on waits for
-        // this answer. Offer, then child, then account: the order TX05 takes them in.
+        // this answer. Offer, then child, then account: the order TX05 takes them in. The caller is a party
+        // (checked above), so a refusal here means their account is no longer ACTIVE: 403 as in TX05 (#246,
+        // Q2 of #19); a non-party never gets this far and stays 404 (INV-06).
         if (!lockAccess(actor, offer)) {
-            throw offerNotFound();
+            throw accessUnavailable();
         }
         if (receipt.replay()) {
             // INV-22: after the check under lock above (Codex, #235 round 2). The offer this command ended is
@@ -354,6 +357,13 @@ public class OfferService {
         return actor.role() == Actor.Role.TUTOR
                 ? offer.tutorId().equals(actor.accountId()) && parties.lockActiveTutor(actor.accountId())
                 : parties.lockOwnStudent(actor.accountId(), offer.studentId());
+    }
+
+    /** The recipient tutor or the parent of the child, whatever the state of their account. */
+    private boolean isParty(Actor actor, OfferRepository.Row offer) {
+        return actor.role() == Actor.Role.TUTOR
+                ? offer.tutorId().equals(actor.accountId())
+                : parties.parentOf(offer.studentId()).filter(actor.accountId()::equals).isPresent();
     }
 
     private boolean mayRead(Actor actor, OfferRepository.Row offer) {

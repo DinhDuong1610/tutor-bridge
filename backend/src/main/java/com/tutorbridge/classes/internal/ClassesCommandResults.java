@@ -10,8 +10,8 @@ import org.springframework.stereotype.Component;
 /**
  * The results of this module's commands, for the command status lookup (TX16, TB-22): the same owner checks
  * as the reads of those results, made now (INV-22). {@code OFFER} (sendOffer, rejectOffer, cancelOffer of TB-18)
- * follows getOffer: the offer's tutor, or the parent of its child. {@code CLASS} (TX05) is not here yet: its
- * reader comes with getClass in TB-20, so until then its status leaves the result out (Huy, 24/11/2026).
+ * follows getOffer: the offer's tutor, or the parent of its child. {@code CLASS} (acceptOffer, TX05) follows
+ * getClass (ClassService.mayRead): the class's tutor, or the parent who owns its student now.
  */
 @Component
 class ClassesCommandResults implements CommandResults {
@@ -20,21 +20,23 @@ class ClassesCommandResults implements CommandResults {
     private final MatchingRepository runs;
     private final CalendarRepository calendars;
     private final OfferRepository offers;
+    private final ClassService classes;
     private final Parties parties;
 
     ClassesCommandResults(NeedRepository needs, MatchingRepository runs, CalendarRepository calendars,
-            OfferRepository offers, Parties parties) {
+            OfferRepository offers, ClassService classes, Parties parties) {
         this.needs = needs;
         this.runs = runs;
         this.calendars = calendars;
         this.offers = offers;
+        this.classes = classes;
         this.parties = parties;
     }
 
     @Override
     public Set<String> resultTypes() {
         return Set.of(NeedService.RESULT_TYPE, MatchingRunService.RESULT_TYPE, CalendarService.RESULT_TYPE,
-                OfferService.RESULT_TYPE);
+                OfferService.RESULT_TYPE, AcceptOfferService.RESULT_TYPE);
     }
 
     @Override
@@ -55,6 +57,7 @@ class ClassesCommandResults implements CommandResults {
                             ? offer.tutorId().equals(actor.accountId())
                             : ownsStudent(actor, offer.studentId()))
                     .orElse(false);
+            case AcceptOfferService.RESULT_TYPE -> classes.mayRead(actor, resultId);
             default -> false;
         };
     }

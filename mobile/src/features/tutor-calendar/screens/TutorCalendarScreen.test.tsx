@@ -264,6 +264,26 @@ describe("GS04 Lịch rảnh", () => {
     expect(screen.queryByText("Thêm giờ")).toBeNull();
   });
 
+  it("AC-UC07-01 a review left open past midnight sends the 56 days from the new date", async () => {
+    let clock = NOW;
+    server = mockApi({
+      "GET /me/tutor-calendar": () => calendar(3, MONDAY_EVENING),
+      "PUT /me/tutor-calendar": async (request) => calendar(4, (await request.clone().json()).windows),
+    });
+    await renderScreen(<TutorCalendarScreen onBack={jest.fn()} now={() => clock} />, { session: fakeSession("TUTOR") });
+    await screen.findByText(/Lịch rảnh lặp theo tuần/);
+    await addSlot("Thứ 3", "18:00", "20:00");
+    await press("Xem lại");
+    // 00:30 on 19/11 in Vietnam: the server now refuses anything before that day.
+    clock = new Date("2026-11-18T17:30:00Z");
+
+    await press("Xác nhận lịch rảnh");
+
+    const { windows } = (await puts(server)[0].json()) as { windows: CalendarWindow[] };
+    expect(Math.min(...windows.map((w) => Date.parse(w.start)))).toBeGreaterThanOrEqual(Date.parse("2026-11-18T17:00:00Z"));
+    expect(Math.max(...windows.map((w) => Date.parse(w.end)))).toBeLessThanOrEqual(Date.parse("2027-01-13T17:00:00Z"));
+  });
+
   it("only the tutor's own calendar is read, from /me (INV-03)", async () => {
     server = mockApi({ "GET /me/tutor-calendar": () => calendar(1, []) });
     await renderCalendar();

@@ -57,7 +57,8 @@ function CalendarEditor({
   onStep: (step: Step) => void;
   now: () => Date;
 }) {
-  const [today] = useState(() => vietnamDate(now()));
+  // Read on every render, so a screen left open past midnight moves its 56 days with the date.
+  const today = vietnamDate(now());
   // The revision the screen was filled from, as GS02: a background refetch must not move the ETag under what
   // the tutor is editing. It moves to the server's answer after a save, or to the newest one on "Tải lại".
   const [base, setBase] = useState<CalendarRevision | null>(latest);
@@ -92,7 +93,13 @@ function CalendarEditor({
     setValue(readWeek(saved.data.windows, today).available);
     onStep("edit");
   };
-  const confirm = async () => applySaved(await save.submit({ etag: base?.etag ?? null, windows }));
+  // Spread again from the date at the press: the server takes windows from the start of today only, so the
+  // windows of a render before midnight would be refused. A retry still resends the first body (INV-20).
+  const confirm = async () => {
+    const day = vietnamDate(now());
+    const sent = windowsToSave(value, readWeek(stored, day).preferred, stored, day);
+    applySaved(await save.submit({ etag: base?.etag ?? null, windows: sent }));
+  };
   const command = { ...save, retry: async () => applySaved(await save.retry()) };
   // The pattern being edited is kept: only the base and its ETag move to the newest calendar (`04`, bản cũ).
   const reload = async () => {

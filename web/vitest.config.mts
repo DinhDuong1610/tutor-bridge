@@ -12,5 +12,6 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["src/**/*.test.{ts,tsx}"],
+    setupFiles: ["./src/shared/test/next-server.ts"],
   },
 });

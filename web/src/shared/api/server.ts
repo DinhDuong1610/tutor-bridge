@@ -1,5 +1,6 @@
 import "server-only";
 import { createApiClient, type ApiClient } from "@tutorbridge/api-client";
+import { connection } from "next/server";
 import { readSessionToken, SESSION_COOKIE } from "@/shared/session/cookies";
 
 const API_URL = process.env.TB_API_URL ?? "http://127.0.0.1:8080/api/v1";
@@ -20,6 +21,9 @@ const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 export async function adminApi(
   options: { fetch?: (request: Request) => Promise<Response>; token?: string | null } = {},
 ): Promise<ApiClient> {
+  // Every call happens at request time, never while Next prerenders (cacheComponents): openapi-fetch
+  // makes a request id with Math.random(), which Next refuses there (#254).
+  await connection();
   const token = options.token !== undefined ? options.token : await readSessionToken();
   const client = createApiClient({ baseUrl: API_URL, fetch: options.fetch ?? ((request) => globalThis.fetch(request)) });
   client.use({

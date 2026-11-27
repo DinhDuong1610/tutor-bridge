@@ -16,7 +16,10 @@ import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -88,6 +91,29 @@ class OutboxDispatcherTest extends IntegrationTest {
         assertThatThrownBy(() -> new OutboxDispatcher(queue,
                 List.of(new Recorder("TEST_TWICE", false), new Recorder("TEST_TWICE", false)), 10, LEASE))
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("TEST_TWICE");
+    }
+
+    @Test
+    @ExtendWith(OutputCaptureExtension.class)
+    void Q3_a_failure_is_retried_without_a_cap_and_warns_from_the_tenth_attempt(CapturedOutput output) {
+        UUID early = publish("TEST_FAILS");
+        UUID late = publish("TEST_FAILS");
+        // Nine claims already happened to the late one; this claim is its tenth.
+        jdbc.sql("update outbox_events set attempts = 9 where aggregate_id = ?").param(late).update();
+        Recorder handler = new Recorder("TEST_FAILS", true);
+
+        assertThat(dispatcher(handler).dispatchOnce()).isZero();
+
+        String earlyId = jdbc.sql("select id::text from outbox_events where aggregate_id = ?").param(early)
+                .query(String.class).single();
+        String lateId = jdbc.sql("select id::text from outbox_events where aggregate_id = ?").param(late)
+                .query(String.class).single();
+        assertThat(output.getOut()).contains("Outbox event " + lateId + " of type TEST_FAILS still fails after 10 attempts")
+                .contains("Outbox event " + earlyId + " of type TEST_FAILS failed on attempt 1")
+                .doesNotContain("Outbox event " + earlyId + " of type TEST_FAILS still fails");
+        // No cap: the late event is still waiting for its next try, not dropped or marked failed.
+        assertThat(jdbc.sql("select delivered_at is null and attempts = 10 from outbox_events where aggregate_id = ?")
+                .param(late).query(Boolean.class).single()).isTrue();
     }
 
     private OutboxDispatcher dispatcher(OutboxHandler handler) {

@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 /** Email normalization, digests and the AES-GCM bindings, without Spring or a database. */
 class AccountSecretsTest {
 
-    private final AccountSecrets secrets = secretsWith(key(), key(), key());
+    private final AccountSecrets secrets = secretsWith(key(), key(), key(), key());
 
     @Test
     void emails_are_trimmed_lower_cased_and_nfc_normalized_before_the_digest() {
@@ -30,7 +30,7 @@ class AccountSecretsTest {
 
     @Test
     void digests_depend_on_the_key_and_keep_emails_apart_from_sources() {
-        AccountSecrets other = secretsWith(key(), key(), key());
+        AccountSecrets other = secretsWith(key(), key(), key(), key());
         assertThat(other.emailDigest("a@example.test")).isNotEqualTo(secrets.emailDigest("a@example.test"));
         assertThat(secrets.sourceDigest("a@example.test")).isNotEqualTo(secrets.emailDigest("a@example.test"));
     }
@@ -57,17 +57,35 @@ class AccountSecretsTest {
         assertThat(secrets.decryptLinkToken(challenge, ciphertext)).isEqualTo(token);
         assertThatThrownBy(() -> secrets.decryptLinkToken(UUID.randomUUID(), ciphertext))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> secretsWith(key(), key(), key()).decryptLinkToken(challenge, ciphertext))
+        assertThatThrownBy(() -> secretsWith(key(), key(), key(), key()).decryptLinkToken(challenge, ciphertext))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void the_app_refuses_to_start_with_a_missing_or_short_key() {
-        assertThatThrownBy(() -> secretsWith(null, key(), key()))
+        assertThatThrownBy(() -> secretsWith(null, key(), key(), key()))
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("email-digest");
         String sixteenBytes = Base64.getEncoder().encodeToString(new byte[16]);
-        assertThatThrownBy(() -> secretsWith(key(), key(), sixteenBytes))
+        assertThatThrownBy(() -> secretsWith(key(), key(), sixteenBytes, key()))
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("link-token");
+        assertThatThrownBy(() -> secretsWith(key(), key(), key(), null))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("admin-mfa");
+    }
+
+    @Test
+    void a_totp_secret_opens_only_for_its_own_admin_and_key() {
+        UUID admin = UUID.randomUUID();
+        byte[] secret = secrets.newTotpSecret();
+        String handle = secrets.encryptTotpSecret(admin, secret);
+
+        assertThat(secret).hasSize(20);
+        assertThat(handle).startsWith("v1:").doesNotContain(Base64.getEncoder().encodeToString(secret));
+        assertThat(secrets.encryptTotpSecret(admin, secret)).isNotEqualTo(handle);
+        assertThat(secrets.decryptTotpSecret(admin, handle)).isEqualTo(secret);
+        assertThatThrownBy(() -> secrets.decryptTotpSecret(UUID.randomUUID(), handle))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> secretsWith(key(), key(), key(), key()).decryptTotpSecret(admin, handle))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     private static String key() {
@@ -76,13 +94,13 @@ class AccountSecretsTest {
         return Base64.getEncoder().encodeToString(bytes);
     }
 
-    private static AccountSecrets secretsWith(String digest, String email, String link) {
-        return new AccountSecrets(properties(digest, email, link));
+    private static AccountSecrets secretsWith(String digest, String email, String link, String adminMfa) {
+        return new AccountSecrets(properties(digest, email, link, adminMfa));
     }
 
-    private static IdentityProperties properties(String digest, String email, String link) {
+    private static IdentityProperties properties(String digest, String email, String link, String adminMfa) {
         IdentityProperties.Limit limit = new IdentityProperties.Limit(1, Duration.ofHours(1));
-        return new IdentityProperties(List.of(), new IdentityProperties.Keys(digest, email, link),
+        return new IdentityProperties(List.of(), new IdentityProperties.Keys(digest, email, link, adminMfa),
                 new IdentityProperties.Limits(limit, limit, limit, limit, limit));
     }
 }

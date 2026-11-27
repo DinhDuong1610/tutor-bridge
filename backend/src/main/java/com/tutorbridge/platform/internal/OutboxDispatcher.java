@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Worker role: claims due outbox events and hands each to the handler of its type, outside any
  * transaction. Success marks the event delivered; failure retries with exponential backoff, capped
- * at one hour. Events with no handler on this instance are postponed, not dropped.
+ * at one hour, with no cap on the number of attempts (#21 Q3). Events with no handler on this instance are postponed, not dropped.
  *
  * <p>Several instances may run at once: {@link OutboxQueue#claim} never gives one event to two of
  * them, and its fencing token stops a worker whose lease expired from finishing the event.
@@ -25,6 +25,8 @@ public class OutboxDispatcher {
     static final Duration FIRST_RETRY = Duration.ofSeconds(30);
     static final Duration MAX_RETRY = Duration.ofHours(1);
     static final Duration NO_HANDLER_DELAY = Duration.ofMinutes(10);
+    /** From this attempt on a failure is logged as a warning (#21 Q3). */
+    static final int WARN_FROM_ATTEMPT = 10;
 
     private final OutboxQueue queue;
     private final Map<String, OutboxHandler> handlers;
@@ -54,9 +56,16 @@ public class OutboxDispatcher {
             try {
                 handler.handle(event);
             } catch (Exception e) {
+                // No cap on attempts (Đính, #21 Q3): a committed event is never dropped (AC-UC15-01). From
+                // the tenth attempt on, a warning tells the operator it keeps failing.
                 queue.retryAfter(event, backoff(event.attempts()));
-                LOG.warn("Outbox event {} of type {} failed on attempt {}: {}", event.id(), event.eventType(),
-                        event.attempts(), e.getClass().getName());
+                if (event.attempts() >= WARN_FROM_ATTEMPT) {
+                    LOG.warn("Outbox event {} of type {} still fails after {} attempts: {}", event.id(),
+                            event.eventType(), event.attempts(), e.getClass().getName());
+                } else {
+                    LOG.info("Outbox event {} of type {} failed on attempt {}: {}", event.id(), event.eventType(),
+                            event.attempts(), e.getClass().getName());
+                }
                 continue;
             }
             if (queue.markDelivered(event)) {

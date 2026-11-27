@@ -37,6 +37,8 @@ describe("PH01 Trang chủ phụ huynh", () => {
     await renderHome();
 
     expect(await screen.findByRole("header", { name: "Tổng quan" })).toBeOnTheScreen();
+    // The header shows while the list is still loading, so wait for the child before reading the bar.
+    await screen.findByText("Minh An, lớp 8");
     expect(switcher("Minh An, lớp 8")).toBeOnTheScreen();
     expect(screen.getByText("Đang xem")).toBeOnTheScreen();
     expect(screen.getByText("Đổi con")).toBeOnTheScreen();

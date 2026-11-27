@@ -30,6 +30,29 @@ public interface Parties {
      */
     List<PublicTutor> publicTutorsByProfile(Collection<UUID> profileIds);
 
+    /**
+     * This tutor as parents may find them now (sendOffer, TB-18 Q2): the same filters as
+     * {@link #matchableTutors} without the rate bound, with the current APPROVED profile version. Empty when
+     * the tutor is no longer matchable.
+     */
+    Optional<PublicTutor> currentPublicTutor(UUID tutorId);
+
+    /** Most children one parent's lists read (listOffers, TB-18 Q6); more is refused, never cut short. */
+    int MAX_OWN_STUDENTS = 50;
+
+    /**
+     * The students of this parent account while it is an ACTIVE parent, otherwise none. At most
+     * {@link #MAX_OWN_STUDENTS} (INV-81): a parent with more fails with an IllegalStateException rather than
+     * see part of their offers, until UC02 sets a bound (TB-18 Q6).
+     */
+    List<UUID> ownStudentIds(UUID parentId);
+
+    /**
+     * The parent account of this student, whatever its status, for the inbox (TB-21): a notification is
+     * only metadata, and reading its target checks access again. Empty for an unknown student.
+     */
+    Optional<UUID> parentOf(UUID studentId);
+
     boolean isActiveTutor(UUID accountId);
 
     /**
@@ -39,6 +62,17 @@ public interface Parties {
      * of them (INV-06). Used by the classes module for the student's calendar (TB-15, INV-82).
      */
     boolean isOwnStudent(UUID parentId, UUID studentId);
+
+    /**
+     * {@link #isOwnStudent} under FOR SHARE on the student and the parent account, so a lock or a deletion
+     * of that account waits for the caller's transaction, and one committed while the caller waited for an
+     * earlier lock is seen here (TB-18, Codex on #235). Takes the student, then the account, as
+     * {@link #lockAgreementParties} does.
+     */
+    boolean lockOwnStudent(UUID parentId, UUID studentId);
+
+    /** {@link #isActiveTutor} under FOR SHARE on the account, for the same reason as {@link #lockOwnStudent}. */
+    boolean lockActiveTutor(UUID tutorId);
 
     /**
      * Locks both accounts and the profile against change until the transaction ends, then rechecks

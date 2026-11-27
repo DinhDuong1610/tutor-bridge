@@ -35,7 +35,8 @@ import org.springframework.util.IdGenerator;
  * <p>Transaction, in this lock order (INV-16): the tutor's account (FOR SHARE, ACTIVE), the receipt, the
  * newest version (FOR UPDATE), the tutor's other PENDING versions by version and then their PENDING
  * verifications by id, the evidence by id (FOR SHARE). A version is always locked before its
- * verification, because the V11 guard reads the version when a verification is written. Every check
+ * verification, because the V11 guard reads the version when a verification is written. Last, the VERIFY
+ * rows of {@link VerifierRotation}, which picks the verifier of the new verification (TB-13). Every check
  * runs under these locks, and the writes, audit rows and receipt commit together (INV-21). No outside
  * I/O inside it (INV-18). Any refusal rolls the whole command back, receipt included.
  */
@@ -44,7 +45,7 @@ public class TutorProfileSubmissions {
 
     /**
      * The {@code VerificationRecord} schema of the contract. To the tutor, {@code assignedTo} is always
-     * null: the verifier is never named to them (OP-23), and a new verification has none yet.
+     * null: the verifier is never named to them (OP-23), even when TB-13 assigned one.
      */
     public record Verification(UUID id, UUID profileVersionId, UUID assignedTo, String status, String scope,
             long revision) {}
@@ -52,7 +53,7 @@ public class TutorProfileSubmissions {
     static final String SUBMIT = "SUBMIT_TUTOR_PROFILE";
     static final int EVIDENCE_MAX = 10;
     static final String UNUSABLE_EVIDENCE = "Minh chứng này không dùng được. Vui lòng chọn lại.";
-    private static final String RESULT_TYPE = "TUTOR_VERIFICATION";
+    static final String RESULT_TYPE = "TUTOR_VERIFICATION";
     private static final String NEW_STATUS = "PENDING";
     private static final long NEW_REVISION = 1;
 
@@ -60,15 +61,18 @@ public class TutorProfileSubmissions {
     private final TutorVerificationRepository verifications;
     private final CommandReceipts receipts;
     private final AuditEvents audit;
+    private final VerifierRotation rotation;
     private final TransactionOperations transactions;
     private final IdGenerator ids;
 
     TutorProfileSubmissions(TutorProfileRepository profiles, TutorVerificationRepository verifications,
-            CommandReceipts receipts, AuditEvents audit, TransactionOperations transactions, IdGenerator ids) {
+            CommandReceipts receipts, AuditEvents audit, VerifierRotation rotation, TransactionOperations transactions,
+            IdGenerator ids) {
         this.profiles = profiles;
         this.verifications = verifications;
         this.receipts = receipts;
         this.audit = audit;
+        this.rotation = rotation;
         this.transactions = transactions;
         this.ids = ids;
     }
@@ -134,7 +138,10 @@ public class TutorProfileSubmissions {
         verifications.submit(newest.id(), newest.revision() + 1);
         UUID id = ids.generateId();
         String scope = verifications.subjectOf(newest.id());
-        verifications.insertVerification(id, newest.id(), scope, evidenceKey(evidenceIds));
+        // TB-13: the verifier whose turn it is, locked last (INV-16); none yet leaves it unassigned. The
+        // answer still names nobody (OP-23).
+        UUID verifier = rotation.lock().next(tutorId);
+        verifications.insertVerification(id, newest.id(), scope, evidenceKey(evidenceIds), verifier);
         receipts.succeed(receipt.id(), RESULT_TYPE, id);
         return new Verification(id, newest.id(), null, NEW_STATUS, scope, NEW_REVISION);
     }

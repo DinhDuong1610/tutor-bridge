@@ -9,6 +9,7 @@ import { CommandStatus } from "./CommandStatus";
 import { QueryScreen } from "./QueryScreen";
 import { NavigationBar, type NavigationTab } from "./NavigationBar";
 import { Notice } from "./Notice";
+import { StatusLabel } from "./StatusLabel";
 import { StickyActionBar } from "./StickyActionBar";
 import { TextField } from "./TextField";
 import { TopAppBar } from "./TopAppBar";
@@ -373,5 +374,16 @@ describe("NavigationBar", () => {
     expect(indicator).toMatchObject({ width: 64, height: 32 });
     const badge = StyleSheet.flatten(screen.getByText("2", { includeHiddenElements: true }).parent?.props.style);
     expect(badge).toMatchObject({ top: 0, left: 36, minWidth: 16, minHeight: 16 });
+  });
+});
+
+describe("StatusLabel", () => {
+  it("says the state in text on the tone's light surface; the icon is hidden from screen readers (03)", async () => {
+    await render(<StatusLabel label="Đang chờ xác minh" tone="info" icon="schedule" />);
+
+    const text = screen.getByText("Đang chờ xác minh");
+    expect(text).toHaveStyle({ color: colors.info });
+    expect(StyleSheet.flatten(text.parent?.props.style)).toMatchObject({ backgroundColor: colors.infoSurface });
+    expect(screen.queryByRole("image")).toBeNull();
   });
 });

@@ -1,6 +1,7 @@
-// GS04 Lịch rảnh và ngoại lệ. Placeholder route until #69 builds the screen.
-import { ComingSoon } from "@/shared/ui/ComingSoon";
+// GS04 Lịch rảnh và ngoại lệ (#69). Thiết kế: docs/design/ui/screens/GS04.md
+import { router } from "expo-router";
+import { TutorCalendarScreen } from "@/features/tutor-calendar/screens/TutorCalendarScreen";
 
 export default function TutorCalendarRoute() {
-  return <ComingSoon title="Lịch rảnh và ngoại lệ" />;
+  return <TutorCalendarScreen onBack={() => (router.canGoBack() ? router.back() : router.replace("/tutor"))} />;
 }

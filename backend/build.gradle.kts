@@ -30,7 +30,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-mail")
     runtimeOnly("org.postgresql:postgresql")
     // Argon2PasswordEncoder of Spring Security runs on BouncyCastle (ADR-0008).
-    runtimeOnly("org.bouncycastle:bcprov-jdk18on:1.86")
+    runtimeOnly("org.bouncycastle:bcprov-jdk18on:1.87")
 
     // Enforced: a test library must not lift Jackson or Spring above what production runs.
     testImplementation(enforcedPlatform(SpringBootPlugin.BOM_COORDINATES))

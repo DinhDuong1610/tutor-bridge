@@ -1,5 +1,13 @@
-import { describe, expect, it } from "vitest";
-import { adminApi } from "./server";
+import { describe, expect, it, vi } from "vitest";
+
+const order: string[] = [];
+vi.mock("next/server", () => ({
+  connection: async () => {
+    order.push("connection");
+  },
+}));
+
+const { adminApi } = await import("./server");
 
 async function capture(token: string | null, send: (api: Awaited<ReturnType<typeof adminApi>>) => Promise<unknown>) {
   const requests: Request[] = [];
@@ -18,6 +26,22 @@ async function capture(token: string | null, send: (api: Awaited<ReturnType<type
 }
 
 describe("adminApi", () => {
+  it("waits for the request before it builds a client, so no API call runs at prerender (#254)", async () => {
+    order.length = 0;
+    await adminApi({
+      token: null,
+      fetch: async () => {
+        order.push("fetch");
+        return new Response(JSON.stringify({ items: [], nextCursor: null }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      },
+    }).then((api) => api.GET("/me/sessions", {}));
+
+    expect(order).toEqual(["connection", "fetch"]);
+  });
+
   it("sends the session cookie on reads, without CSRF", async () => {
     const request = await capture("session-token", (api) => api.GET("/me/sessions", {}));
 

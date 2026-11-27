@@ -31,5 +31,6 @@ Cấu trúc thư mục và cách thêm một chức năng ở [conventions](../.
 ## Hệ quả
 - Thêm phụ thuộc: `expo-router` và các gói đi kèm, `@tanstack/react-query`, `tailwindcss`, shadcn/ui; `expo-crypto` làm nguồn ngẫu nhiên an toàn cho `Idempotency-Key` trên Hermes (M2). Mobile cài bằng `npx expo install`. Phiên bản chốt khi làm module tương ứng.
 - Thêm sau (Đính duyệt, câu Q12 trên #14, 23/11/2026): `expo-document-picker` để chọn tệp minh chứng và `expo-file-system` để đọc nội dung tệp tính SHA-256 (GS03, TB-14). Cài bằng `npx expo install` theo SDK 58, khóa `58.0.4` và `58.0.13` theo quy tắc hai tuần.
+- Thêm sau (Đính duyệt trên #95, 22/11/2026): `lucide-react` cho icon của web quản trị, khóa `1.72.0` theo quy tắc hai tuần. Mobile dùng `react-native-svg` với đường vẽ Material Symbols (Đính, 21/11/2026, #95).
 - Token màu của mobile và web định nghĩa riêng ở Lát 1. Muốn dùng chung thì làm sau, khi có thiết kế giao diện.
 - Thử lại tự động của TanStack Query phải tắt cho lệnh ghi. Lệnh ghi chưa rõ kết quả đi qua tra trạng thái lệnh, không gửi lại mù (INV-20).

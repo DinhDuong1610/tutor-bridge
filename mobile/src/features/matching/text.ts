@@ -1,4 +1,4 @@
-import { formatTime } from "@tutorbridge/shared";
+import { formatDate, formatTime } from "@tutorbridge/shared";
 
 /** A session the run proposes, as `Window` of the contract: start and end instants. */
 export type Window = { start: string; end: string };
@@ -25,6 +25,23 @@ function joinDays(days: readonly number[]): string {
  * by "; ", earliest weekday first.
  */
 export function commonScheduleText(windows: readonly Window[]): string {
+  return `Giờ chung: đủ ${windows.length} buổi, ${scheduleGroups(windows)}`;
+}
+
+/**
+ * PH07 "Giờ chung trong chu kỳ": "Đủ 8 buổi: Thứ 2 và Thứ 4, 18:00–19:30, từ 18/11 đến 14/12/2026. Giờ này
+ * chưa giữ chỗ." The first day drops its year when the last one is in the same year.
+ */
+export function detailScheduleText(windows: readonly Window[]): string {
+  const starts = windows.map((w) => w.start).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+  const first = formatDate(starts[0]);
+  const last = formatDate(starts[starts.length - 1]);
+  const from = first.slice(6) === last.slice(6) ? first.slice(0, 5) : first;
+  return `Đủ ${windows.length} buổi: ${scheduleGroups(windows)}, từ ${from} đến ${last}. Giờ này chưa giữ chỗ.`;
+}
+
+/** "Thứ 2 và Thứ 4, 18:00–19:30; Thứ 6, 19:30–21:00": days grouped by time, earliest weekday first. */
+function scheduleGroups(windows: readonly Window[]): string {
   const days = new Map<string, Set<number>>();
   for (const w of windows) {
     const time = `${formatTime(w.start)}–${formatTime(w.end)}`;
@@ -36,7 +53,7 @@ export function commonScheduleText(windows: readonly Window[]): string {
     .map(([time, set]) => ({ time, days: [...set].sort((a, b) => a - b) }))
     .sort((a, b) => a.days[0] - b.days[0] || a.time.localeCompare(b.time))
     .map((group) => `${joinDays(group.days)}, ${group.time}`);
-  return `Giờ chung: đủ ${windows.length} buổi, ${groups.join("; ")}`;
+  return groups.join("; ");
 }
 
 /** Scope codes the server sends in `verificationScopes`, by the name the approved frame shows. */
@@ -46,6 +63,14 @@ const SCOPE_NAMES: Record<string, string> = { MATH8_ALGEBRA: "Toán 8, đại s�
 export function verifiedText(scopes: readonly string[]): string | null {
   const names = scopes.map((scope) => SCOPE_NAMES[scope]).filter((name): name is string => name !== undefined);
   return names.length === 0 ? null : `Đã xác minh: ${names.join("; ")}`;
+}
+
+/** PH07 lists each verified scope on its own line: the first two, then "và n phạm vi khác" (worst-case frame). */
+export function verifiedLabels(scopes: readonly string[]): { labels: string[]; more: string | null } {
+  const names = scopes.map((scope) => SCOPE_NAMES[scope]).filter((name): name is string => name !== undefined);
+  const labels = names.slice(0, 2).map((name) => `Đã xác minh: ${name}`);
+  const rest = names.length - labels.length;
+  return { labels, more: rest > 0 ? `và ${rest} phạm vi khác` : null };
 }
 
 export const MAX_REASONS = 3;

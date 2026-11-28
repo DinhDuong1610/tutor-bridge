@@ -11,7 +11,7 @@ export default function PH06Route() {
       needId={needId}
       onBack={leave}
       onEdit={(id) => router.push({ pathname: "/parent/needs/[needId]/edit", params: { needId: id } })}
-      onOpenTutor={(tutorId, runId) => router.push({ pathname: "/parent/tutors/[tutorId]", params: { tutorId, runId } })}
+      onOpenTutor={(tutorId, runId) => router.push({ pathname: "/parent/tutors/[tutorId]", params: { tutorId, runId, needId } })}
       onOtherChild={leave}
       onManageStudents={() => router.push("/parent/account/students")}
     />

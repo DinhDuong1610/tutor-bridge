@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import type { components } from "@tutorbridge/api-client";
 import { api } from "@/shared/api/client";
 import { useCommand } from "@/shared/api/command";
@@ -24,4 +25,20 @@ export function useCreateMatchingRun() {
       }),
     ),
   );
+}
+
+/** getMatchingRun: a stored run reads the same every time (INV-37). The server checks the need's owner. */
+export function useMatchingRun(runId: string) {
+  return useQuery({
+    queryKey: ["matching-runs", runId] as const,
+    queryFn: () => call(api.GET("/matching-runs/{runId}", { params: { path: { runId } } })),
+  });
+}
+
+/** getTutorPublic: the tutor's current approved public profile, never contacts or evidence (BR07). */
+export function useTutorPublic(tutorId: string) {
+  return useQuery({
+    queryKey: ["tutors", "public", tutorId] as const,
+    queryFn: () => call(api.GET("/tutors/{tutorId}/public-profile", { params: { path: { tutorId } } })),
+  });
 }

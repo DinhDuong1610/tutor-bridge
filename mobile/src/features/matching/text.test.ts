@@ -1,4 +1,4 @@
-import { commonScheduleText, shownReasons, verifiedText } from "./text";
+import { commonScheduleText, detailScheduleText, shownReasons, verifiedLabels, verifiedText } from "./text";
 
 /** A session on a Vietnam day and time, as the server sends it in UTC. */
 const at = (day: string, from: string, to: string) => ({
@@ -40,6 +40,26 @@ describe("PH06 card text", () => {
     expect(verifiedText(["MATH8_ALGEBRA"])).toBe("Đã xác minh: Toán 8, đại số");
     expect(verifiedText(["SOMETHING_NEW"])).toBeNull();
     expect(verifiedText([])).toBeNull();
+  });
+
+  it("PH07 writes the common sessions with the first and last day of the cycle", () => {
+    const sessions = [at("2026-11-18", "18:00", "19:30"), at("2026-12-14", "18:00", "19:30"), at("2026-11-23", "18:00", "19:30")];
+    expect(detailScheduleText(sessions)).toBe(
+      "Đủ 3 buổi: Thứ 2 và Thứ 4, 18:00–19:30, từ 18/11 đến 14/12/2026. Giờ này chưa giữ chỗ.",
+    );
+    // Across a new year the first day keeps its year.
+    expect(detailScheduleText([at("2026-12-28", "18:00", "19:30"), at("2027-01-04", "18:00", "19:30")])).toBe(
+      "Đủ 2 buổi: Thứ 2, 18:00–19:30, từ 28/12/2026 đến 04/01/2027. Giờ này chưa giữ chỗ.",
+    );
+  });
+
+  it("PH07 shows two verified scopes, then how many more, and none it does not know", () => {
+    expect(verifiedLabels(["MATH8_ALGEBRA"])).toEqual({ labels: ["Đã xác minh: Toán 8, đại số"], more: null });
+    expect(verifiedLabels(["MATH8_ALGEBRA", "MATH8_ALGEBRA", "MATH8_ALGEBRA", "UNKNOWN"])).toEqual({
+      labels: ["Đã xác minh: Toán 8, đại số", "Đã xác minh: Toán 8, đại số"],
+      more: "và 1 phạm vi khác",
+    });
+    expect(verifiedLabels(["UNKNOWN"])).toEqual({ labels: [], more: null });
   });
 
   it("lists three reasons, then how many more", () => {

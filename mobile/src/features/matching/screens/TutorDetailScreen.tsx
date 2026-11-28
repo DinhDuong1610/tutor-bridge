@@ -21,6 +21,8 @@ type Props = {
   runId: string;
   needId: string;
   onBack: () => void;
+  /** "Gửi đề nghị": PH08 for this candidate of this run (#72). */
+  onSendOffer: () => void;
   /** Another child chosen in the switcher: the run is this child's need's, so the screen is left (as PH06). */
   onOtherChild: () => void;
   onManageStudents: () => void;
@@ -32,7 +34,7 @@ type Props = {
  * contact or evidence (BR07). The current public profile is read too, so a profile hidden or changed since the
  * run shows "Không còn khả dụng" instead of terms that no longer hold.
  */
-export function TutorDetailScreen({ tutorId, runId, needId, onBack, onOtherChild, onManageStudents }: Props) {
+export function TutorDetailScreen({ tutorId, runId, needId, onBack, onSendOffer, onOtherChild, onManageStudents }: Props) {
   const run = useMatchingRun(runId);
   const current = useTutorPublic(tutorId);
   const need = useNeed(needId);
@@ -79,11 +81,16 @@ export function TutorDetailScreen({ tutorId, runId, needId, onBack, onOtherChild
               onManageStudents={onManageStudents}
             />
             {available ? (
-              <Detail
-                candidate={candidate}
-                childName={child?.displayName ?? null}
-                durationMinutes={loaded.need.data.draft.durationMinutes ?? 0}
-              />
+              <>
+                <Detail
+                  candidate={candidate}
+                  childName={child?.displayName ?? null}
+                  durationMinutes={loaded.need.data.draft.durationMinutes ?? 0}
+                />
+                <StickyActionBar>
+                  <Button title="Gửi đề nghị" onPress={onSendOffer} />
+                </StickyActionBar>
+              </>
             ) : (
               <>
                 <ScrollView contentContainerStyle={styles.content}>
@@ -105,7 +112,6 @@ export function TutorDetailScreen({ tutorId, runId, needId, onBack, onOtherChild
 function Detail({ candidate, childName, durationMinutes }: { candidate: Candidate; childName: string | null; durationMinutes: number }) {
   const { tutor } = candidate;
   const verified = verifiedLabels(tutor.verificationScopes);
-  // "Gửi đề nghị" comes with PH08 in #72 (Đính, #71, 28/11/2026): no bar until then.
   return (
     <ScrollView contentContainerStyle={styles.content}>
       <Text accessibilityRole="header" style={styles.name}>

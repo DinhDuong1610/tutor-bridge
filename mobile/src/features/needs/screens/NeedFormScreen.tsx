@@ -179,14 +179,27 @@ function NeedForm({
   // What the fields hold now, if they are valid: "Xem lại" needs a complete draft and enough free time.
   const parsed = schema.safeParse(values);
   const draftNow = parsed.success ? toDraftInput(parsed.data) : null;
-  const missingNow = draftNow ? [...missingFields(draftNow), ...(hasFreeTime(windows) ? [] : [FREE_TIME])] : null;
-  const notEnough = draftNow ? shortfall(windows, draftNow, now()) : null;
+  // The checks run on the calendar the server will hold after saving (Đính, #265 review): the pattern spread over
+  // 56 days when it is written, else the stored calendar as it is. A stored calendar that falls short of this
+  // cycle (it ends early, or has BLOCKED days) while the same pattern spread from today is enough is written too,
+  // so the parent is not stuck on "Giờ chưa đủ" with nothing to change; the approved warning above says saving
+  // here replaces the whole calendar.
+  const storedWindows = calendarBase?.data.windows ?? [];
+  const storedFallsShort =
+    draftNow !== null &&
+    hasFreeTime(windows) &&
+    shortfall(windows, draftNow, now()) === null &&
+    shortfall(storedWindows, draftNow, now()) !== null;
+  const writeCalendar = weekChanged || storedFallsShort;
+  const effective = writeCalendar ? windows : storedWindows;
+  const missingNow = draftNow ? [...missingFields(draftNow), ...(hasFreeTime(effective) ? [] : [FREE_TIME])] : null;
+  const notEnough = draftNow ? shortfall(effective, draftNow, now()) : null;
   const missingSaved = base
-    ? [...missingFields(base.data.draft), ...(hasFreeTime(calendarBase?.data.windows ?? []) ? [] : [FREE_TIME])]
+    ? [...missingFields(base.data.draft), ...(hasFreeTime(storedWindows) ? [] : [FREE_TIME])]
     : [];
   const busy = save.state === "sending" || saveCalendar.state === "sending";
   const blocked = save.state === "unknown" || stale || saveCalendar.state === "unknown" || calendarStale;
-  const unsaved = !base || hasChanges || weekChanged;
+  const unsaved = !base || hasChanges || writeCalendar;
   // Set by the button that started the save: "Xem lại" goes on to PH05 once both saves are confirmed.
   const reviewAfterSave = useRef(false);
 
@@ -198,7 +211,7 @@ function NeedForm({
   // Huy, 28/11/2026: the need first, the child's calendar only once the need is confirmed; a failed calendar
   // save says the need is saved and retries the calendar alone.
   const saveFreeTime = async (need: NeedRevision) => {
-    if (weekChanged) {
+    if (writeCalendar) {
       const saved = await saveCalendar.submit({ studentId: child.id, etag: calendarBase?.etag ?? null, windows });
       if (!saved) return;
       setCalendarBase(saved);

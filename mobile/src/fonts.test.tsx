@@ -2,9 +2,13 @@ import { renderRouter, screen } from "expo-router/testing-library";
 import { useFonts } from "expo-font";
 import { clearStore } from "@/shared/test/session";
 import { fonts } from "@/shared/ui/theme";
+import { preloadRoutes } from "@/shared/test/preloadRoutes";
 
 // The root layout waits for Be Vietnam Pro (#95). Only the loading result is replaced here; the
 // route tree in src/app is the real one, as in navigation.test.tsx.
+// #123: compile the route tree before the first test, with its own timeout.
+beforeAll(preloadRoutes, 120_000);
+
 jest.mock("expo-font", () => ({ ...jest.requireActual("expo-font"), useFonts: jest.fn() }));
 const mockedUseFonts = jest.mocked(useFonts);
 

@@ -18,9 +18,12 @@ const RUN_ID = "6a2b9e8d-7fa6-4fdc-8f98-1c6e5b7a4d65";
 const GOAL = "Toán 8: hằng đẳng thức và phân thức";
 const DRAFT = { goal: GOAL, durationMinutes: 90, frequencyPer7Days: 2, budgetVndSession: 400000, cycleStartDate: "2026-11-30" } as const;
 
-function need(status: Need["status"] = "CONFIRMED", versionId = VERSION, revision = 2): Need {
-  return { id: NEED_ID, studentId: MINH.id, revision, versionId, status, draft: DRAFT, studentCalendarId: null };
+function need(status: Need["status"] = "CONFIRMED", versionId = VERSION, revision = 2, draft: Need["draft"] = DRAFT): Need {
+  return { id: NEED_ID, studentId: MINH.id, revision, versionId, status, draft, studentCalendarId: null };
 }
+
+/** The need edited and confirmed again after the search: 120 minutes and a higher budget. */
+const LONGER = { ...DRAFT, durationMinutes: 120, budgetVndSession: 500000 } as const;
 
 function withEtag(body: Need) {
   return new Response(JSON.stringify(body), {
@@ -84,13 +87,13 @@ const runs = (server: ReturnType<typeof mockApi>) => server.requests.filter((r) 
 
 async function renderMatches(now: () => Date = () => NOW) {
   const handlers = { onBack: jest.fn(), onEdit: jest.fn(), onOpenTutor: jest.fn(), onOtherChild: jest.fn(), onManageStudents: jest.fn() };
-  await renderScreen(
+  const rendered = await renderScreen(
     <SelectedStudentProvider>
       <MatchesScreen needId={NEED_ID} {...handlers} now={now} />
     </SelectedStudentProvider>,
     { session: fakeSession("PARENT") },
   );
-  return handlers;
+  return { ...handlers, queryClient: rendered.queryClient };
 }
 
 describe("PH06 Kết quả và so sánh gia sư", () => {
@@ -300,6 +303,73 @@ describe("PH06 Kết quả và so sánh gia sư", () => {
     await press("Tìm từ bản mới");
     const second = runs(server)[1];
     expect(second.headers.get("If-Match")).toBe('"4"');
+    expect(await second.json()).toMatchObject({ needVersionId: NEW_VERSION });
+  });
+
+  it("results kept after the need moves on show the price with the duration they were searched for (Codex, #274)", async () => {
+    let stored = need();
+    server = mockApi({
+      "GET /needs/{needId}": () => withEtag(stored),
+      "GET /students": students,
+      "POST /needs/{needId}/matching-runs": () => json(202, run([candidate(1, "Nguyễn Thị Lan", REASONS)])),
+    });
+    const { queryClient } = await renderMatches();
+    await screen.findByText(`Tìm gia sư cho nhu cầu "${GOAL}"`);
+    await press("Xem danh sách lọc theo điều kiện");
+    await screen.findByText("Nguyễn Thị Lan");
+
+    // The need is read again, as on focus, while the results stay on screen.
+    stored = need("CONFIRMED", NEW_VERSION, 4, LONGER);
+    await act(async () => {
+      await queryClient.refetchQueries();
+    });
+
+    expect(
+      await screen.findByText("Đây là kết quả của bản nhu cầu cũ, chỉ để đối chiếu. Tìm lại từ bản đang hiệu lực để gửi đề nghị."),
+    ).toBeTruthy();
+    expect(screen.getByText("375.000 ₫ / buổi 90 phút")).toBeTruthy();
+    expect(screen.queryByText(/buổi 120 phút/)).toBeNull();
+  });
+
+  it("an empty result past its expiry is stale too, with 'Tìm lại' (Codex, #274)", async () => {
+    server = mockApi({
+      "GET /needs/{needId}": () => withEtag(need()),
+      "GET /students": students,
+      "POST /needs/{needId}/matching-runs": () => json(202, run([], { expiresAt: "2026-11-28T02:00:00Z" })),
+    });
+    await renderMatches();
+    await screen.findByText(`Tìm gia sư cho nhu cầu "${GOAL}"`);
+    await press("Xem danh sách lọc theo điều kiện");
+
+    expect(await screen.findByText("Kết quả này đã cũ. Tìm lại để có danh sách theo giá và lịch hiện tại.")).toBeTruthy();
+    expect(screen.queryByText("Chưa có gia sư đáp ứng đủ điều kiện.")).toBeNull();
+    await press("Tìm lại");
+    expect(runs(server)).toHaveLength(2);
+  });
+
+  it("an empty result of an older version names the conditions of that version, not the new one (Codex, #274)", async () => {
+    let stored = need();
+    server = mockApi({
+      "GET /needs/{needId}": () => withEtag(stored),
+      "GET /students": students,
+      "POST /needs/{needId}/matching-runs": () => json(202, run([])),
+    });
+    const { queryClient } = await renderMatches();
+    await screen.findByText(`Tìm gia sư cho nhu cầu "${GOAL}"`);
+    await press("Xem danh sách lọc theo điều kiện");
+    await screen.findByText("Chưa có gia sư đáp ứng đủ điều kiện.");
+
+    stored = need("CONFIRMED", NEW_VERSION, 4, LONGER);
+    await act(async () => {
+      await queryClient.refetchQueries();
+    });
+
+    expect(
+      await screen.findByText("Đây là kết quả của bản nhu cầu cũ, chỉ để đối chiếu. Tìm lại từ bản đang hiệu lực để gửi đề nghị."),
+    ).toBeTruthy();
+    expect(screen.getByText("• Giá một buổi 90 phút không vượt 400.000 ₫")).toBeTruthy();
+    await press("Tìm từ bản mới");
+    const second = runs(server)[1];
     expect(await second.json()).toMatchObject({ needVersionId: NEW_VERSION });
   });
 

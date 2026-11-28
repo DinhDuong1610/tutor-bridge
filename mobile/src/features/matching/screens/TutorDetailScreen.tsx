@@ -48,7 +48,9 @@ export function TutorDetailScreen({ tutorId, runId, needId, onBack, onOtherChild
       run.data && (current.data || hidden) && need.data && students.data
         ? {
             run: run.data,
-            current: current.data ?? null,
+            // TanStack Query keeps the last 200 in `data` after a reread fails, so a profile hidden since must
+            // not pass as current (Codex, #275).
+            current: hidden ? null : (current.data ?? null),
             need: need.data,
             students: students.data.pages.flatMap((page) => page.items),
           }

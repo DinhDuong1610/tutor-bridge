@@ -1,14 +1,19 @@
 package com.tutorbridge.platform.web;
 
+import com.tutorbridge.platform.api.ClientAddress;
 import com.tutorbridge.platform.api.IdempotencyKey;
 import com.tutorbridge.platform.api.WritePrecondition;
+import jakarta.servlet.http.HttpServletRequest;
+import java.net.InetAddress;
 import java.util.List;
 import java.util.function.Consumer;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpHeaders;
+import org.springframework.security.web.util.matcher.IpAddressMatcher;
 import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
@@ -24,13 +29,24 @@ import tools.jackson.databind.type.LogicalType;
 
 /**
  * Shared web behaviour for every controller (ADR-0010). Controllers declare {@link IdempotencyKey},
- * {@link WritePrecondition} or {@link WritePrecondition.Expected} parameters instead of reading headers.
+ * {@link WritePrecondition}, {@link WritePrecondition.Expected} or {@link ClientAddress} parameters instead of
+ * reading headers.
  */
 @Configuration(proxyBeanMethods = false)
 class WebFoundation implements WebMvcConfigurer {
 
+    /** The admin web servers whose {@link ClientAddress#HEADER} is believed (#252); none by default. */
+    private final List<IpAddressMatcher> trustedWebProxies;
+
+    WebFoundation(@Value("${tutorbridge.security.trusted-web-proxies:}") List<String> trustedWebProxies) {
+        this.trustedWebProxies = trustedWebProxies.stream().map(String::trim).filter(p -> !p.isEmpty())
+                .map(IpAddressMatcher::new).toList();
+    }
+
     @Override
     public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
+        resolvers.add(new HeaderResolver(ClientAddress.class,
+                request -> clientAddress(request.getNativeRequest(HttpServletRequest.class))));
         resolvers.add(new HeaderResolver(IdempotencyKey.class,
                 request -> new IdempotencyKey(request.getHeader(IdempotencyKey.HEADER))));
         resolvers.add(new HeaderResolver(WritePrecondition.Expected.class,
@@ -38,6 +54,24 @@ class WebFoundation implements WebMvcConfigurer {
         resolvers.add(new HeaderResolver(WritePrecondition.class,
                 request -> WritePrecondition.fromHeaders(
                         request.getHeader(HttpHeaders.IF_MATCH), request.getHeader(HttpHeaders.IF_NONE_MATCH))));
+    }
+
+    /**
+     * The browser's address from a trusted web server, else the request's own (#252). The header must be one
+     * literal address: {@link InetAddress#ofLiteral} never looks a name up, so a header cannot make the API
+     * query DNS, and a list or a port is refused rather than half read.
+     */
+    ClientAddress clientAddress(HttpServletRequest request) {
+        String remote = request.getRemoteAddr();
+        String forwarded = request.getHeader(ClientAddress.HEADER);
+        if (forwarded != null && trustedWebProxies.stream().anyMatch(proxy -> proxy.matches(remote))) {
+            try {
+                return new ClientAddress(InetAddress.ofLiteral(forwarded.strip()).getHostAddress());
+            } catch (IllegalArgumentException notOneAddress) {
+                // Falls back to the web server's own address below.
+            }
+        }
+        return new ClientAddress(remote);
     }
 
     /**

@@ -22,6 +22,19 @@ const DRAFT = need("50219e83-7fa6-4fdc-8f98-b25e5170436a", "DRAFT", "ôn thi h�
 const CLOSED = need("61320f94-80b7-4aed-90a9-c36f6281547b", "CLOSED", "nhân chia đa thức");
 const ACCEPTED = { id: "94653fc7-b3ea-4d01-83dc-f69295b47802", needId: CLOSED.id, state: "ACCEPTED", tutorId: TUTOR, classId: CLASS } as Offer;
 
+const CLASS_BODY = {
+  id: CLASS,
+  studentId: MINH.id,
+  studentDisplayName: MINH.displayName,
+  tutorId: TUTOR,
+  revision: 1,
+  state: "WAITING",
+  priceVndSession: 375000,
+  durationMinutes: 90,
+  effectiveGoalVersionId: "a7b8c9d0-1e2f-4a3b-8c4d-5e6f7a8b9c0d",
+  goal: "nhân chia đa thức",
+};
+
 // #123: compile the route tree before the first test, with its own timeout.
 beforeAll(preloadRoutes, 120_000);
 
@@ -39,6 +52,9 @@ function serve(needs: Need[], offers: Offer[] = []) {
     "GET /students/{studentId}/needs": () => json(200, { items: needs, nextCursor: null }),
     "GET /me/offers": () => json(200, { items: offers, nextCursor: null }),
     "GET /tutors/{tutorId}/public-profile": () => json(404, {}),
+    // CL01, the class of a closed need (#73 PR 2).
+    "GET /classes/{classId}": () => json(200, CLASS_BODY),
+    "GET /classes/{classId}/sessions": () => json(200, { items: [], nextCursor: null }),
     // PH04 reads the child's calendar (#70 PR 3b) and the need it edits, with their ETags (#70 PR 3a).
     "GET /students/{studentId}/calendar": () => problem(404, "CALENDAR_NOT_FOUND", "Chưa có lịch rảnh."),
     "GET /needs/{needId}": (request) => {
@@ -98,7 +114,8 @@ describe("PH03 routes", () => {
     await screen.findByText("Toán 8: nhân chia đa thức");
 
     await press("Xem lớp");
-    expect(await screen.findByRole("header", { name: "Lớp học và thỏa thuận" })).toBeOnTheScreen();
+    expect(await screen.findByRole("header", { name: "Chi tiết lớp" })).toBeOnTheScreen();
+    expect(await screen.findByText("nhân chia đa thức")).toBeOnTheScreen();
     expect(screen).toHavePathname(`/parent/classes/${CLASS}`);
   });
 

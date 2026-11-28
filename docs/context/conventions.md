@@ -113,7 +113,7 @@ mobile/__mocks__/      bản giả expo-secure-store, expo-crypto cho Jest
 
 ### Test
 - Màn hình: `mockApi({ "GET /students": () => json(200, ...) })` thay `fetch` theo đường dẫn hợp đồng, yêu cầu ngoài danh sách làm test hỏng; `renderScreen(<Screen />, { session: fakeSession("PARENT") })` dựng màn hình với đủ provider; `restore()` sau mỗi test.
-- Điều hướng: `renderRouter` và `toHavePathname` của `expo-router/testing-library`; phiên bằng `storeSession(fakeSession(...))`.
+- Điều hướng: `renderRouter` và `toHavePathname` của `expo-router/testing-library`; phiên bằng `storeSession(fakeSession(...))`. File test dùng `renderRouter` gọi `beforeAll(preloadRoutes, 120_000)` (`@/shared/test/preloadRoutes`), để cây route được biên dịch trước ca đầu (#123, `docs/process/ci.md`).
 - Mẫu đầy đủ: `mobile/src/shared/test/example.test.tsx`.
 
 ### Thêm một màn hình

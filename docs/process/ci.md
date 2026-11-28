@@ -31,21 +31,31 @@ sh scripts/ci/contract-check.sh origin/dev  # cần oasdiff trên PATH hoặc Do
 npm run lint && npm run typecheck && npm test
 ```
 
-### Test mobile lần đầu trên Windows (#123)
-Sau `npm ci` hoặc `npx jest --clearCache`, chạy tuần tự một lần trước khi chạy song song:
+### Test mobile khi cache Jest trống (#123)
+Không cần làm ấm cache trước. `npm test` chạy được ngay sau `npm ci` hoặc `npx jest --clearCache`, trên máy local và CI.
 
-```bash
-(cd mobile && npx jest --ci --runInBand)   # làm ấm cache Jest, một tiến trình
-npm test                                   # từ đây chạy song song bình thường
-```
+Ba chỗ trong `mobile/` giữ việc này:
+- `jest.setup.ts` (`setupFilesAfterEnv`) chạm sẵn các component `react-native` app dùng. `react-native` nạp chúng lười, nên trước đây Babel biên dịch chúng bên trong ca test đầu của mỗi file, vượt giới hạn 5 giây khi cache trống.
+- `src/shared/test/preloadRoutes.ts`: các file test dùng `renderRouter` gọi `beforeAll(preloadRoutes, 120_000)`. Hàm này nạp cả cây `src/app` theo cách `renderRouter` đọc nó, nên phần biên dịch nằm trong `beforeAll` có hạn riêng, không nằm trong ca test. File test route mới cũng cần dòng này.
+- `maxWorkers: "50%"` trong cấu hình Jest. Với mặc định (số luồng trừ một), các worker tranh CPU tới mức ca vẫn hết giờ khi cache đã ấm, và thỉnh thoảng gặp `EPERM` khi cùng ghi cache trên Windows.
 
-Kết quả của lượt làm ấm không tính: lượt này có thể hỏng vài ca "Exceeded timeout of 5000 ms". Nếu lượt song song đầu tiên sau đó vẫn hỏng, và chỉ hỏng kiểu hết giờ ở ca **đầu** của file, thì chạy lại `npm test` một lần. Đây chỉ là cách tránh trên máy local khi #123 còn mở, không áp dụng cho CI. Hỏng kiểu khác, hoặc hết giờ ở ca không phải ca đầu của file, là lỗi thật.
+Trước đây (15/11/2026) chỉ nạp sẵn trong `setupFilesAfterEnv` đã gặp `EPERM` và bị bỏ. `EPERM` đó đến từ số worker mặc định cùng ghi cache: trong bảng dưới nó còn xuất hiện ở 19 worker, và không xuất hiện ở `maxWorkers: "50%"`. Vì vậy ba chỗ trên phải đi cùng nhau.
 
-Lý do: `react-native` nạp component lười, nên Babel biên dịch chúng ở lần render đầu, tức là bên trong ca test đầu của mỗi file (giới hạn 5 giây). Khi cache trống, nhiều worker cùng biên dịch một lúc, ca đầu kéo lên 11–17 giây và hết giờ. Làm ấm bằng một tiến trình thì các worker sau đó chỉ đọc cache. Số đo khác nhau theo máy:
-- Máy Huy (20 luồng, 12/11/2026): không làm ấm thì hỏng 8–10/116 ca; làm ấm trước thì qua 118/118 ba lần liền.
-- Máy Đính (Windows 11, 16 luồng, 15/11/2026, 153 ca): lượt làm ấm hỏng 3 ca; lượt song song đầu tiên sau đó hỏng 6 ca, cả 6 đều hết giờ ở ca đầu của file; từ lượt thứ hai trở đi qua 153/153, cả `--runInBand` lẫn chạy song song.
+Không tăng `testTimeout` toàn cục.
 
-Vì vậy làm ấm một lần giảm lỗi nhưng không bảo đảm hết lỗi. Chỉ nạp sẵn module trong `setupFilesAfterEnv` thì gây `EPERM` khi các worker cùng ghi một file cache, nên không dùng. CI không bị ảnh hưởng. Không tăng `testTimeout` để che lỗi này.
+Số đo trên máy Huy (Windows, 20 luồng, 323 ca, 27/11/2026), mỗi lần sau `npx jest --clearCache`:
+
+| Cấu hình | Kết quả |
+|---|---|
+| Trước khi sửa, `npx jest --ci` | Hỏng 32–33 ca, có lần `EPERM` |
+| Trước khi sửa, cache đã ấm, 19 worker | Hỏng 14 ca; 50% worker thì qua |
+| Chỉ `jest.setup.ts`, 50% worker | Hỏng 14–22 ca, đều ở 4 file test route |
+| Chỉ `preloadRoutes`, 50% worker | Hỏng 7–9 ca |
+| Cả hai, 19 worker | 1 lần qua, rồi hỏng 3 và 1 ca (có `EPERM`) |
+| Cả hai, `maxWorkers: "50%"` (`npx jest --ci`) | Qua 323/323 ba lần liền (53–77 giây); cache ấm 13 giây |
+| Cả hai, `--runInBand` | Qua 323/323 (63 giây) |
+
+Hỏng kiểu hết giờ sau thay đổi này là lỗi thật, không phải lỗi cache.
 
 ## Quy tắc
 - Action pin theo commit SHA, image pin theo digest. Dependabot đề xuất bản mới qua PR.

@@ -12,8 +12,9 @@ import { Notice } from "./Notice";
 import { StatusLabel } from "./StatusLabel";
 import { StickyActionBar } from "./StickyActionBar";
 import { TextField } from "./TextField";
+import { TimeChip } from "./TimeChip";
 import { TopAppBar } from "./TopAppBar";
-import { colors, radius, typography } from "./theme";
+import { colors, fonts, radius, typography } from "./theme";
 
 const problem = (status: number, title = "Không được phép.") =>
   new ApiError({
@@ -145,6 +146,20 @@ describe("Button", () => {
     expect(label).toHaveStyle({ flexShrink: 1, ...typography.label });
     expect(label.props.numberOfLines).toBeUndefined();
   });
+
+  it.each(["primary", "secondary"] as const)(
+    "draws a disabled %s button as Figma State=Disabled: surface, border, textMuted, not see-through (Đính, #95)",
+    async (variant) => {
+      expect(StyleSheet.flatten(buttonStyle(variant, false, true))).toMatchObject({
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.border,
+      });
+      expect(StyleSheet.flatten(buttonStyle(variant, false, true))).not.toHaveProperty("opacity");
+      await render(<Button title="Lưu" variant={variant} onPress={() => undefined} disabled />);
+      expect(screen.getByText("Lưu")).toHaveStyle({ color: colors.textMuted });
+    },
+  );
 
   it("ignores presses while disabled", async () => {
     const onPress = jest.fn();
@@ -324,11 +339,23 @@ describe("NavigationBar", () => {
     expect(screen.queryByText("0")).toBeNull();
   });
 
-  it("limits only the tab labels to 1.3x text (OP-22)", async () => {
+  it("limits the tab labels and the badge count to 1.3x text (OP-22, Đính 22/11/2026 on #95)", async () => {
     await render(wrap(<NavigationBar tabs={TABS} selectedKey="home" onSelect={() => undefined} />));
 
     for (const tab of TABS) expect(screen.getByText(tab.label)).toHaveProp("maxFontSizeMultiplier", 1.3);
-    expect(screen.getByText("2")).not.toHaveProp("maxFontSizeMultiplier");
+    // At 200% a fully scaled count would cover the icon; the tab's name still reads the whole count.
+    expect(screen.getByText("2", { includeHiddenElements: true })).toHaveProp("maxFontSizeMultiplier", 1.3);
+    expect(screen.getByRole("tab", { name: "Thông báo, 2 thông báo chưa đọc" })).toBeOnTheScreen();
+  });
+
+  it("draws the badge count Regular 11/16 and pads the bar 12 above and 16 below (Figma 8:232, #95)", async () => {
+    await render(wrap(<NavigationBar tabs={TABS} selectedKey="home" onSelect={() => undefined} />));
+
+    expect(screen.getByText("2", { includeHiddenElements: true })).toHaveStyle({ fontFamily: fonts.regular, fontSize: 11, lineHeight: 16 });
+    // The tablist View is not itself accessible, so it is reached as the parent of a tab.
+    const bar = StyleSheet.flatten(screen.getByRole("tab", { name: "Tổng quan" }).parent?.props.style);
+    // The test's safe area is 0 at the bottom, so the bottom padding is the Figma 16 alone.
+    expect(bar).toMatchObject({ paddingTop: 12, paddingBottom: 16 });
   });
 
   it("puts the infoSurface pill only behind the selected tab", async () => {
@@ -359,5 +386,27 @@ describe("StatusLabel", () => {
     expect(text).toHaveStyle({ color: colors.info });
     expect(StyleSheet.flatten(text.parent?.props.style)).toMatchObject({ backgroundColor: colors.infoSurface });
     expect(screen.queryByRole("image")).toBeNull();
+  });
+});
+
+describe("TimeChip", () => {
+  it("removes a slot only from its × button, a 48 point target named by day and time (#70 Q3)", async () => {
+    const onRemove = jest.fn();
+    await act(async () => render(<TimeChip label="18:00–19:30" variant="effective" day="Thứ 2" onRemove={onRemove} />));
+
+    expect(screen.getByLabelText("18:00–19:30, đang hiệu lực")).toBeTruthy();
+    const remove = screen.getByRole("button", { name: "Bỏ khung Thứ 2 18:00–19:30" });
+    expect(StyleSheet.flatten(remove.props.style)).toMatchObject({ minWidth: 48, minHeight: 48 });
+    await act(async () => fireEvent.press(screen.getByLabelText("18:00–19:30, đang hiệu lực")));
+    expect(onRemove).not.toHaveBeenCalled();
+    await act(async () => fireEvent.press(remove));
+    expect(onRemove).toHaveBeenCalledTimes(1);
+  });
+
+  it("gives a booked session no × even with a handler (UC07)", async () => {
+    await act(async () => render(<TimeChip label="18:00–19:30" variant="booked" day="Thứ 2" onRemove={jest.fn()} />));
+
+    expect(screen.getByLabelText("18:00–19:30, đã có buổi, không sửa ở đây")).toBeTruthy();
+    expect(screen.queryByRole("button")).toBeNull();
   });
 });

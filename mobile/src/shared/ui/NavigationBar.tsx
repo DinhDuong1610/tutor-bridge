@@ -17,9 +17,10 @@ type Props = {
   onSelect: (key: string) => void;
 };
 
-// OP-22 (Đính, 12/11/2026): only the tab labels stop growing at 1.3x, so five labels fit a 360 dp
-// screen at 200% text. Every other text still scales fully.
-const TAB_LABEL_MAX_SCALE = 1.3;
+// OP-22 (Đính, 12/11/2026): the tab labels stop growing at 1.3x, so five labels fit a 360 dp screen at
+// 200% text. Đính added the badge count on 22/11/2026 (#95): fully scaled it covers the icon, and the
+// tab's accessible name still reads the whole count. Every other text still scales fully.
+const TAB_TEXT_MAX_SCALE = 1.3;
 
 const badgeText = (unread: number) => (unread > 99 ? "99+" : String(unread));
 
@@ -31,7 +32,7 @@ const badgeText = (unread: number) => (unread > 99 ? "99+" : String(unread));
 export function NavigationBar({ tabs, selectedKey, onSelect }: Props) {
   const insets = useSafeAreaInsets();
   return (
-    <View accessibilityRole="tablist" style={[styles.bar, { paddingBottom: insets.bottom + spacing.xs }]}>
+    <View accessibilityRole="tablist" style={[styles.bar, { paddingBottom: insets.bottom + BAR_PADDING_BOTTOM }]}>
       {tabs.map((tab) => {
         const selected = tab.key === selectedKey;
         const unread = tab.unread ?? 0;
@@ -49,12 +50,14 @@ export function NavigationBar({ tabs, selectedKey, onSelect }: Props) {
               <Icon name={tab.icon} color={selected ? colors.primary : colors.textMuted} />
               {unread > 0 ? (
                 <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{badgeText(unread)}</Text>
+                  <Text maxFontSizeMultiplier={TAB_TEXT_MAX_SCALE} style={styles.badgeText}>
+                    {badgeText(unread)}
+                  </Text>
                 </View>
               ) : null}
             </View>
             <Text
-              maxFontSizeMultiplier={TAB_LABEL_MAX_SCALE}
+              maxFontSizeMultiplier={TAB_TEXT_MAX_SCALE}
               style={[styles.label, selected ? styles.labelSelected : null]}
             >
               {tab.label}
@@ -66,10 +69,14 @@ export function NavigationBar({ tabs, selectedKey, onSelect }: Props) {
   );
 }
 
+// Figma 8:232 pads the bar 12 above and 16 below (Đính, 22/11/2026, #95); below, the safe area comes first.
+const BAR_PADDING_TOP = spacing.sm + spacing.xs;
+const BAR_PADDING_BOTTOM = spacing.md;
+
 const styles = StyleSheet.create({
   bar: {
     flexDirection: "row",
-    paddingTop: spacing.sm,
+    paddingTop: BAR_PADDING_TOP,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.divider,
     backgroundColor: colors.background,
@@ -84,7 +91,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 36,
     minWidth: 16,
-    // minHeight, not height: the digits still scale with large text (OP-22 limits only tab labels).
+    // minHeight, not height: up to 1.3x the digits grow and the badge grows with them.
     minHeight: 16,
     paddingHorizontal: spacing.xs,
     borderRadius: radius.full,
@@ -93,7 +100,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   // The digits sit in the 16 high badge; "99+" widens it through the padding.
-  badgeText: { ...typography.caption, lineHeight: 16, color: colors.onPrimary },
+  badgeText: { ...typography.badge, color: colors.onPrimary },
   label: { ...typography.caption, color: colors.textMuted, textAlign: "center" },
   // Same size as the other labels, only heavier, so the row does not shift when the tab changes.
   labelSelected: { fontFamily: fonts.medium, color: colors.text },

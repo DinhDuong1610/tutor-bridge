@@ -2,6 +2,7 @@ package com.tutorbridge.identity.web;
 
 import com.tutorbridge.identity.internal.AccountSessions;
 import com.tutorbridge.identity.internal.Masked;
+import com.tutorbridge.platform.api.ClientAddress;
 import com.tutorbridge.platform.api.Actor;
 import com.tutorbridge.platform.api.Page;
 import com.tutorbridge.platform.api.PublicEndpoints;
@@ -49,8 +50,9 @@ class SessionController {
     }
 
     @PostMapping("/api/v1/auth/login")
-    AccountSessions.Credential login(@Valid @RequestBody LoginInput input, HttpServletRequest request) {
-        return sessions.login(input.email(), input.password(), request.getRemoteAddr(),
+    AccountSessions.Credential login(@Valid @RequestBody LoginInput input, HttpServletRequest request,
+            ClientAddress source) {
+        return sessions.login(input.email(), input.password(), source.value(),
                 request.getHeader(HttpHeaders.USER_AGENT));
     }
 

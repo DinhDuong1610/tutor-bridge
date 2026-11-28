@@ -1,8 +1,12 @@
 import { renderRouter, screen, waitFor } from "expo-router/testing-library";
 import { mockApi, problem } from "@/shared/test/mockApi";
 import { clearStore, fakeSession, storeSession, storedSession } from "@/shared/test/session";
+import { preloadRoutes } from "@/shared/test/preloadRoutes";
 
 // Uses the real route tree, so the session handling of the foundation (watchSessionEnd) is real too.
+// #123: compile the route tree before the first test, with its own timeout.
+beforeAll(preloadRoutes, 120_000);
+
 describe("GS01 with the session", () => {
   let server: ReturnType<typeof mockApi>;
   beforeEach(() => clearStore());

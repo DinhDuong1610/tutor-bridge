@@ -7,6 +7,7 @@ import com.tutorbridge.platform.api.Actor;
 import com.tutorbridge.platform.api.Etag;
 import com.tutorbridge.platform.api.IdempotencyKey;
 import com.tutorbridge.platform.api.Page;
+import com.tutorbridge.platform.api.Receipted;
 import com.tutorbridge.platform.api.WritePrecondition;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
@@ -87,7 +88,7 @@ class NeedController {
     @PostMapping("/api/v1/students/{studentId}/needs")
     ResponseEntity<NeedService.Need> create(@AuthenticationPrincipal Actor actor, @PathVariable UUID studentId,
             IdempotencyKey key, @Valid @RequestBody DraftInput input) {
-        return withEtag(HttpStatus.CREATED, needs.create(actor, studentId, key, input.draft(), input.hasWindows()));
+        return written(HttpStatus.CREATED, needs.create(actor, studentId, key, input.draft(), input.hasWindows()));
     }
 
     @GetMapping("/api/v1/needs/{needId}")
@@ -98,8 +99,7 @@ class NeedController {
     @PatchMapping("/api/v1/needs/{needId}")
     ResponseEntity<NeedService.Need> update(@AuthenticationPrincipal Actor actor, @PathVariable UUID needId,
             IdempotencyKey key, WritePrecondition.Expected expected, @Valid @RequestBody DraftInput input) {
-        return withEtag(HttpStatus.OK,
-                needs.update(actor, needId, key, expected, input.draft(), input.hasWindows()));
+        return written(HttpStatus.OK, needs.update(actor, needId, key, expected, input.draft(), input.hasWindows()));
     }
 
     /** ConfirmNeedInput: {@code confirmed} is the constant true, so the parent states the confirmation. */
@@ -108,10 +108,17 @@ class NeedController {
     @PostMapping("/api/v1/needs/{needId}/confirm")
     ResponseEntity<NeedService.Need> confirm(@AuthenticationPrincipal Actor actor, @PathVariable UUID needId,
             IdempotencyKey key, WritePrecondition.Expected expected, @Valid @RequestBody ConfirmInput input) {
-        return withEtag(HttpStatus.OK, needs.confirm(actor, needId, key, expected));
+        return written(HttpStatus.OK, needs.confirm(actor, needId, key, expected));
     }
 
     private static ResponseEntity<NeedService.Need> withEtag(HttpStatus status, NeedService.Need need) {
         return ResponseEntity.status(status).header(HttpHeaders.ETAG, Etag.of(need.revision())).body(need);
+    }
+
+    /** A write's answer: the need with its ETag and the receipt id in X-Operation-Id (#221). */
+    private static ResponseEntity<NeedService.Need> written(HttpStatus status, Receipted<NeedService.Need> written) {
+        NeedService.Need need = written.value();
+        return ResponseEntity.status(status).header(HttpHeaders.ETAG, Etag.of(need.revision()))
+                .header(Receipted.HEADER, written.operationId().toString()).body(need);
     }
 }

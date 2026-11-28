@@ -15,6 +15,7 @@ import com.tutorbridge.platform.api.Cursor;
 import com.tutorbridge.platform.api.IdempotencyKey;
 import com.tutorbridge.platform.api.Outbox;
 import com.tutorbridge.platform.api.Page;
+import com.tutorbridge.platform.api.Receipted;
 import com.tutorbridge.platform.api.WritePrecondition;
 import java.sql.SQLException;
 import java.time.Clock;
@@ -107,7 +108,8 @@ public class OfferService {
         this.ids = ids;
     }
 
-    public Offer send(Actor actor, UUID needId, IdempotencyKey key, WritePrecondition.Expected expected, Input input) {
+    public Receipted<Offer> send(Actor actor, UUID needId, IdempotencyKey key, WritePrecondition.Expected expected,
+            Input input) {
         requireRole(actor, Actor.Role.PARENT);
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("needId", needId.toString());
@@ -137,7 +139,7 @@ public class OfferService {
         }
     }
 
-    private Offer sendInTransaction(Actor actor, UUID needId, IdempotencyKey key, WritePrecondition.Expected expected,
+    private Receipted<Offer> sendInTransaction(Actor actor, UUID needId, IdempotencyKey key, WritePrecondition.Expected expected,
             Input input, Map<String, Object> payload) {
         locks.limitWait();
         Receipt receipt = receipts.begin(actor.accountId(), SEND, key.value(), payload);
@@ -151,7 +153,7 @@ public class OfferService {
         if (receipt.replay()) {
             // INV-22: the owner is checked again above. BR06: the answer is the one the send gave, not the
             // offer as it is now, which a cancel, an answer or the deadline may have changed (Codex, #234).
-            return asSent(view(offers.find(receipt.resultId()).orElseThrow()));
+            return new Receipted<>(asSent(view(offers.find(receipt.resultId()).orElseThrow())), receipt.id());
         }
         if (need.revision() != expected.version()) {
             throw WritePrecondition.stale();
@@ -239,14 +241,14 @@ public class OfferService {
         // Read by the notifications of TB-21 after commit; ids only (INV-63).
         outbox.publish("OFFER", offerId, "OFFER_SENT", Map.of("offerId", offerId), "OFFER_SENT:" + offerId);
         receipts.succeed(receipt.id(), RESULT_TYPE, offerId);
-        return view(offers.find(offerId).orElseThrow());
+        return new Receipted<>(view(offers.find(offerId).orElseThrow()), receipt.id());
     }
 
     /**
      * rejectOffer by the recipient tutor, cancelOffer by the parent (TX06). Only a PENDING offer at the
      * revision of If-Match, before its deadline, ends; a final one stays as it is (no silent reversal).
      */
-    public Offer respond(Actor actor, Response response, UUID offerId, IdempotencyKey key,
+    public Receipted<Offer> respond(Actor actor, Response response, UUID offerId, IdempotencyKey key,
             WritePrecondition.Expected expected, String reasonCode, boolean hasReasonText) {
         requireRole(actor, response.role);
         // Before the receipt, so a refused body leaves nothing.
@@ -272,7 +274,7 @@ public class OfferService {
         }
     }
 
-    private Offer respondInTransaction(Actor actor, Response response, UUID offerId, IdempotencyKey key,
+    private Receipted<Offer> respondInTransaction(Actor actor, Response response, UUID offerId, IdempotencyKey key,
             WritePrecondition.Expected expected, String reasonCode, Map<String, Object> payload) {
         locks.limitWait();
         Receipt receipt = receipts.begin(actor.accountId(), response.command, key.value(), payload);
@@ -292,7 +294,7 @@ public class OfferService {
         if (receipt.replay()) {
             // INV-22: after the check under lock above (Codex, #235 round 2). The offer this command ended is
             // final, so as it is now it is what the command answered.
-            return view(offers.find(receipt.resultId()).orElseThrow());
+            return new Receipted<>(view(offers.find(receipt.resultId()).orElseThrow()), receipt.id());
         }
         if (offer.revision() != expected.version()) {
             throw WritePrecondition.stale();
@@ -309,7 +311,7 @@ public class OfferService {
         // Read by the notifications of TB-21 after commit; ids only (INV-63).
         outbox.publish("OFFER", offerId, response.event, Map.of("offerId", offerId), response.event + ":" + offerId);
         receipts.succeed(receipt.id(), RESULT_TYPE, offerId);
-        return view(offers.find(offerId).orElseThrow());
+        return new Receipted<>(view(offers.find(offerId).orElseThrow()), receipt.id());
     }
 
     public Offer get(Actor actor, UUID offerId) {

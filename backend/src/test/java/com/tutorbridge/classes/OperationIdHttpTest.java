@@ -101,7 +101,7 @@ class OperationIdHttpTest extends HttpTest {
         twice(s.parent(), post("/api/v1/needs/" + s.need().id() + "/matching-runs").header("If-Match", "\"2\"")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"mode\":\"B\",\"needVersionId\":\"%s\",\"fallbackExplicitlyChosen\":true}"
-                        .formatted(s.need().versionId())), 201, "CREATE_MATCHING_RUN");
+                        .formatted(s.need().versionId())), 202, "CREATE_MATCHING_RUN");
 
         MockHttpServletRequestBuilder send = post("/api/v1/needs/" + s.need().id() + "/offers").header("If-Match", "\"2\"")
                 .contentType(MediaType.APPLICATION_JSON).content(input(s.need(), s.candidate()));

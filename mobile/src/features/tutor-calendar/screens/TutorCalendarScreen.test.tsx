@@ -263,7 +263,7 @@ describe("GS04 Lịch rảnh", () => {
     expect(screen.getByRole("button", { name: "Xem lại" })).toBeDisabled();
   });
 
-  it("AC-UC07-02 a calendar with a day off says so, and saving keeps the day off (#69 Q2, Q3 TBD)", async () => {
+  it("AC-UC07-02 a calendar with a day off says so, and saving keeps the day off (#69 Q2, Q3, Đính 28/11/2026)", async () => {
     const dayOff: CalendarWindow = { start: "2026-11-21T17:00:00Z", end: "2026-11-22T17:00:00Z", kind: "BLOCKED" };
     server = mockApi({
       "GET /me/tutor-calendar": () => calendar(3, [...MONDAY_EVENING, dayOff]),

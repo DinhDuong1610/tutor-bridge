@@ -11,7 +11,7 @@ import {
 
 /**
  * From this many windows GS04 warns before saving ("Dữ liệu xấu nhất", 196 in the frame).
- * TBD #69: the frame shows the warning but no threshold; 180 is the agent's choice.
+ * The frame shows the warning but no threshold; Đính approved 180 on the #263 review (28/11/2026).
  */
 export const NEAR_LIMIT = 180;
 
@@ -57,7 +57,7 @@ export function sameWeek(a: WeekPattern, b: WeekPattern): boolean {
 /**
  * What a save sends: the available pattern, and the PREFERRED one read from the stored calendar (GS04 v1 has
  * no input for it), over the 56 days from today (OP-26); plus every stored BLOCKED window still ahead, cut to
- * those days, so saving never drops a day off or a busy time (#69 Q2, TBD Đính). The server takes windows from
+ * those days, so saving never drops a day off or a busy time (#69 Q2; Đính, #263 review, 28/11/2026). The server takes windows from
  * the start of today to the start of day 57, Vietnam time (AC-UC07-01).
  */
 export function windowsToSave(
@@ -89,8 +89,8 @@ export function freeCount(windows: readonly CalendarWindow[]): number {
 
 /**
  * The warning of the "Dữ liệu xấu nhất" frame, in 8 weeks since OP-26 (the frame still says 28 days). Past 200
- * the server refuses the calendar, so "Xem lại" is blocked; TBD #69: no approved copy for that case, so it
- * keeps the frame's words with "vượt" for "gần".
+ * the server refuses the calendar, so "Xem lại" is blocked (Đính, #263 review, 28/11/2026). TBD #69: no
+ * approved copy for that case, so it keeps the frame's words with "vượt" for "gần".
  */
 export function limitNotice(windows: number): { blocks: boolean; message: string } | null {
   if (windows < NEAR_LIMIT) return null;

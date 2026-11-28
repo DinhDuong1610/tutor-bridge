@@ -48,7 +48,7 @@ describe("GS04 plan", () => {
     expect(draftCount(emptyWeek(), saved)).toBe(0);
   });
 
-  it("AC-UC07-01 saves the pattern over 56 days, keeping PREFERRED and every BLOCKED window still ahead (#69 Q2, TBD)", () => {
+  it("AC-UC07-01 saves the pattern over 56 days, keeping PREFERRED and every BLOCKED window still ahead (#69 Q2, Đính 28/11/2026)", () => {
     const available = week({ 0: [["18:00", "21:00"]] });
     const preferred = week({ 2: [["19:00", "20:00"]] });
     const stored: CalendarWindow[] = [

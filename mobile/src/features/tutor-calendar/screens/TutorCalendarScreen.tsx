@@ -1,5 +1,6 @@
 // GS04 Lịch rảnh và ngoại lệ (UC07, FR-08, BR04, OP-26). Thiết kế: docs/design/ui/screens/GS04.md
-// PR 1 of #69: no "đã có buổi" chip (#69 Q1) and no "Ngoại lệ" section (#69 Q2) yet, both TBD Đính.
+// PR 1 of #69: no "đã có buổi" chip (#69 Q1) and no "Ngoại lệ" section (#69 Q2) yet. Đính approved leaving
+// both to a later PR on the #263 review (28/11/2026); Q1 and Q2 stay open for that PR.
 import { useState } from "react";
 import { KeyboardAvoidingView, ScrollView, StyleSheet, Text, View } from "react-native";
 import { WeekAvailability } from "@/features/calendar/components/WeekAvailability";
@@ -179,7 +180,7 @@ function CalendarEditor({
         ) : null}
         {limit ? <Notice tone={limit.blocks ? "danger" : "warning"} message={limit.message} /> : null}
         {read.irregular ? (
-          // TBD #69 Q3 (Đính): the wording approved for PH04 (#70 Q2) speaks of the child; this is the proposal.
+          // The PH04 wording (#70 Q2) speaks of the child; Đính approved this one for the tutor (#69 Q3, #263 review).
           <Notice
             tone="warning"
             message={`Lịch rảnh của bạn có ngày khác mẫu tuần. Lưu ở đây sẽ thay toàn bộ lịch bằng mẫu tuần dưới đây.${

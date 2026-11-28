@@ -59,7 +59,11 @@ public final class OfferFixture {
     }
 
     public Student student() {
-        UUID parent = account("PARENT");
+        return student(account("PARENT"));
+    }
+
+    /** A child of an existing parent account, with an effective calendar free for the next 60 days. */
+    public Student student(UUID parent) {
         UUID student = UUID.randomUUID();
         jdbc.sql("insert into students(id, parent_id, display_name) values (?, ?, 'Hoc sinh thu')")
                 .params(student, parent).update();

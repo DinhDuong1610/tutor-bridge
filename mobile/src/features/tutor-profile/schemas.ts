@@ -29,7 +29,7 @@ function plainNumber(value: string): number | null {
  * digits ("250.000", "1 500 000"). Anything else, "1.5" or "25.00" included, is refused, never read as
  * another number (Codex review of #209).
  */
-function priceNumber(value: string): number | null {
+export function priceNumber(value: string): number | null {
   const typed = value.trim();
   if (/^\d+$/.test(typed)) return Number(typed);
   return /^\d{1,3}(\.\d{3})+$/.test(typed) || /^\d{1,3}( \d{3})+$/.test(typed)

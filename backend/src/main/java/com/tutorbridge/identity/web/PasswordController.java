@@ -2,8 +2,8 @@ package com.tutorbridge.identity.web;
 
 import com.tutorbridge.identity.internal.Masked;
 import com.tutorbridge.identity.internal.PasswordChange;
+import com.tutorbridge.platform.api.ClientAddress;
 import com.tutorbridge.platform.api.Actor;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -47,13 +47,13 @@ class PasswordController {
     @PostMapping("/api/v1/me/password")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void changePassword(@AuthenticationPrincipal Actor actor, @Valid @RequestBody ChangePasswordInput input,
-            HttpServletRequest request) {
-        passwords.changePassword(actor, input.currentPassword(), input.newPassword(), request.getRemoteAddr());
+            ClientAddress source) {
+        passwords.changePassword(actor, input.currentPassword(), input.newPassword(), source.value());
     }
 
     @PostMapping("/api/v1/auth/reauth")
     PasswordChange.ReauthToken reauthenticate(@AuthenticationPrincipal Actor actor,
-            @Valid @RequestBody ReauthInput input, HttpServletRequest request) {
-        return passwords.reauthenticate(actor, input.password(), request.getRemoteAddr());
+            @Valid @RequestBody ReauthInput input, ClientAddress source) {
+        return passwords.reauthenticate(actor, input.password(), source.value());
     }
 }

@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
+let forwardedFor: string | null = null;
+vi.mock("next/headers", () => ({
+  cookies: async () => ({ get: () => undefined }),
+  headers: async () => new Headers(forwardedFor === null ? {} : { "x-forwarded-for": forwardedFor }),
+}));
+
 const order: string[] = [];
 vi.mock("next/server", () => ({
   connection: async () => {
@@ -26,6 +32,16 @@ async function capture(token: string | null, send: (api: Awaited<ReturnType<type
 }
 
 describe("adminApi", () => {
+  it("passes the browser's address on as X-TB-Client-IP, and nothing when it has none (#252)", async () => {
+    forwardedFor = "1.2.3.4, 198.51.100.7";
+    const forwarded = await capture(null, (api) => api.GET("/me/sessions", {}));
+    expect(forwarded.headers.get("X-TB-Client-IP")).toBe("198.51.100.7");
+
+    forwardedFor = null;
+    const none = await capture(null, (api) => api.GET("/me/sessions", {}));
+    expect(none.headers.has("X-TB-Client-IP")).toBe(false);
+  });
+
   it("waits for the request before it builds a client, so no API call runs at prerender (#254)", async () => {
     order.length = 0;
     await adminApi({

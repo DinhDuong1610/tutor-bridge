@@ -2,9 +2,9 @@ package com.tutorbridge.identity.web;
 
 import com.tutorbridge.identity.internal.Masked;
 import com.tutorbridge.identity.internal.PasswordRecovery;
+import com.tutorbridge.platform.api.ClientAddress;
 import com.tutorbridge.platform.api.PublicEndpoints;
 import com.tutorbridge.platform.api.TraceContext;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
@@ -53,15 +53,15 @@ class RecoveryController {
 
     @PostMapping("/api/v1/auth/recovery")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    GenericAcknowledgment requestRecovery(@Valid @RequestBody RecoveryInput input, HttpServletRequest request) {
-        recovery.requestRecovery(input.email(), request.getRemoteAddr());
+    GenericAcknowledgment requestRecovery(@Valid @RequestBody RecoveryInput input, ClientAddress source) {
+        recovery.requestRecovery(input.email(), source.value());
         return new GenericAcknowledgment(RECOVERY_SENT, TraceContext.current());
     }
 
     @PostMapping("/api/v1/auth/reset")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    void resetPassword(@Valid @RequestBody ResetInput input, HttpServletRequest request) {
-        recovery.resetPassword(input.token(), input.newPassword(), request.getRemoteAddr());
+    void resetPassword(@Valid @RequestBody ResetInput input, ClientAddress source) {
+        recovery.resetPassword(input.token(), input.newPassword(), source.value());
     }
 
     @Configuration(proxyBeanMethods = false)

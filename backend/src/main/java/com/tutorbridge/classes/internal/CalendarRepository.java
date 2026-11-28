@@ -1,12 +1,14 @@
 package com.tutorbridge.classes.internal;
 
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.IntStream;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -83,18 +85,26 @@ class CalendarRepository {
         if (windows.isEmpty()) {
             return;
         }
-        // By position, not by value: two identical windows are allowed and need their own ids.
-        List<Integer> positions = IntStream.range(0, windows.size()).boxed().toList();
+        // By position, not by value: two identical windows are allowed and need their own ids. One batch for
+        // every window, as Spring 7.1 asks in place of the chunked batchUpdate (at most 200 windows, OP-26).
         batch.batchUpdate("""
                 insert into availability_windows(id, calendar_id, during, kind)
                 values (?, ?, tstzrange(?, ?, '[)'), ?)
-                """, positions, positions.size(), (statement, position) -> {
-            Window window = windows.get(position);
-            statement.setObject(1, windowIds.get(position));
-            statement.setObject(2, id);
-            statement.setObject(3, OffsetDateTime.ofInstant(window.start(), ZoneOffset.UTC));
-            statement.setObject(4, OffsetDateTime.ofInstant(window.end(), ZoneOffset.UTC));
-            statement.setString(5, window.kind());
+                """, new BatchPreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement statement, int position) throws SQLException {
+                Window window = windows.get(position);
+                statement.setObject(1, windowIds.get(position));
+                statement.setObject(2, id);
+                statement.setObject(3, OffsetDateTime.ofInstant(window.start(), ZoneOffset.UTC));
+                statement.setObject(4, OffsetDateTime.ofInstant(window.end(), ZoneOffset.UTC));
+                statement.setString(5, window.kind());
+            }
+
+            @Override
+            public int getBatchSize() {
+                return windows.size();
+            }
         });
     }
 }

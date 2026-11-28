@@ -19,7 +19,7 @@ export type DraftFormValues = {
   durationMinutes: string;
   frequencyPer7Days: string;
   budgetVndSession: string;
-  /** dd/mm/yyyy (TBD #70 Q5: no approved date picker frame). */
+  /** dd/mm/yyyy, typed (Đính, #70 Q5 on #264, 28/11/2026). */
   cycleStartDate: string;
 };
 
@@ -61,8 +61,8 @@ const optional = <T>(value: T | null): T | undefined => (value === null ? undefi
 
 /**
  * PH04's fields for {@code today} (Vietnam date). An empty field is no value, so an incomplete draft still
- * saves (PH04 "Hành vi"). The copy for a short goal and a bad budget is PH04.md verbatim; the long goal and the
- * date have no approved copy (TBD #70 Q5).
+ * saves (PH04 "Hành vi"). The copy for a short goal and a bad budget is PH04.md verbatim; Đính approved the copy
+ * for a long goal and a bad date on #264 (28/11/2026, #70 Q5).
  */
 export function draftFormSchema(today: string) {
   const last = addDays(today, START_WINDOW_DAYS);

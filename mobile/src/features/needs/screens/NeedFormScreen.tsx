@@ -1,5 +1,5 @@
 // PH04 Nhập nhu cầu học kèm (UC04, UC07, FR-04, FR-19, BR02, BR04). Thiết kế: docs/design/ui/screens/PH04.md
-// #70 PR 3a (the need's fields) and PR 3b (the child's free time). "Giờ ưu tiên" has no input yet (#70 Q6, TBD Đính).
+// #70 PR 3a (the need's fields) and PR 3b (the child's free time). "Giờ ưu tiên" has no input yet: Đính moved it to a later PR (#70 Q6, on #265).
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
@@ -335,7 +335,7 @@ function NeedForm({
           control={form.control}
           name="cycleStartDate"
           label="Ngày bắt đầu chu kỳ"
-          // TBD #70 Q5: typed as dd/mm/yyyy, the weekday shown once the date is valid; no approved picker frame.
+          // #70 Q5 (Đính, #264): typed as dd/mm/yyyy, the weekday shown once the date is valid; no picker.
           placeholder="dd/mm/yyyy"
           hint={start ? `${weekdayLabel(start)}. ${startDateHint(today)}` : startDateHint(today)}
           keyboardType="numbers-and-punctuation"
@@ -373,7 +373,7 @@ function NeedForm({
               <CommandStatus command={needCommand} confirmedMessage="" />
             )}
             {calendarFailed ? (
-              // TBD #70: no approved copy for a need saved without its free time (Huy's order, 28/11/2026).
+              // A need saved without its free time (Huy's order, 28/11/2026); copy approved by Đính on #265.
               <Notice tone="warning" message="Đã lưu nhu cầu, chưa lưu giờ rảnh của con." />
             ) : null}
             {saveCalendar.state === "confirmed" || saveCalendar.state === "idle" ? null : (

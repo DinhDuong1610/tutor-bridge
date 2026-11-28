@@ -114,7 +114,7 @@ export function needCard(need: Need, offers: OfferFacts, freeTime?: boolean): Ne
       };
     }
     case "CLOSED": {
-      // TBD (#70, asked Đính 27/11/2026): Figma adds "ngày {ngày chốt}", which no API returns yet.
+      // Figma adds "ngày {ngày chốt}", which no API returns: Đính dropped it (#70 Q4, on #259, 28/11/2026).
       const tutor = offers.accepted?.tutorName;
       return {
         ...base,

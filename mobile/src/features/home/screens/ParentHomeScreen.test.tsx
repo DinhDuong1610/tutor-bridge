@@ -36,13 +36,13 @@ async function renderHome() {
     onContinueNeed: jest.fn(),
     onNotifications: jest.fn(),
   };
-  await renderScreen(
+  const { queryClient } = await renderScreen(
     <SelectedStudentProvider>
       <ParentHomeScreen {...handlers} />
     </SelectedStudentProvider>,
     { session: fakeSession("PARENT") },
   );
-  return handlers;
+  return { ...handlers, queryClient };
 }
 
 const NEED_ID = "3d9e6b5a-4c73-4caf-9c65-8f3b2e4d1a32";
@@ -123,6 +123,49 @@ describe("PH01 Trang chủ phụ huynh", () => {
     ).toBeOnTheScreen();
     await act(async () => fireEvent.press(screen.getByRole("button", { name: "Tiếp tục nhập" })));
     expect(onContinueNeed).toHaveBeenCalledWith(NEED_ID);
+  });
+
+  describe("#70 a calendar read that fails again leaves the free time unsaid, whatever is cached (Đính, #267)", () => {
+    const DRAFT = need("DRAFT", { goal: "Ôn tập phân thức đại số lớp 8.", durationMinutes: 90 });
+    const KNOWN = "Cần thêm: ngân sách, số buổi mỗi tuần, ngày bắt đầu, khung giờ rảnh. Chưa thể tìm gia sư từ bản nháp.";
+    const UNSAID = "Cần thêm: ngân sách, số buổi mỗi tuần, ngày bắt đầu. Chưa thể tìm gia sư từ bản nháp.";
+    /** Only a day off: a calendar with no free time. */
+    const blockedOnly = () =>
+      new Response(
+        JSON.stringify({
+          id: "6a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+          version: 1,
+          timezone: "Asia/Ho_Chi_Minh",
+          windows: [{ start: "2026-11-23T11:00:00Z", end: "2026-11-23T14:00:00Z", kind: "BLOCKED" }],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json", ETag: '"1"' } },
+      );
+
+    it.each([
+      ["no calendar (404)", () => problem(404, "CALENDAR_NOT_FOUND", "Chưa có lịch rảnh.")],
+      ["a calendar with no free time", blockedOnly],
+    ])("cached %s, then 503", async (_, first) => {
+      let reads = 0;
+      server = serve({
+        "GET /students": () => page([MINH]),
+        "GET /students/{studentId}/needs": () => page([DRAFT]),
+        "GET /students/{studentId}/calendar": () => {
+          reads += 1;
+          return reads === 1 ? first() : problem(503, "UNAVAILABLE", "Dịch vụ tạm thời không sẵn sàng.");
+        },
+      });
+      const { queryClient } = await renderHome();
+      expect(await screen.findByText(KNOWN)).toBeOnTheScreen();
+
+      // Reads retry twice on 5xx with the default backoff before the query fails.
+      await act(async () => {
+        await queryClient.refetchQueries({ queryKey: ["calendars"] });
+      });
+
+      expect(queryClient.getQueryState(["calendars", "student", MINH.id])?.status).toBe("error");
+      expect(await screen.findByText(UNSAID)).toBeOnTheScreen();
+      expect(screen.queryByText(KNOWN)).toBeNull();
+    }, 15_000);
   });
 
   it("AC-UC02-01 changing child reloads the need block for that child", async () => {

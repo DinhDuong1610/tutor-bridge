@@ -11,7 +11,7 @@ import { StudentSwitcher } from "@/shared/ui/StudentSwitcher";
 import { colors, spacing, typography } from "@/shared/ui/theme";
 import { useFirstOffers, useNeeds, useTutorNames } from "../api";
 import { NeedCardView, TextAction } from "../components/NeedCardView";
-import { hasFreeTime } from "../freeTime";
+import { knownFreeTime } from "../freeTime";
 import { useStudentCalendar } from "@/features/calendar/api";
 import { hasOpenNeed, needCard, offerFactsByNeed, type Need, type NeedAction } from "../summary";
 
@@ -82,9 +82,10 @@ function ChildNeeds({
 }) {
   const needs = useNeeds(student.id);
   // The child's free time is the child's calendar (#16 Q1): a draft card names it in "Cần thêm" once the
-  // calendar is known to hold none. Loading or failing leaves it unsaid, as the counts below.
+  // calendar is known to hold none. Loading or failing leaves it unsaid, as the counts below, even with an
+  // older read cached.
   const calendar = useStudentCalendar(student.id);
-  const freeTime = calendar.data === undefined ? undefined : hasFreeTime(calendar.data?.data.windows ?? []);
+  const freeTime = knownFreeTime(calendar);
   // Counts and names on the cards. Loading them is not needed to read the list, so a failure only
   // leaves those words out; the cards and their actions stay.
   const offers = useFirstOffers().data?.items ?? [];

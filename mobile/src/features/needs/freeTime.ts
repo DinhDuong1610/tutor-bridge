@@ -18,6 +18,19 @@ export function hasFreeTime(windows: readonly CalendarWindow[]): boolean {
 }
 
 /**
+ * What PH01 and PH03 know of the child's free time for "Cần thêm": unknown (undefined) while the calendar loads
+ * and whenever its last read failed. TanStack Query keeps the data of an earlier read when a refetch fails, so a
+ * cached "no calendar" or "no free time" must not be stated as true then (PH01.md; Đính, #267).
+ */
+export function knownFreeTime(calendar: {
+  isError: boolean;
+  data: { data: { windows: readonly CalendarWindow[] } } | null | undefined;
+}): boolean | undefined {
+  if (calendar.isError || calendar.data === undefined) return undefined;
+  return hasFreeTime(calendar.data?.data.windows ?? []);
+}
+
+/**
  * PH04 "Giờ chưa đủ": a block of 7 days of the cycle has fewer free slots of the session's length than sessions
  * a week, counted as `confirmNeed` counts them (`slotsPerBlock`, #16 Q5). The server still decides. Null while a
  * term is missing or there is no free time at all: those are "Cần thêm".

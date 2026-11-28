@@ -62,13 +62,13 @@ describe("PH03 Nhu cầu của con", () => {
 
   async function renderNeeds() {
     const handlers = { onAddStudent: jest.fn(), onManageStudents: jest.fn(), onCreate: jest.fn(), onAction: jest.fn() };
-    await renderScreen(
+    const { queryClient } = await renderScreen(
       <SelectedStudentProvider>
         <NeedsScreen {...handlers} />
       </SelectedStudentProvider>,
       { session: fakeSession("PARENT") },
     );
-    return handlers;
+    return { ...handlers, queryClient };
   }
 
   it("lists the child's needs with their status in words, the terms of a confirmed one and its pending offers", async () => {
@@ -296,4 +296,31 @@ describe("PH03 Nhu cầu của con", () => {
       await screen.findByText("Cần thêm: ngân sách, giờ rảnh của con. Chưa thể tìm gia sư từ bản nháp."),
     ).toBeOnTheScreen();
   });
+  it("#70 a calendar read that fails again does not keep saying the free time is missing (Đính, #267)", async () => {
+    // TanStack Query keeps the cached "no calendar" when the refetch fails: that is not known any more.
+    let reads = 0;
+    server = serve({
+      "GET /students": () => page([MINH]),
+      "GET /students/{studentId}/needs": () => page([DRAFT]),
+      "GET /me/offers": () => page([]),
+      "GET /students/{studentId}/calendar": () => {
+        reads += 1;
+        return reads === 1
+          ? problem(404, "CALENDAR_NOT_FOUND", "Chưa có lịch rảnh.")
+          : problem(503, "UNAVAILABLE", "Dịch vụ tạm thời không sẵn sàng.");
+      },
+    });
+    const { queryClient } = await renderNeeds();
+    expect(
+      await screen.findByText("Cần thêm: ngân sách, giờ rảnh của con. Chưa thể tìm gia sư từ bản nháp."),
+    ).toBeOnTheScreen();
+
+    await act(async () => {
+      await queryClient.refetchQueries({ queryKey: ["calendars"] });
+    });
+
+    expect(queryClient.getQueryState(["calendars", "student", MINH.id])?.status).toBe("error");
+    expect(await screen.findByText("Cần thêm: ngân sách. Chưa thể tìm gia sư từ bản nháp.")).toBeOnTheScreen();
+    expect(screen.queryByText("Cần thêm: ngân sách, giờ rảnh của con. Chưa thể tìm gia sư từ bản nháp.")).toBeNull();
+  }, 15_000);
 });

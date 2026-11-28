@@ -4,7 +4,7 @@ import { Button } from "@/shared/ui/Button";
 import { QueryBody } from "@/shared/ui/QueryScreen";
 import { colors, spacing, typography } from "@/shared/ui/theme";
 import { useNeeds } from "../api";
-import { hasFreeTime } from "../freeTime";
+import { knownFreeTime } from "../freeTime";
 import { homeDraftCard, type Need } from "../summary";
 import { NeedCardView } from "./NeedCardView";
 
@@ -25,7 +25,7 @@ type Props = {
 export function HomeNeeds({ student, onCreateNeed, onContinueNeed }: Props) {
   const needs = useNeeds(student.id);
   const calendar = useStudentCalendar(student.id);
-  const freeTime = calendar.data === undefined ? undefined : hasFreeTime(calendar.data?.data.windows ?? []);
+  const freeTime = knownFreeTime(calendar);
   return (
     <QueryBody query={needs}>
       {(data) => {

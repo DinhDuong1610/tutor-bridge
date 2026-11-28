@@ -23,11 +23,21 @@ type Props = {
   onCreateNeed: () => void;
   /** PH04 for the child's draft (PH01 "Nhu cầu nháp", "Tiếp tục nhập"). */
   onContinueNeed: (needId: string) => void;
+  /** Temporary way in to COM01 until the tab bar exists (#205); goes with the tab bar. */
+  onNotifications: () => void;
 };
 
 type StudentItem = { id: string; displayName: string; grade: number };
 
-export function ParentHomeScreen({ onAddStudent, onManageStudents, onSecurity, onNeeds, onCreateNeed, onContinueNeed }: Props) {
+export function ParentHomeScreen({
+  onAddStudent,
+  onManageStudents,
+  onSecurity,
+  onNeeds,
+  onNotifications,
+  onCreateNeed,
+  onContinueNeed,
+}: Props) {
   const students = useStudents();
   return (
     // The approved "Dữ liệu cũ" frame puts the warning below the child switcher, not above it.
@@ -40,6 +50,7 @@ export function ParentHomeScreen({ onAddStudent, onManageStudents, onSecurity, o
       footer={
         <View style={styles.footer}>
           <Button variant="secondary" title="Tìm gia sư" onPress={onNeeds} />
+          <Button variant="secondary" title="Thông báo" onPress={onNotifications} />
           <Button variant="secondary" title="Bảo mật" onPress={onSecurity} />
         </View>
       }
@@ -68,7 +79,7 @@ function Home({
   onManageStudents,
   onCreateNeed,
   onContinueNeed,
-}: Omit<Props, "onSecurity" | "onNeeds"> & { items: StudentItem[]; staleNotice: ReactNode }) {
+}: Omit<Props, "onSecurity" | "onNeeds" | "onNotifications"> & { items: StudentItem[]; staleNotice: ReactNode }) {
   const { selected, select } = useSelectedStudent(items);
 
   if (!selected) {
@@ -99,9 +110,9 @@ function Home({
 
 const styles = StyleSheet.create({
   content: { gap: spacing.lg, paddingBottom: spacing.md },
+  footer: { gap: spacing.sm },
   // Undoes the horizontal padding of QueryScreen for this scroll view only.
   edgeToEdge: { marginHorizontal: -spacing.md },
   padded: { paddingHorizontal: spacing.md },
   greeting: { ...typography.heading, color: colors.text },
-  footer: { gap: spacing.sm },
 });

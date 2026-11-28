@@ -171,6 +171,39 @@ describe("PH05 Xem lại và xác nhận nhu cầu", () => {
     expect(confirms(server).map((r) => r.headers.get("If-Match"))).toEqual(['"2"', '"3"']);
   });
 
+  it("AC-UC04-01 a version read again while the sheet is open is not what gets confirmed (Đính, #266)", async () => {
+    // The sheet hides the review, so the parent never saw the newer budget: confirm what was asked about.
+    let stored = need(2);
+    server = mockApi({
+      "GET /needs/{needId}": () => withEtag(stored),
+      "GET /students": students,
+      "GET /students/{studentId}/calendar": calendar,
+      "POST /needs/{needId}/confirm": (request) =>
+        request.headers.get("If-Match") === '"3"'
+          ? withEtag(need(4, "CONFIRMED", stored.draft))
+          : problem(412, "PRECONDITION_FAILED", "Dữ liệu đã thay đổi."),
+    });
+    const handlers = { onBack: jest.fn(), onEdit: jest.fn(), onFindTutors: jest.fn() };
+    const { queryClient } = await renderScreen(<NeedReviewScreen needId={NEED_ID} {...handlers} now={NOW} />, {
+      session: fakeSession("PARENT"),
+    });
+    await screen.findByText("400.000 ₫ / buổi 90 phút");
+
+    await press("Xác nhận nhu cầu");
+    stored = need(3, "DRAFT", { ...COMPLETE, budgetVndSession: 500000 });
+    await act(async () => {
+      await queryClient.refetchQueries({ queryKey: ["needs"] });
+    });
+    expect(await screen.findByText("500.000 ₫ / buổi 90 phút")).toBeTruthy();
+    await pressInSheet("Xác nhận nhu cầu");
+
+    expect(confirms(server).map((r) => r.headers.get("If-Match"))).toEqual(['"2"']);
+    expect(
+      await screen.findByText("Dữ liệu đã thay đổi từ lúc bạn mở. Tải lại để xem bản mới; phần bạn đã nhập hợp lệ được giữ lại."),
+    ).toBeTruthy();
+    expect(screen.queryByText("Đã xác nhận nhu cầu. Bạn có thể tìm gia sư từ bản này.")).toBeNull();
+  });
+
   it("INV-20 after an unknown outcome the retry resends the same key and precondition", async () => {
     let attempts = 0;
     server = mockApi({

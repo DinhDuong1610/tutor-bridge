@@ -12,6 +12,7 @@ export default function ParentHomeRoute() {
       onNeeds={() => router.push("/parent/needs")}
       onCreateNeed={() => router.push("/parent/needs/new")}
       onContinueNeed={(needId) => router.push({ pathname: "/parent/needs/[needId]/edit", params: { needId } })}
+      onNotifications={() => router.push("/parent/notifications")}
     />
   );
 }

@@ -34,6 +34,7 @@ async function renderHome() {
     onNeeds: jest.fn(),
     onCreateNeed: jest.fn(),
     onContinueNeed: jest.fn(),
+    onNotifications: jest.fn(),
   };
   await renderScreen(
     <SelectedStudentProvider>
@@ -200,6 +201,17 @@ describe("PH01 Trang chủ phụ huynh", () => {
     await act(async () => fireEvent.press(screen.getByRole("button", { name: "Tìm gia sư" })));
 
     expect(onNeeds).toHaveBeenCalledTimes(1);
+  });
+
+  it("has a temporary way in to COM01 until the tab bar exists (#74, #205)", async () => {
+    server = serve({ "GET /students": () => page([MINH]) });
+    const { onNotifications, onSecurity } = await renderHome();
+    await screen.findByText("Minh An, lớp 8");
+
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Thông báo" })));
+
+    expect(onNotifications).toHaveBeenCalledTimes(1);
+    expect(onSecurity).not.toHaveBeenCalled();
   });
 
   it("keeps the way in to AUTH06 while the list is loading and after it fails (Codex, #192)", async () => {

@@ -60,9 +60,12 @@ export function TutorDetailScreen({ tutorId, runId, needId, onBack, onOtherChild
       {(loaded) => {
         const candidate = loaded.run.candidates.find((c) => c.tutor.tutorId === tutorId);
         const child = loaded.students.find((s) => s.id === loaded.need.data.studentId);
-        // Not a candidate of this run, hidden since, or a newer profile version than the one compared.
+        // Not a candidate of this run, hidden since, or a newer profile version than the one compared. A run of
+        // an older version of the need is out too: its price is for that version's duration, which getNeed no
+        // longer returns, and PH06 shows such a run for reference only (Codex, #274).
         const available =
           candidate !== undefined &&
+          loaded.run.needVersionId === loaded.need.data.versionId &&
           loaded.current !== null &&
           loaded.current.profileVersionId === candidate.tutor.profileVersionId;
         return (

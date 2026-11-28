@@ -75,18 +75,35 @@ class EvidenceUploadRepository {
     }
 
     /**
+     * The scan found other bytes than declared, or none: QUARANTINED becomes FAILED at {@code at} (V21). The
+     * time is when it failed, not its ticket: complete goes on with a QUARANTINED upload after its ticket
+     * expired, so a failure can be much newer than the ticket (Đính on #262).
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    void moveToFailed(UUID id, Instant at) {
+        int updated = jdbc.sql("""
+                update tutor_evidence_uploads set state = 'FAILED', failed_at = ?
+                where id = ? and state = 'QUARANTINED'
+                """).params(at(at), id).update();
+        if (updated != 1) {
+            throw new IllegalStateException("Upload " + id + " is not QUARANTINED");
+        }
+    }
+
+    /**
      * #182: marks DELETED, and returns the keys of, at most {@code limit} uploads whose bytes nothing can use
-     * any more: UPLOADING that expired before {@code expiredBefore}, and FAILED whose ticket expired before
-     * {@code failedBefore}. A FAILED upload failed before its ticket expired, so it is at least that old.
-     * Neither state can change once expired, so this needs no other check; an upload linked to a profile
-     * version is never taken, whatever its state. SKIP LOCKED: a row another transaction holds waits.
+     * any more: UPLOADING that expired before {@code expiredBefore}, and FAILED that failed before
+     * {@code failedBefore}. Neither state changes again: an expired UPLOADING takes no PUT or complete, and
+     * nothing moves a FAILED one but this. A FAILED upload with no failure time (failed by code before V21)
+     * is left alone. An upload linked to a profile version is never taken, whatever its state. SKIP LOCKED:
+     * a row another transaction holds waits.
      */
     @Transactional(propagation = Propagation.MANDATORY)
     List<String> markUnusedDeleted(Instant expiredBefore, Instant failedBefore, int limit) {
         return jdbc.sql("""
                 with due as (
                     select u.id from tutor_evidence_uploads u
-                    where ((u.state = 'UPLOADING' and u.expires_at < ?) or (u.state = 'FAILED' and u.expires_at < ?))
+                    where ((u.state = 'UPLOADING' and u.expires_at < ?) or (u.state = 'FAILED' and u.failed_at < ?))
                       and not exists (select 1 from tutor_profile_evidence e where e.upload_id = u.id)
                     order by u.expires_at
                     limit ?

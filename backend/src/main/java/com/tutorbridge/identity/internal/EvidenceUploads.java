@@ -251,7 +251,11 @@ public class EvidenceUploads {
                 receipts.fail(receipt.id(), CLOSED);
                 return null;
             }
-            uploads.moveState(uploadId, "QUARANTINED", verdict.name());
+            if (verdict == EvidenceScanner.Verdict.FAILED) {
+                uploads.moveToFailed(uploadId, clock.instant());
+            } else {
+                uploads.moveState(uploadId, "QUARANTINED", verdict.name());
+            }
             receipts.succeed(receipt.id(), RESULT_TYPE, uploadId);
             return new Evidence(row.id(), verdict.name(), row.expiresAt());
         });

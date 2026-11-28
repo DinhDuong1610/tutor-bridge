@@ -64,16 +64,26 @@ class EvidenceCleanupTest extends IntegrationTest {
 
     private record Upload(UUID id, String key) {}
 
-    /** An upload whose 15 minute ticket expired {@code expiredAgo} ago (negative: still in time). */
+    /**
+     * An upload whose 15 minute ticket expired {@code expiredAgo} ago (negative: still in time). A FAILED one
+     * failed when its ticket expired, the oldest it can be.
+     */
     private Upload upload(String state, Duration expiredAgo) {
+        return upload(state, expiredAgo, state.equals("FAILED") ? expiredAgo : null);
+    }
+
+    /** {@code failedAgo}: when it became FAILED (V21), null for no failure time. */
+    private Upload upload(String state, Duration expiredAgo, Duration failedAgo) {
         UUID id = UUID.randomUUID();
         String key = UUID.randomUUID().toString();
         jdbc.sql("""
                 insert into tutor_evidence_uploads(id, owner_id, object_key, media_type, size_bytes, sha256, state,
-                                                   created_at, expires_at)
+                                                   created_at, expires_at, failed_at)
                 values (?, ?, ?, 'application/pdf', 1, repeat('a', 64), ?,
-                        now() - cast(? as interval) - interval '15 minutes', now() - cast(? as interval))
-                """).params(id, tutor, key, state, expiredAgo.toString(), expiredAgo.toString()).update();
+                        now() - cast(? as interval) - interval '15 minutes', now() - cast(? as interval),
+                        now() - cast(? as interval))
+                """).params(id, tutor, key, state, expiredAgo.toString(), expiredAgo.toString(),
+                        failedAgo == null ? null : failedAgo.toString()).update();
         return new Upload(id, key);
     }
 
@@ -143,6 +153,35 @@ class EvidenceCleanupTest extends IntegrationTest {
         assertThat(object(recent.key())).exists();
     }
 
+    /**
+     * Đính on #262: complete goes on with a QUARANTINED upload after its ticket expired (a PROCESSING receipt
+     * replayed after a crash) and fails it only then. Its seven days count from the failure, not the ticket.
+     */
+    @Test
+    void a_failure_newer_than_its_expired_ticket_is_kept_seven_days_from_the_failure() throws Exception {
+        Upload justFailed = upload("QUARANTINED", Duration.ofDays(8));
+        bytes(justFailed.key(), Duration.ofDays(8));
+        // As complete leaves it (EvidenceUploads, transaction 2), with the app's clock.
+        tx.executeWithoutResult(status -> uploads.moveToFailed(justFailed.id(), Instant.now()));
+
+        cleanup.runOnce();
+
+        assertThat(state(justFailed)).isEqualTo("FAILED");
+        assertThat(object(justFailed.key())).exists();
+    }
+
+    @Test
+    void a_failed_upload_with_no_failure_time_is_left_alone() throws Exception {
+        // Failed by code before V21 after the migration ran: when is not known, so nothing is removed.
+        Upload unknown = upload("FAILED", Duration.ofDays(30), null);
+        bytes(unknown.key(), Duration.ofDays(30));
+
+        cleanup.runOnce();
+
+        assertThat(state(unknown)).isEqualTo("FAILED");
+        assertThat(object(unknown.key())).exists();
+    }
+
     @Test
     void ready_and_quarantined_bytes_are_never_touched_however_old() throws Exception {
         Upload ready = upload("READY", Duration.ofDays(30));
@@ -164,7 +203,8 @@ class EvidenceCleanupTest extends IntegrationTest {
         bytes(linked.key(), Duration.ofDays(30));
         link(linked);
         // Not a state the service produces: this checks the link alone protects the bytes.
-        jdbc.sql("update tutor_evidence_uploads set state = 'FAILED' where id = ?").param(linked.id()).update();
+        jdbc.sql("update tutor_evidence_uploads set state = 'FAILED', failed_at = now() - interval '30 days' where id = ?")
+                .param(linked.id()).update();
 
         cleanup.runOnce();
 

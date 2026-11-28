@@ -24,10 +24,12 @@ import org.springframework.transaction.support.TransactionOperations;
  * #182: removes evidence bytes nothing can use any more, so the local {@link ObjectStore} does not fill up.
  *
  * <ol>
- *   <li><b>Uploads.</b> UPLOADING past its ticket by {@code expiredKeep}, and FAILED older than
- *       {@code failedKeep}, become DELETED, a batch per short transaction (SKIP LOCKED); their bytes are
- *       removed after the commit, outside any transaction (INV-18). Once a ticket has expired, neither a
- *       PUT nor a complete can change the upload or its bytes, so nothing races the job.</li>
+ *   <li><b>Uploads.</b> UPLOADING past its ticket by {@code expiredKeep}, and FAILED that failed more than
+ *       {@code failedKeep} ago ({@code failed_at}, V21), become DELETED, a batch per short transaction (SKIP
+ *       LOCKED); their bytes are removed after the commit, outside any transaction (INV-18). An expired
+ *       UPLOADING takes no PUT or complete, and nothing moves a FAILED one again, so nothing races the job.
+ *       The failure time is not the ticket's: complete goes on with a QUARANTINED upload after its ticket
+ *       expired, and only then fails it (Đính on #262).</li>
  *   <li><b>Orphans.</b> Bytes in {@code objects} whose key no row in use names, written more than
  *       {@code orphanKeep} ago: a PUT the database then refused, or step 1 stopped between its commit and
  *       the removal. The age keeps the bytes of a PUT still on its way to its row.</li>

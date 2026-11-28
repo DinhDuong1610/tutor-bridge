@@ -146,6 +146,22 @@ describe("PH07 Chi tiết gia sư công khai", () => {
     expect(onBack).toHaveBeenCalled();
   });
 
+  it("a run of an older version of the need is not shown with the new version's duration (as PH06, Codex #274)", async () => {
+    // The need was edited and confirmed again at 120 minutes after this run priced 90-minute sessions.
+    const moved = { ...need, revision: 4, versionId: "5f1a8d7c-6e95-4ecb-9e87-0b5d4a6f3c54", draft: { ...need.draft, durationMinutes: 120 } };
+    api = mockApi({
+      "GET /matching-runs/{runId}": () => json(200, run()),
+      "GET /tutors/{tutorId}/public-profile": () => json(200, tutor()),
+      "GET /needs/{needId}": () =>
+        new Response(JSON.stringify(moved), { status: 200, headers: { "Content-Type": "application/json", ETag: '"4"' } }),
+      "GET /students": students,
+    });
+    await renderDetail();
+
+    expect(await screen.findByText("Hồ sơ có thể đã ẩn hoặc thay đổi. Quay lại danh sách và tìm lại để có kết quả mới.")).toBeTruthy();
+    expect(screen.queryByText(/375.000 ₫ \/ buổi/)).toBeNull();
+  });
+
   it("a tutor who is not a candidate of this run is not shown with the run's terms", async () => {
     api = server({ run: () => json(200, { ...run(), candidates: [] }) });
     await renderDetail();

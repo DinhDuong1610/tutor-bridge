@@ -82,7 +82,7 @@ function server(routes: { run?: () => Response; current?: () => Response } = {})
 }
 
 async function renderDetail(needId = NEED_ID) {
-  const handlers = { onBack: jest.fn(), onOtherChild: jest.fn(), onManageStudents: jest.fn() };
+  const handlers = { onBack: jest.fn(), onSendOffer: jest.fn(), onOtherChild: jest.fn(), onManageStudents: jest.fn() };
   const rendered = await renderScreen(
     <SelectedStudentProvider>
       <TutorDetailScreen tutorId={TUTOR_ID} runId={RUN_ID} needId={needId} {...handlers} />
@@ -98,7 +98,7 @@ describe("PH07 Chi tiết gia sư công khai", () => {
 
   it("FR-12 shows the candidate as compared on PH06: labels, price for this need, teaching and common sessions", async () => {
     api = server();
-    await renderDetail();
+    const { onSendOffer } = await renderDetail();
 
     expect(await screen.findByRole("header", { name: "Nguyễn Thị Lan" })).toBeTruthy();
     expect(screen.getByRole("header", { name: "Thông tin gia sư" })).toBeTruthy();
@@ -117,8 +117,9 @@ describe("PH07 Chi tiết gia sư công khai", () => {
     ]) {
       expect(screen.getByText(text)).toBeTruthy();
     }
-    // "Gửi đề nghị" comes with PH08 in #72 (Đính, #71).
-    expect(screen.queryByRole("button", { name: "Gửi đề nghị" })).toBeNull();
+    // "Gửi đề nghị" opens PH08 (#72).
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Gửi đề nghị" })));
+    expect(onSendOffer).toHaveBeenCalled();
   });
 
   it("worst case: a long name in full, two verified scopes and the count of the rest", async () => {
@@ -142,6 +143,7 @@ describe("PH07 Chi tiết gia sư công khai", () => {
     expect(screen.getByText("Hồ sơ có thể đã ẩn hoặc thay đổi. Quay lại danh sách và tìm lại để có kết quả mới.")).toBeTruthy();
     // Terms that no longer hold are not shown.
     expect(screen.queryByText("375.000 ₫ / buổi 90 phút")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Gửi đề nghị" })).toBeNull();
     await act(async () => fireEvent.press(screen.getByRole("button", { name: "Quay lại danh sách" })));
     expect(onBack).toHaveBeenCalled();
   });

@@ -81,7 +81,9 @@ function Review({
 }) {
   const calendar = useStudentCalendar(revision.data.studentId);
   const confirm = useConfirmNeed();
-  const [asking, setAsking] = useState(false);
+  // The version the sheet asks about, fixed when it opens: a refetch behind the sheet must not change what
+  // is confirmed. If the server holds a newer one by then, the If-Match fails with 412 (AC-UC04-01, INV-23).
+  const [asking, setAsking] = useState<{ needId: string; etag: string } | null>(null);
   const need = revision.data;
   const draft = need.draft;
   const stale = confirm.state === "failed" && confirm.error?.kind === "stale";
@@ -92,8 +94,10 @@ function Review({
     confirm.reset();
   };
   const send = () => {
-    setAsking(false);
-    void confirm.submit({ needId: need.id, etag: revision.etag });
+    if (asking) {
+      setAsking(null);
+      void confirm.submit(asking);
+    }
   };
 
   return (
@@ -151,7 +155,7 @@ function Review({
                       title="Xác nhận nhu cầu"
                       busy={busy}
                       disabled={!complete || stale || confirm.state === "unknown"}
-                      onPress={() => setAsking(true)}
+                      onPress={() => setAsking({ needId: need.id, etag: revision.etag })}
                     />
                     <Button variant="secondary" title="Sửa" disabled={busy} onPress={() => onEdit(need.id)} />
                   </>
@@ -159,12 +163,12 @@ function Review({
               </StickyActionBar>
             )}
             <ConfirmSheet
-              visible={asking}
+              visible={asking !== null}
               title="Xác nhận nhu cầu này?"
               message="Gợi ý gia sư và đề nghị sẽ dùng đúng bản này. Sau khi xác nhận, muốn sửa sẽ tạo bản nháp mới; kết quả cũ được giữ để đối chiếu."
               confirmTitle="Xác nhận nhu cầu"
               onConfirm={send}
-              onCancel={() => setAsking(false)}
+              onCancel={() => setAsking(null)}
             />
           </View>
         );

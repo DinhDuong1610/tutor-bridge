@@ -102,7 +102,8 @@ class OfferController {
     }
 
     /** A write's answer: the offer with its ETag and the receipt id in X-Operation-Id (#221). */
-    private static ResponseEntity<OfferService.Offer> written(HttpStatus status, Receipted<OfferService.Offer> written) {
+    private static ResponseEntity<OfferService.Offer> written(HttpStatus status,
+            Receipted<OfferService.Offer> written) {
         OfferService.Offer offer = written.value();
         return ResponseEntity.status(status).header(HttpHeaders.ETAG, Etag.of(offer.revision()))
                 .header(Receipted.HEADER, written.operationId().toString()).body(offer);

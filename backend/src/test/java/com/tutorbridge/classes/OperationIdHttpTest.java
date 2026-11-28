@@ -103,8 +103,8 @@ class OperationIdHttpTest extends HttpTest {
                 .content("{\"mode\":\"B\",\"needVersionId\":\"%s\",\"fallbackExplicitlyChosen\":true}"
                         .formatted(s.need().versionId())), 202, "CREATE_MATCHING_RUN");
 
-        MockHttpServletRequestBuilder send = post("/api/v1/needs/" + s.need().id() + "/offers").header("If-Match", "\"2\"")
-                .contentType(MediaType.APPLICATION_JSON).content(input(s.need(), s.candidate()));
+        MockHttpServletRequestBuilder send = post("/api/v1/needs/" + s.need().id() + "/offers")
+                .header("If-Match", "\"2\"").contentType(MediaType.APPLICATION_JSON).content(input(s.need(), s.candidate()));
         UUID rejected = id(twice(s.parent(), send, 201, "SEND_OFFER"));
         twice(tutor, post("/api/v1/offers/" + rejected + "/reject").header("If-Match", "\"1\"")
                 .contentType(MediaType.APPLICATION_JSON).content(reason("NOT_AVAILABLE")), 200, "REJECT_OFFER");

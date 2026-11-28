@@ -139,8 +139,8 @@ public class OfferService {
         }
     }
 
-    private Receipted<Offer> sendInTransaction(Actor actor, UUID needId, IdempotencyKey key, WritePrecondition.Expected expected,
-            Input input, Map<String, Object> payload) {
+    private Receipted<Offer> sendInTransaction(Actor actor, UUID needId, IdempotencyKey key,
+            WritePrecondition.Expected expected, Input input, Map<String, Object> payload) {
         locks.limitWait();
         Receipt receipt = receipts.begin(actor.accountId(), SEND, key.value(), payload);
         // TX04: the need first (INV-16), FOR UPDATE as TX05 takes it, so update, confirm and a second send wait.

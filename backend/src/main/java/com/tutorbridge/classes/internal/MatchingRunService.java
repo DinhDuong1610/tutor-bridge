@@ -111,8 +111,7 @@ public class MatchingRunService {
     }
 
     public Receipted<MatchingRun> create(Actor actor, UUID needId, IdempotencyKey key,
-            WritePrecondition.Expected expected,
-            Input input) {
+            WritePrecondition.Expected expected, Input input) {
         requireParentRole(actor);
         validate(input);
         Map<String, Object> payload = new LinkedHashMap<>();

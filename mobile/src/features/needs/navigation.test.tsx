@@ -1,6 +1,7 @@
 import { act, fireEvent, renderRouter, screen } from "expo-router/testing-library";
 import { json, mockApi, problem } from "@/shared/test/mockApi";
 import { clearStore, fakeSession, storeSession } from "@/shared/test/session";
+import { preloadRoutes } from "@/shared/test/preloadRoutes";
 import type { Need, Offer } from "./summary";
 
 // Fake data only (AGENTS.md).
@@ -20,6 +21,9 @@ const CONFIRMED = need("4f108d72-6e95-4ecb-9e87-a14d406f3254", "CONFIRMED", "h�
 const DRAFT = need("50219e83-7fa6-4fdc-8f98-b25e5170436a", "DRAFT", "ôn thi học kỳ 2");
 const CLOSED = need("61320f94-80b7-4aed-90a9-c36f6281547b", "CLOSED", "nhân chia đa thức");
 const ACCEPTED = { id: "94653fc7-b3ea-4d01-83dc-f69295b47802", needId: CLOSED.id, state: "ACCEPTED", tutorId: TUTOR, classId: CLASS } as Offer;
+
+// #123: compile the route tree before the first test, with its own timeout.
+beforeAll(preloadRoutes, 120_000);
 
 let server: ReturnType<typeof mockApi>;
 

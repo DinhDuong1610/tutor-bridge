@@ -26,7 +26,14 @@ import org.springframework.util.IdGenerator;
 public class AccountSessions {
 
     public record Credential(UUID sessionId, String accessToken, String role, Instant idleExpiresAt,
-            Instant absoluteExpiresAt) {}
+            Instant absoluteExpiresAt) {
+
+        @Override
+        public String toString() {
+            return "Credential[sessionId=%s, accessToken=%s, role=%s, idleExpiresAt=%s, absoluteExpiresAt=%s]"
+                    .formatted(sessionId, Masked.VALUE, role, idleExpiresAt, absoluteExpiresAt);
+        }
+    }
 
     public record OwnSession(UUID id, String deviceLabel, Instant lastSeenAt, Instant expiresAt, boolean current,
             boolean revoked) {}
@@ -67,9 +74,9 @@ public class AccountSessions {
         // Only after a correct password, so these never reveal that an email has an account (Q5).
         switch (login.status()) {
             case "UNVERIFIED" -> throw new ApiException(HttpStatus.FORBIDDEN, "ACCOUNT_UNVERIFIED",
-                    "Email chưa được xác minh. Vui lòng mở liên kết trong email hoặc gửi lại liên kết.");
+                    "Email chưa được xác minh. Mở liên kết trong email, hoặc gửi lại liên kết.");
             case "LOCKED" -> throw new ApiException(HttpStatus.FORBIDDEN, "ACCOUNT_LOCKED",
-                    "Tài khoản đang bị khóa. Vui lòng liên hệ hỗ trợ.");
+                    "Tài khoản đang bị tạm khóa nên chưa đăng nhập được.");
             default -> { }
         }
 

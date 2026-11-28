@@ -3,10 +3,11 @@
 // to lose when a shadcn component is added again from the registry, so the tests read the source.
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 import { buttonVariants } from "./button";
 import { Input } from "./input";
+import { Notice } from "./notice";
 
 // Comments removed: globals.css explains why the faded ring was dropped, and that is not a rule.
 const css = readFileSync(resolve(__dirname, "../../app/globals.css"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
@@ -42,5 +43,70 @@ describe("web foundation (#95)", () => {
     expect(css).toMatch(/::selection\s*{\s*background-color:\s*var\(--primary\);\s*color:\s*var\(--primary-foreground\);/);
     expect(css).toMatch(/caret-color:\s*var\(--primary\);/);
     expect(css).toMatch(/scrollbar-color:\s*var\(--muted-foreground\) var\(--muted\);/);
+  });
+});
+
+describe("web tokens (#95)", () => {
+  const doc = readFileSync(resolve(__dirname, "../../../../docs/design/ui/02-nen-thiet-ke.md"), "utf8");
+
+  it("gives every CSS variable of the color table its documented value", () => {
+    // | `figma` | `mobile` | `--web`, `--web2` | `#value` | use |
+    const rows = [...doc.matchAll(/^\| `[^`]+`[^|]*\| `\w+` \| ([^|]+)\| `(#[0-9A-F]{6})` \|/gm)];
+    const checked = new Set<string>();
+    for (const [, cell, value] of rows) {
+      for (const [, name] of cell.matchAll(/`(--[\w-]+)`/g)) {
+        // `--primary` also stands for status/info: same value, so one variable.
+        expect({ name, value: new RegExp(`${name}:\\s*(#[0-9a-f]{6});`).exec(css)?.[1] }).toEqual({ name, value: value.toLowerCase() });
+        checked.add(name);
+      }
+    }
+    expect(checked).toEqual(new Set(["--background", "--muted", "--secondary", "--foreground", "--muted-foreground", "--border", "--input", "--divider", "--primary", "--ring", "--primary-pressed", "--primary-foreground", "--accent", "--success", "--success-surface", "--warning", "--warning-surface", "--destructive", "--destructive-surface"]));
+  });
+
+  it("derives the 8 and 12 radius of the design from --radius", () => {
+    expect(css).toMatch(/--radius:\s*0\.75rem;/);
+    expect(css).toMatch(/--radius-sm:\s*calc\(var\(--radius\) - 4px\);/);
+    // rounded-md of buttons, inputs and notices: 8, not shadcn's 10 (#188).
+    expect(css).toMatch(/--radius-md:\s*calc\(var\(--radius\) - 4px\);/);
+    expect(css).toMatch(/--radius-lg:\s*var\(--radius\);/);
+  });
+});
+
+describe("Button disabled (Figma Button State=Disabled 6:143, 6:148; Đính, 22/11/2026, #95)", () => {
+  it.each(["default", "secondary", "outline"] as const)(
+    "draws a disabled %s button with surface, border and textMuted, not see-through",
+    (variant) => {
+      const classes = buttonVariants({ variant }).split(/\s+/);
+
+      expect(classes).toEqual(expect.arrayContaining(["disabled:bg-muted", "disabled:border", "disabled:border-border", "disabled:text-muted-foreground"]));
+      expect(classes.some((name) => name.startsWith("disabled:opacity"))).toBe(false);
+    },
+  );
+});
+
+describe("web Notice (#95, Đính 22/11/2026)", () => {
+  afterEach(cleanup);
+
+  const tones = [
+    ["info", "Thông tin", "status"],
+    ["success", "Đã xong", "status"],
+    ["warning", "Lưu ý", "alert"],
+    ["danger", "Lỗi", "alert"],
+  ] as const;
+
+  it.each(tones)("names the %s tone by its icon, not by color or a label line", async (tone, word, role) => {
+    const { container } = await render(<Notice tone={tone} message="Đang gửi…" />);
+
+    const box = screen.getByRole(role);
+    expect(screen.getByRole("img", { name: word })).toBeTruthy();
+    expect(box.textContent).toBe("Đang gửi…");
+    // No colored side edge (10-ra-soat-nen-08-11.md P2) and only token colors.
+    expect(box.className).not.toMatch(/border/);
+    expect(container.innerHTML).not.toMatch(/#[0-9a-f]{3,6}/i);
+  });
+
+  it("keeps an action, such as Thử lại, under the message", async () => {
+    await render(<Notice tone="warning" message="Chưa rõ kết quả." action={<button type="button">Thử lại</button>} />);
+    expect(screen.getByRole("button", { name: "Thử lại" })).toBeTruthy();
   });
 });

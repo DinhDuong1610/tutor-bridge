@@ -2,23 +2,23 @@
 
 Theo [ADR-0001](../decisions/adr/0001-nguyen-khoi-chia-mo-dun.md). Chỉ mô-đun sở hữu mới được ghi và truy vấn trực tiếp các bảng của mình. Mô-đun khác đi qua API công khai của mô-đun đó.
 
-Thiết kế gốc liệt kê mô-đun ở mức nhóm. Việc gán từng bảng dưới đây là suy ra từ F01–F06, gồm cả 3 bảng của V6, 3 bảng của V9 và 1 bảng của V10.
+Thiết kế gốc liệt kê mô-đun ở mức nhóm. Việc gán từng bảng dưới đây là suy ra từ F01–F06, gồm cả 3 bảng của V6, 3 bảng của V9, 1 bảng của V10 và 1 bảng của V11.
 
 | Mô-đun | Package | Luồng | Tài liệu | Bảng |
 |---|---|---|---|---|
-| Identity & Profiles | `identity` | F01 | UC01–UC03 | 17 |
-| Matching & Classes | `classes` | F02, F03 | UC04–UC08 | 18 |
+| Identity & Profiles | `identity` | F01 | UC01–UC03 | 18 |
+| Matching & Classes | `classes` | F02, F03 | UC04–UC08 | 19 |
 | Materials & Planning | `materials` | F04 | UC10, UC11 | 23 |
 | Learning | `learning` | F05 | UC09, UC12, UC13 | 12 |
 | Support & Privacy | `privacy` | F06 | UC14, UC16 | 10 |
 | Platform | `platform` | Dùng chung | UC15, FR-37 | 4 |
 
-Tổng 84 bảng.
+Tổng 86 bảng.
 
 ## Bảng theo mô-đun
-**identity:** `accounts`, `auth_sessions`, `account_credentials`, `auth_challenges`, `admin_assignments`, `admin_mfa_enrollments`, `students`, `student_links`, `student_invitations`, `student_link_events`, `tutor_profiles`, `tutor_verifications`, `tutor_evidence_uploads`, `terms_acceptances`, `auth_login_failures`, `auth_rate_counters`, `student_goal_versions`
+**identity:** `accounts`, `auth_sessions`, `account_credentials`, `auth_challenges`, `admin_assignments`, `admin_mfa_enrollments`, `students`, `student_links`, `student_invitations`, `student_link_events`, `tutor_profiles`, `tutor_verifications`, `tutor_evidence_uploads`, `terms_acceptances`, `auth_login_failures`, `auth_rate_counters`, `student_goal_versions`, `tutor_profile_evidence`
 
-**classes:** `calendars`, `availability_windows`, `learning_needs`, `need_versions`, `matching_runs`, `matching_candidates`, `class_offers`, `offer_sessions`, `classes`, `class_goal_versions`, `lesson_sessions`, `resource_bookings`, `schedule_change_requests`, `session_schedule_history`, `class_end_records`, `embedding_configs`, `tutor_profile_embeddings`, `need_version_embeddings`
+**classes:** `calendars`, `availability_windows`, `learning_needs`, `need_versions`, `matching_runs`, `matching_candidates`, `matching_candidate_sessions`, `class_offers`, `offer_sessions`, `classes`, `class_goal_versions`, `lesson_sessions`, `resource_bookings`, `schedule_change_requests`, `session_schedule_history`, `class_end_records`, `embedding_configs`, `tutor_profile_embeddings`, `need_version_embeddings`
 
 **materials:** `materials`, `material_versions`, `source_segments`, `material_grants`, `revocation_ledger`, `preparation_contexts`, `context_sources`, `context_logs`, `ai_policies`, `ai_jobs`, `ai_attempts`, `quota_counters`, `budget_ledgers`, `ai_reservations`, `worker_slots`, `lesson_plans`, `plan_versions`, `plan_activities`, `plan_dependencies`, `plan_citations`, `private_plan_answers`, `plan_publications`, `answer_releases`
 

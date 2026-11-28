@@ -47,8 +47,8 @@ describe("navigation without a session", () => {
 
 describe("navigation with a session", () => {
   it.each([
-    ["PARENT", "/parent", "Trang chủ phụ huynh"],
-    ["TUTOR", "/tutor", "Trang chủ gia sư"],
+    ["PARENT", "/parent", "Tổng quan"],
+    ["TUTOR", "/tutor", "Tổng quan"],
   ] as const)("sends a %s to %s", async (role, home, title) => {
     storeSession(fakeSession(role));
     await renderRouter("./src/app", { initialUrl: "/" });
@@ -61,7 +61,7 @@ describe("navigation with a session", () => {
     storeSession(fakeSession("PARENT"));
     await renderRouter("./src/app", { initialUrl: "/tutor" });
 
-    expect(await screen.findByRole("header", { name: "Trang chủ phụ huynh" })).toBeOnTheScreen();
+    expect(await screen.findByRole("header", { name: "Tổng quan" })).toBeOnTheScreen();
     expect(screen).toHavePathname("/parent");
   });
 
@@ -69,7 +69,7 @@ describe("navigation with a session", () => {
     storeSession(fakeSession("TUTOR"));
     await renderRouter("./src/app", { initialUrl: "/sign-in" });
 
-    expect(await screen.findByRole("header", { name: "Trang chủ gia sư" })).toBeOnTheScreen();
+    expect(await screen.findByRole("header", { name: "Tổng quan" })).toBeOnTheScreen();
     expect(screen).toHavePathname("/tutor");
   });
 

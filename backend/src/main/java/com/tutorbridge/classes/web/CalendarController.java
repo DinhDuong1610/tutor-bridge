@@ -10,15 +10,20 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-/** getTutorCalendar, replaceTutorCalendar (UC07, TB-15). The service checks the owner and the windows. */
+/**
+ * getTutorCalendar, replaceTutorCalendar, getStudentCalendar, replaceStudentCalendar (UC07, TB-15).
+ * The service checks the owner and the windows.
+ */
 @RestController
 class CalendarController {
 
@@ -42,9 +47,25 @@ class CalendarController {
     @PutMapping("/api/v1/me/tutor-calendar")
     ResponseEntity<CalendarService.Calendar> replaceTutorCalendar(@AuthenticationPrincipal Actor actor,
             IdempotencyKey key, WritePrecondition precondition, @Valid @RequestBody CalendarInput input) {
-        return withEtag(calendars.replaceTutorCalendar(actor, key, precondition, input.timezone(),
-                input.windows().stream()
-                        .map(w -> new CalendarService.Window(w.start(), w.end(), w.kind())).toList()));
+        return withEtag(calendars.replaceTutorCalendar(actor, key, precondition, input.timezone(), windows(input)));
+    }
+
+    @GetMapping("/api/v1/students/{studentId}/calendar")
+    ResponseEntity<CalendarService.Calendar> getStudentCalendar(@AuthenticationPrincipal Actor actor,
+            @PathVariable UUID studentId) {
+        return withEtag(calendars.getStudentCalendar(actor, studentId));
+    }
+
+    @PutMapping("/api/v1/students/{studentId}/calendar")
+    ResponseEntity<CalendarService.Calendar> replaceStudentCalendar(@AuthenticationPrincipal Actor actor,
+            @PathVariable UUID studentId, IdempotencyKey key, WritePrecondition precondition,
+            @Valid @RequestBody CalendarInput input) {
+        return withEtag(calendars.replaceStudentCalendar(actor, studentId, key, precondition, input.timezone(),
+                windows(input)));
+    }
+
+    private static List<CalendarService.Window> windows(CalendarInput input) {
+        return input.windows().stream().map(w -> new CalendarService.Window(w.start(), w.end(), w.kind())).toList();
     }
 
     private static ResponseEntity<CalendarService.Calendar> withEtag(CalendarService.Calendar calendar) {

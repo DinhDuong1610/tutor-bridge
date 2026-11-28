@@ -32,7 +32,7 @@ Mục ghi **TBD** là quyết định còn mở, chưa được tự chọn.
 - Lỗi nghiệp vụ dùng kiểu riêng, ánh xạ về Problem tại một chỗ.
 - Không gọi dịch vụ ngoài trong giao dịch (INV-18).
 - Nền chung theo [ADR-0010](../decisions/adr/0010-nen-backend.md), đặt trong `platform`: `Actor` và `SessionResolver` cho xác thực, đọc `Idempotency-Key` và `If-Match`, `Cache-Control`, ánh xạ lỗi validate. Controller dùng các phần này, không tự đọc header.
-- Controller khai báo tham số `IdempotencyKey` cho lệnh ghi, `WritePrecondition.Expected` khi cần `If-Match`, `WritePrecondition` khi cho phép tạo lần đầu bằng `If-None-Match: *`. Phản hồi có phiên bản đặt `ETag` bằng `Etag.of(version)`. Mọi phản hồi đã có sẵn `Cache-Control: private, no-store`.
+- Controller khai báo tham số `IdempotencyKey` cho lệnh ghi, `WritePrecondition.Expected` khi cần `If-Match`, `WritePrecondition` khi cho phép tạo lần đầu bằng `If-None-Match: *`. Phản hồi có phiên bản đặt `ETag` bằng `Etag.of(version)`. Mọi phản hồi đã có sẵn `Cache-Control: private, no-store`. GET và HEAD không bao giờ trả 304: `NoConditionalGetFilter` bỏ `If-None-Match` và `If-Modified-Since` khỏi lệnh đọc, vì hợp đồng không khai 304 (Huy, 25/11/2026).
 - Code mới lấy thời gian từ bean `Clock` (UTC) và ID từ bean `IdGenerator`, không gọi `Instant.now()` hay `UUID.randomUUID()` trực tiếp, để test cố định được.
 - Không ghi bí mật hay dữ liệu cá nhân vào log. `LogRedaction` che bearer, cookie phiên, email, cặp `password=`… trong log JSON và trong log text của profile `local` (`RedactedTextLogFormatter`, cả stack trace; Đính chốt 13/11/2026, #85), nhưng chỉ là lớp chặn cuối.
 - Dữ liệu giả cho máy local: mỗi mô-đun khai báo một bean `LocalSeed` trong gói `internal`, chỉ ghi bảng của mình, chạy lại được nhiều lần, dữ liệu rõ ràng là giả.
@@ -41,6 +41,7 @@ Mục ghi **TBD** là quyết định còn mở, chưa được tự chọn.
 - Test HTTP của chức năng: kế thừa `HttpTest` (toàn ứng dụng, PostgreSQL thật), tạo người gọi bằng `newActor(role)`, gửi bằng `.with(sessions().as(actor))`, và mọi phản hồi qua `.andExpect(Contract.matches())`. Xem `HttpTestExampleTest`.
 - Test riêng tầng web không cần DB: `@WebMvcTest` kèm `@Import(WebSecurityTestConfig.class)` và `TestSessions`.
 - Ca âm quyền luôn có: không phiên, sai vai trò, đối tượng của người khác.
+- Lệnh ghi receipt bằng một `resultType` mới (`CommandReceipts.succeed`) thì khai loại đó trong bean `CommandResults` của mô-đun mình, cùng điều kiện chủ sở hữu như lần đọc kết quả. Loại chưa khai thì `getCommandStatus` và `findCommandStatus` ẩn `resultType`, `resultId` (TX16, INV-22; Huy, 24/11/2026). Ví dụ: `ClassesCommandResults`, `IdentityCommandResults`.
 
 ### Thêm một chức năng backend
 ```text
@@ -129,7 +130,7 @@ web/src/
     (public)/          WEB01 (/), WEB02 (/huong-dan); không có học liệu riêng
     admin/(auth)/      AD01 /admin/sign-in
     admin/(console)/   AD03 /admin/verifications, AD04...; layout kiểm phiên quản trị
-    admin/session-expired/route.ts   xóa cookie khi API trả 401
+    admin/session-expired/route.ts   xóa cookie khi API trả 401, 403
     not-found.tsx      404 tiếng Việt
   proxy.ts             chặn /admin khi chưa có cookie phiên
   features/<tính năng>/   components, actions.ts (Server Action), schemas.ts
@@ -147,7 +148,7 @@ web/src/
 ### Phiên quản trị
 - Cookie `tb_session` (HttpOnly, Secure, SameSite=Strict) đặt bằng `setSessionCookie` trong Server Action đăng nhập; xóa bằng `clearSessionCookie`. Trình duyệt không đọc được token.
 - Gọi API bằng `await adminApi()`: tự gửi cookie phiên; lệnh ghi gửi thêm cặp CSRF và `Origin` (`TB_WEB_ORIGIN`, phải nằm trong `tutorbridge.security.admin-origins` của API).
-- `proxy.ts` chỉ kiểm có cookie. Kiểm thật là `verifyAdminSession()`: layout quản trị gọi, và **mỗi trang quản trị cũng gọi** trước khi lấy dữ liệu, vì trang được prerender một phần nên phần tĩnh của trang con vẫn gửi đi dù layout chuyển hướng. Không đặt nội dung nhạy cảm trong phần tĩnh.
+- `proxy.ts` chỉ kiểm có cookie. Kiểm thật là `verifyAdminSession()`, gọi `getAdminSession`: chỉ phiên ADMIN đã qua MFA được vào console; 401, 403 đi qua `/admin/session-expired`, route này hỏi lại API và chỉ xóa cookie khi API trả 401 hoặc 403 (#82, #86). Chuyển tiếp sau đăng nhập chỉ dùng `safeNextPath(next)`. Layout quản trị gọi `verifyAdminSession()`, và **mỗi trang quản trị cũng gọi** trước khi lấy dữ liệu, vì trang được prerender một phần nên phần tĩnh của trang con vẫn gửi đi dù layout chuyển hướng. Không đặt nội dung nhạy cảm trong phần tĩnh.
 
 ### Trang và form
 - Đọc trong Server Component: `const result = await load((await adminApi()).GET(...))`; `result.status !== "ok"` thì trả `<StateMessage result={result} />`. 401 tự về hết phiên. Danh sách rỗng dùng `EmptyState`. Khung trang `AdminPage`.

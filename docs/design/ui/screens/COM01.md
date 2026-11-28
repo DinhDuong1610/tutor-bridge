@@ -52,7 +52,7 @@ Nguyên văn trong Figma; câu chung lấy từ [04](../04-trang-thai-cau-chu.md
 |---|---|
 | `TopAppBar` | Chưa có trong code, thêm ở Issue giao diện đầu tiên dùng nó (`shared/ui`) |
 | `Notice` | `Notice.tsx` |
-| `NavigationBar` | Chưa có trong code, thêm ở Issue giao diện đầu tiên dùng nó (`shared/ui`) |
+| `NavigationBar` | `NavigationBar.tsx` (#95 phần 1b); tab theo vai trò gắn ở Issue màn hình |
 
 ## Khác so với đặc tả và câu hỏi còn mở
 

@@ -57,4 +57,5 @@ Nguyên văn trong Figma; câu chung lấy từ [04](../04-trang-thai-cau-chu.md
 
 ## Khác so với đặc tả và câu hỏi còn mở
 
-Không có.
+- Đính chốt 18/11/2026 (#179): bỏ trạng thái "Sai mục đích". Liên kết không dùng được vì lý do khác hết hạn hoặc đã dùng thì hiện "Liên kết không hợp lệ." kèm "Hãy mở đúng liên kết trong email, hoặc gửi lại liên kết mới."
+- Đính chốt 18/11/2026 (#179): giữ nút "Xác minh email" như TB-10. Mở liên kết chưa tự xác minh ngay, người dùng bấm nút mới gửi lệnh.

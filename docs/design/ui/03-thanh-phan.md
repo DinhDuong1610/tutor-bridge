@@ -5,9 +5,11 @@ Mỗi component trong Figma có **cùng tên và cùng variant** với component
 ## Đã có trong code
 | Figma | Mobile `shared/ui/` | Web `shared/ui/` | Variant và thuộc tính |
 |---|---|---|---|
-| `Button` | `Button.tsx` | `button.tsx` (shadcn) | `variant`: primary, secondary (web thêm destructive, outline, ghost); `busy`; `disabled`. Nhãn là động từ nói đúng kết quả: "Gửi đề nghị", không "Xác nhận" |
+| `Button` | `Button.tsx` | `button.tsx` (shadcn) | `variant`: primary, secondary (web thêm destructive, outline, ghost); `busy`; `disabled`. Vô hiệu hoặc đang gửi (Figma State=Disabled 6:143, 6:148; Đính, 22/11/2026, #95): nền `surface`, viền `border`, chữ `textMuted`, không độ mờ, cho mọi variant, mobile và web. Nhãn là động từ nói đúng kết quả: "Gửi đề nghị", không "Xác nhận" |
 | `TextField` | `TextField.tsx`, `FormTextField` | `input.tsx`, `form-field.tsx` | Nhãn luôn hiện phía trên (không dùng placeholder làm nhãn); gợi ý; lỗi cạnh trường; bộ đếm ký tự khi có giới hạn |
-| `Notice` | `Notice.tsx` | `notice.tsx` | `tone`: info, success, warning, danger. Có chữ nhãn tone ("Thông tin", "Đã xong", "Lưu ý", "Lỗi"); `action` tùy chọn. **Thiết kế lại trước tiên:** bỏ viền màu một bên và dòng nhãn riêng phía trên ([10](10-ra-soat-nen-08-11.md)); giữ chữ trạng thái bằng icon có nhãn hoặc chữ đầu câu |
+| `Notice` | `Notice.tsx` | `notice.tsx` | `tone`: info, success, warning, danger; `action` tùy chọn, giữ bề rộng của nó. Mobile (#95 phần 1b): icon theo tone bên trái câu, nhãn trợ năng "Thông tin", "Đã xong", "Lưu ý", "Lỗi"; không viền một bên, không dòng nhãn; bo `md`. Web còn viền một bên và dòng nhãn, chờ gói icon web ([10](10-ra-soat-nen-08-11.md)) |
+| `NavigationBar` | `NavigationBar.tsx` | | Danh sách tab (nhãn, icon, số chưa đọc); tab đang chọn nền `infoSurface` sau icon; số trên 99 hiện "99+"; nhãn tab phóng tối đa 1,3 lần (OP-22). Tab nào của vai trò nào do màn hình dùng nó quyết định |
+| Icon | `Icon.tsx` | | Material Symbols Outlined; thêm icon khi màn hình cần. Có `label` khi icon tự mang nghĩa, không có thì ẩn khỏi trình đọc màn hình |
 | `QueryScreen` | `QueryScreen.tsx` | `StateMessage`, `EmptyState` trong `admin-page.tsx` | Khung đọc dữ liệu: tải, rỗng, lỗi, mất quyền, không tìm thấy, dữ liệu cũ |
 | `CommandStatus` | `CommandStatus.tsx` | `command-status.tsx` | `state`: sending, confirmed, failed, unknown. Đặt ngay cạnh nút gửi |
 | `AdminPage` | | `admin-page.tsx` | Khung trang quản trị: tiêu đề, mô tả, nội dung |

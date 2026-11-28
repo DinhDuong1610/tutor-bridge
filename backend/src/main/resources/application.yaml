@@ -17,6 +17,12 @@ spring:
     user: tutorbridge_migrator
     password: ${TB_MIGRATOR_PASSWORD:}
 logging:
+  level:
+    # At DEBUG these two print every request and response body with the record's toString(), a child's
+    # name and goal included (INV-63, #203). Pinned here, DEBUG=true or logging.level.web=DEBUG no longer
+    # reaches them; the toString() masking of secrets (#198) stays as a second layer.
+    org.springframework.web.servlet.mvc.method.annotation: INFO
+    org.springframework.http.converter: INFO
   pattern:
     correlation: "[%X{traceId:-}] "
   structured:
@@ -35,6 +41,7 @@ tutorbridge:
       email-digest: ${TB_EMAIL_DIGEST_KEY:}
       email-encryption: ${TB_EMAIL_ENCRYPTION_KEY:}
       link-token: ${TB_LINK_TOKEN_KEY:}
+      admin-mfa: ${TB_ADMIN_MFA_KEY:}
     # Provisional values, not measured (Đính, Q6 of TB-8, 08/11/2026). Fixed windows.
     limits:
       register-per-source:
@@ -52,6 +59,10 @@ tutorbridge:
       recovery-per-source:
         attempts: 10
         window: 1h
+    # Local ObjectStore for tutor evidence (#12 Q1). Required: a directory every API instance shares,
+    # outside any public web root. S3 replaces it later.
+    evidence:
+      dir: ${TB_EVIDENCE_DIR:}
     # Read by the worker role only. SMTP itself is spring.mail.* (SPRING_MAIL_HOST, SPRING_MAIL_PORT, ...).
     mail:
       from: ${TB_MAIL_FROM:}
@@ -59,6 +70,12 @@ tutorbridge:
   # Worker role (docs/design/kien-truc.md): claims outbox events and sends email. Off on API instances.
   worker:
     enabled: ${TB_WORKER_ENABLED:false}
+    # Retention cleanup (#24, ADR-0006): expired receipts, outbox events 7 days after delivery.
+    cleanup:
+      interval: PT1H
+      batch-size: 500
+      max-batches: 40
+      outbox-keep: P7D
 management:
   endpoints:
     web:

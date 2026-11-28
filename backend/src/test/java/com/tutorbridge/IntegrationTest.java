@@ -29,7 +29,39 @@ public abstract class IntegrationTest {
                 "tutorbridge.identity.keys.email-digest", TEST_KEYS[0],
                 "tutorbridge.identity.keys.email-encryption", TEST_KEYS[1],
                 "tutorbridge.identity.keys.link-token", TEST_KEYS[2],
-                "tutorbridge.identity.terms-versions", TERMS_VERSION);
+                "tutorbridge.identity.keys.admin-mfa", TEST_KEYS[3],
+                "tutorbridge.identity.terms-versions", TERMS_VERSION,
+                "tutorbridge.identity.evidence.dir", EVIDENCE_DIR.toString());
+    }
+
+    /**
+     * Root of the local ObjectStore in tests: a fresh directory per test run under {@code build/}, which
+     * {@code ./gradlew clean} empties, never in the system temp directory (Đính's review of #181).
+     */
+    protected static java.nio.file.Path evidenceDir() {
+        return EVIDENCE_DIR;
+    }
+
+    private static final java.nio.file.Path EVIDENCE_DIR;
+
+    static {
+        try {
+            java.nio.file.Path runs = java.nio.file.Files.createDirectories(
+                    java.nio.file.Path.of("build", "test-evidence"));
+            EVIDENCE_DIR = java.nio.file.Files.createTempDirectory(runs, "run-").toAbsolutePath();
+        } catch (java.io.IOException e) {
+            throw new java.io.UncheckedIOException(e);
+        }
+        // Each run stores a few 5 MiB files; without this, build/ grows by them until the next clean.
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> deleteTree(EVIDENCE_DIR)));
+    }
+
+    private static void deleteTree(java.nio.file.Path root) {
+        try (var paths = java.nio.file.Files.walk(root)) {
+            paths.sorted(java.util.Comparator.reverseOrder()).forEach(path -> path.toFile().delete());
+        } catch (java.io.IOException | java.io.UncheckedIOException ignored) {
+            // Best effort at exit: whatever is left goes with the next ./gradlew clean.
+        }
     }
 
     /** The only terms version tests may register with. */
@@ -40,7 +72,7 @@ public abstract class IntegrationTest {
         byte[] key = new byte[32];
         new java.security.SecureRandom().nextBytes(key);
         return java.util.Base64.getEncoder().encodeToString(key);
-    }).limit(3).toArray(String[]::new);
+    }).limit(4).toArray(String[]::new);
 
     protected UUID newAccount() {
         UUID id = UUID.randomUUID();

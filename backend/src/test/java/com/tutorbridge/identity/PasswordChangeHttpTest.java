@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.tutorbridge.Concurrently;
 import com.tutorbridge.Contract;
 import com.tutorbridge.IntegrationTest;
+import com.tutorbridge.WebDebugLogging;
 import com.tutorbridge.identity.internal.AccountSecrets;
 import com.tutorbridge.identity.internal.PasswordHasher;
 import java.util.List;
@@ -191,6 +192,7 @@ class PasswordChangeHttpTest extends IntegrationTest {
     }
 
     @Test
+    @ExtendWith(WebDebugLogging.class)
     void AC_UC01_04_passwords_and_reauth_tokens_do_not_reach_the_log(CapturedOutput output) throws Exception {
         Account account = account();
         String token = login(account.email(), OLD);

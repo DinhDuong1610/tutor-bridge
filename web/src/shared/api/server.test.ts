@@ -1,5 +1,19 @@
-import { describe, expect, it } from "vitest";
-import { adminApi } from "./server";
+import { describe, expect, it, vi } from "vitest";
+
+let forwardedFor: string | null = null;
+vi.mock("next/headers", () => ({
+  cookies: async () => ({ get: () => undefined }),
+  headers: async () => new Headers(forwardedFor === null ? {} : { "x-forwarded-for": forwardedFor }),
+}));
+
+const order: string[] = [];
+vi.mock("next/server", () => ({
+  connection: async () => {
+    order.push("connection");
+  },
+}));
+
+const { adminApi } = await import("./server");
 
 async function capture(token: string | null, send: (api: Awaited<ReturnType<typeof adminApi>>) => Promise<unknown>) {
   const requests: Request[] = [];
@@ -18,6 +32,32 @@ async function capture(token: string | null, send: (api: Awaited<ReturnType<type
 }
 
 describe("adminApi", () => {
+  it("passes the browser's address on as X-TB-Client-IP, and nothing when it has none (#252)", async () => {
+    forwardedFor = "1.2.3.4, 198.51.100.7";
+    const forwarded = await capture(null, (api) => api.GET("/me/sessions", {}));
+    expect(forwarded.headers.get("X-TB-Client-IP")).toBe("198.51.100.7");
+
+    forwardedFor = null;
+    const none = await capture(null, (api) => api.GET("/me/sessions", {}));
+    expect(none.headers.has("X-TB-Client-IP")).toBe(false);
+  });
+
+  it("waits for the request before it builds a client, so no API call runs at prerender (#254)", async () => {
+    order.length = 0;
+    await adminApi({
+      token: null,
+      fetch: async () => {
+        order.push("fetch");
+        return new Response(JSON.stringify({ items: [], nextCursor: null }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      },
+    }).then((api) => api.GET("/me/sessions", {}));
+
+    expect(order).toEqual(["connection", "fetch"]);
+  });
+
   it("sends the session cookie on reads, without CSRF", async () => {
     const request = await capture("session-token", (api) => api.GET("/me/sessions", {}));
 

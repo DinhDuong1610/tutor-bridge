@@ -44,7 +44,8 @@ export function AccountTextField<T extends FieldValues>({
   );
 }
 
-type Option<V extends string> = { value: V; label: string };
+/** `description` is a second line under the label, read out with it (AUTH01 role cards). */
+type Option<V extends string> = { value: V; label: string; description?: string };
 
 /** One choice from a short list. Selection is shown by a mark and announced, not only by color. */
 export function RadioField<T extends FieldValues, V extends string>({
@@ -65,6 +66,7 @@ export function RadioField<T extends FieldValues, V extends string>({
               key={option.value}
               role="radio"
               label={option.label}
+              description={option.description}
               selected={field.value === option.value}
               onPress={() => field.onChange(option.value)}
             />
@@ -99,20 +101,24 @@ export function CheckboxField<T extends FieldValues>({
 function Choice({
   role,
   label,
+  description,
   selected,
   onPress,
-}: { role: "radio" | "checkbox"; label: string; selected: boolean; onPress: () => void }) {
+}: { role: "radio" | "checkbox"; label: string; description?: string; selected: boolean; onPress: () => void }) {
   const mark = role === "radio" ? (selected ? "●" : "○") : selected ? "☑" : "☐";
   return (
     <Pressable
       accessibilityRole={role}
-      accessibilityLabel={label}
+      accessibilityLabel={description ? `${label}. ${description}` : label}
       accessibilityState={{ checked: selected }}
       onPress={onPress}
       style={styles.choice}
     >
       <Text style={styles.mark}>{mark}</Text>
-      <Text style={styles.choiceText}>{label}</Text>
+      <View style={styles.choiceBody}>
+        <Text style={styles.choiceText}>{label}</Text>
+        {description ? <Text style={styles.description}>{description}</Text> : null}
+      </View>
     </Pressable>
   );
 }
@@ -132,6 +138,8 @@ const styles = StyleSheet.create({
   label: { ...typography.label, color: colors.text },
   choice: { minHeight: minTouchSize, flexDirection: "row", alignItems: "center", gap: spacing.sm },
   mark: { ...typography.body, color: colors.primary },
-  choiceText: { ...typography.body, color: colors.text, flexShrink: 1 },
+  choiceBody: { flexShrink: 1, gap: spacing.xs },
+  choiceText: { ...typography.body, color: colors.text },
+  description: { ...typography.caption, color: colors.textMuted },
   error: { ...typography.caption, color: colors.danger },
 });

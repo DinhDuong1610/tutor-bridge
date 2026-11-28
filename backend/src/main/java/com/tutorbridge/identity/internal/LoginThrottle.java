@@ -87,7 +87,8 @@ class LoginThrottle {
             }
         }
         if (!wait.isZero() && !wait.isNegative()) {
-            throw new TooManyRequests("LOGIN_DELAYED", "Bạn đã nhập sai nhiều lần. Vui lòng thử lại sau.", wait);
+            // AUTH03 wording (#142): 15 minutes is the most a sliding window can ask; Retry-After has the exact wait.
+            throw new TooManyRequests("LOGIN_DELAYED", "Bạn đã nhập sai nhiều lần. Vui lòng thử lại sau 15 phút.", wait);
         }
     }
 }

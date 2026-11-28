@@ -29,7 +29,8 @@ import org.springframework.test.web.servlet.ResultActions;
 /**
  * INV-20 across midnight (review of #152): a replacement that was written and is sent again with the
  * same key and body after 00:00 Asia/Ho_Chi_Minh answers the stored version, even though its windows
- * would now be refused as a new command. Real HTTP and PostgreSQL; only the clock is moved.
+ * would now be refused as a new command. Covers the tutor's and a child's calendar, which share one
+ * replacement flow. Real HTTP and PostgreSQL; only the clock is moved.
  */
 @Import(TutorCalendarReplayHttpTest.MovableClockConfig.class)
 class TutorCalendarReplayHttpTest extends HttpTest {
@@ -92,8 +93,25 @@ class TutorCalendarReplayHttpTest extends HttpTest {
     }
 
     private int versions(Actor tutor) {
-        return jdbc.sql("select count(*) from calendars where owner_kind = 'TUTOR' and owner_id = ?")
-                .param(tutor.accountId()).query(Integer.class).single();
+        return versions("TUTOR", tutor.accountId());
+    }
+
+    private int versions(String kind, UUID owner) {
+        return jdbc.sql("select count(*) from calendars where owner_kind = ? and owner_id = ?")
+                .params(kind, owner).query(Integer.class).single();
+    }
+
+    private ResultActions createForStudent(Actor parent, UUID studentId, String key, String json) throws Exception {
+        return mvc.perform(put("/api/v1/students/" + studentId + "/calendar").with(sessions().as(parent))
+                .contentType(MediaType.APPLICATION_JSON).header("Idempotency-Key", key)
+                .header("If-None-Match", "*").content(json))
+                .andExpect(Contract.matches());
+    }
+
+    private static String evening(LocalDate today) {
+        ZonedDateTime start = today.atTime(18, 0).atZone(VIETNAM);
+        return "{\"timezone\":\"Asia/Ho_Chi_Minh\",\"windows\":[{\"start\":\"%s\",\"end\":\"%s\",\"kind\":\"AVAILABLE\"}]}"
+                .formatted(start.toInstant(), start.plusHours(1).toInstant());
     }
 
     @Test
@@ -122,5 +140,35 @@ class TutorCalendarReplayHttpTest extends HttpTest {
                 .andExpect(status().isUnprocessableContent())
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
         assertThat(versions(tutor)).isOne();
+    }
+
+    @Test
+    void inv_20_a_childs_calendar_sent_again_after_midnight_answers_the_stored_version() throws Exception {
+        LocalDate today = LocalDate.now(VIETNAM);
+        String json = evening(today);
+        Actor parent = newActor(Actor.Role.PARENT);
+        UUID studentId = UUID.randomUUID();
+        jdbc.sql("insert into students(id, parent_id, display_name) values (?, ?, 'Hoc sinh thu')")
+                .params(studentId, parent.accountId()).update();
+        String key = UUID.randomUUID().toString();
+
+        clock.set(today.atTime(23, 59).atZone(VIETNAM).toInstant());
+        String id = createForStudent(parent, studentId, key, json).andExpect(status().isOk())
+                .andExpect(header().string("ETag", "\"1\""))
+                .andReturn().getResponse().getContentAsString().replaceAll(".*\"id\":\"([^\"]+)\".*", "$1");
+
+        clock.set(today.plusDays(1).atTime(0, 1).atZone(VIETNAM).toInstant());
+        createForStudent(parent, studentId, key, json)
+                .andExpect(status().isOk())
+                .andExpect(header().string("ETag", "\"1\""))
+                .andExpect(jsonPath("$.id").value(id))
+                .andExpect(jsonPath("$.windows.length()").value(1));
+        assertThat(versions("STUDENT", studentId)).isOne();
+
+        // Control: the same body as a new command is now outside today..57 days and is refused.
+        createForStudent(parent, studentId, UUID.randomUUID().toString(), json)
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+        assertThat(versions("STUDENT", studentId)).isOne();
     }
 }

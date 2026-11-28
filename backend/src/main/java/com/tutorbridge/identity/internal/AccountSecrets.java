@@ -24,7 +24,9 @@ import org.springframework.stereotype.Component;
  * <p>Two separate keys protect the email: an HMAC-SHA256 key for the unique digest, an AES-GCM key
  * for the ciphertext. A third AES-GCM key protects link codes while they wait in the outbox, so the
  * database never holds a usable code (Huy, 11/11/2026). Ciphertexts start with a key version
- * ({@code v1:}) so a key can be replaced without a migration. Nothing here is ever logged.
+ * ({@code v1:}) so a key can be replaced without a migration. A fourth AES-GCM key protects the admin TOTP
+ * secrets, so {@code admin_mfa_enrollments.secret_handle} is useless without it (TB-13, Đính 23/11/2026 on
+ * #13). Nothing here is ever logged.
  */
 @Component
 public class AccountSecrets {
@@ -34,17 +36,21 @@ public class AccountSecrets {
     private static final int NONCE_BYTES = 12;
     private static final int TAG_BITS = 128;
     private static final int LINK_TOKEN_BYTES = 32;
+    /** 160 bits, the HMAC-SHA1 block RFC 4226 recommends for a TOTP secret. */
+    private static final int TOTP_SECRET_BYTES = 20;
 
     private final SecureRandom random = new SecureRandom();
     private final SecretKey digestKey;
     private final SecretKey emailKey;
     private final SecretKey linkKey;
+    private final SecretKey mfaKey;
 
     public AccountSecrets(IdentityProperties properties) {
         IdentityProperties.Keys keys = properties.keys();
         this.digestKey = key(keys.emailDigest(), "HmacSHA256", "tutorbridge.identity.keys.email-digest");
         this.emailKey = key(keys.emailEncryption(), "AES", "tutorbridge.identity.keys.email-encryption");
         this.linkKey = key(keys.linkToken(), "AES", "tutorbridge.identity.keys.link-token");
+        this.mfaKey = key(keys.adminMfa(), "AES", "tutorbridge.identity.keys.admin-mfa");
     }
 
     private static SecretKey key(String base64, String algorithm, String name) {
@@ -130,6 +136,26 @@ public class AccountSecrets {
         }
         byte[] sealed = Base64.getDecoder().decode(ciphertext.substring(VERSION.length()));
         return new String(open(linkKey, uuid(challengeId), sealed), StandardCharsets.US_ASCII);
+    }
+
+    /** A new TOTP secret for an admin enrollment. */
+    public byte[] newTotpSecret() {
+        byte[] secret = new byte[TOTP_SECRET_BYTES];
+        random.nextBytes(secret);
+        return secret;
+    }
+
+    /** {@code v1:} + base64 of nonce and AES-GCM ciphertext, bound to the admin's account id. */
+    public String encryptTotpSecret(UUID accountId, byte[] secret) {
+        return VERSION + Base64.getEncoder().encodeToString(seal(mfaKey, uuid(accountId), secret));
+    }
+
+    /** Only a handle made for this account with this key opens. */
+    public byte[] decryptTotpSecret(UUID accountId, String handle) {
+        if (!handle.startsWith(VERSION)) {
+            throw new IllegalArgumentException("unknown admin MFA key version");
+        }
+        return open(mfaKey, uuid(accountId), Base64.getDecoder().decode(handle.substring(VERSION.length())));
     }
 
     private byte[] seal(SecretKey key, byte[] aad, byte[] plain) {

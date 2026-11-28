@@ -14,13 +14,13 @@ class SchemaMigrationTest extends IntegrationTest {
     private static final String INSUFFICIENT_PRIVILEGE = "42501";
 
     @Test
-    void migrations_create_all_eighty_four_tables() {
+    void migrations_create_all_eighty_six_tables() {
         Integer tables = jdbc.sql("""
                 select count(*) from information_schema.tables
                 where table_schema = 'tutorbridge' and table_type = 'BASE TABLE'
                 """).query(Integer.class).single();
 
-        assertThat(tables).isEqualTo(84);
+        assertThat(tables).isEqualTo(86);
     }
 
     @Test

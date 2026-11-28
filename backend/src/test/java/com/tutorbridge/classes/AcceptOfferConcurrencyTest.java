@@ -125,12 +125,23 @@ class AcceptOfferConcurrencyTest extends IntegrationTest {
                 .satisfies(outcome -> assertThat(outcome.rejected().code()).isEqualTo(loserCode));
     }
 
+    /**
+     * No class in the database lacks a session of its accepted offer, nor two bookings per session. Every
+     * class counts, also those of other test classes (TB-19's HTTP tests make 6-session classes), so the
+     * count is the offer's own, not this fixture's 4.
+     */
     private void assertNoOrphans() {
         assertThat(fixture.count("""
                 select count(*) from classes c
-                where (select count(*) from lesson_sessions s where s.class_id = c.id) <> 4
+                where (select count(*) from lesson_sessions s where s.class_id = c.id)
+                      <> (select count(*) from offer_sessions o where o.offer_id = c.accepted_offer_id)
                    or (select count(*) from resource_bookings b join lesson_sessions s on s.id = b.session_id
-                       where s.class_id = c.id) <> 8
+                       where s.class_id = c.id)
+                      <> 2 * (select count(*) from offer_sessions o where o.offer_id = c.accepted_offer_id)
+                """)).isZero();
+        assertThat(fixture.count("""
+                select count(*) from lesson_sessions s
+                where not exists (select 1 from classes c where c.id = s.class_id)
                 """)).isZero();
     }
 
@@ -219,6 +230,50 @@ class AcceptOfferConcurrencyTest extends IntegrationTest {
         AcceptedClass created = firstApi.accept(tutor.id(), offer, 1, key);
 
         assertThat(secondApi.accept(tutor.id(), offer, 1, key)).isEqualTo(created);
+    }
+
+    /**
+     * ADR-0007: lock_timeout covers the whole transaction once the resource locks are taken, so a row
+     * lock that is held too long after them is SERVICE_BUSY too, not an internal error (#160).
+     */
+    @Test
+    void adr_0007_a_row_lock_held_past_the_timeout_after_the_resource_locks_is_503_and_writes_nothing()
+            throws Exception {
+        Student student = fixture.student();
+        Need need = fixture.need(student);
+        Tutor tutor = fixture.tutor();
+        UUID offer = fixture.offer(need, tutor);
+        String key = UUID.randomUUID().toString();
+        Outcome outcome;
+        try (Connection gate = connect()) {
+            gate.setAutoCommit(false);
+            try (var hold = gate.prepareStatement("select 1 from students where id = ? for update")) {
+                hold.setObject(1, student.id());
+                hold.execute();
+            }
+            CompletableFuture<Outcome> accepted = submit(firstApi, tutor, offer, key);
+            // Waiting on the student row means the resource locks, and so lock_timeout, are already in place.
+            await().atMost(Duration.ofSeconds(4)).pollInterval(Duration.ofMillis(20)).until(() -> fixture.count("""
+                    select count(*) from pg_stat_activity
+                    where wait_event_type = 'Lock' and query like 'select parent_id from students%'
+                    """) == 1);
+            outcome = accepted.get(30, TimeUnit.SECONDS);
+            gate.rollback();
+        }
+
+        assertThat(outcome.rejected()).isNotNull();
+        assertThat(outcome.rejected().status().value()).isEqualTo(503);
+        assertThat(outcome.rejected().code()).isEqualTo("SERVICE_BUSY");
+        assertThat(fixture.count("select count(*) from classes where originating_need_id = ?", need.id())).isZero();
+        assertThat(fixture.count("select count(*) from command_receipts where idempotency_key = ?", key)).isZero();
+        assertThat(fixture.count("select count(*) from class_offers where id = ? and state = 'PENDING'", offer))
+                .isEqualTo(1);
+        assertThat(fixture.count("select count(*) from learning_needs where id = ? and status = 'CONFIRMED'",
+                need.id())).isEqualTo(1);
+
+        // The client resends with the same key (#83); nothing was kept, so it runs as a new command.
+        assertThat(firstApi.accept(tutor.id(), offer, 1, key).id()).isNotNull();
+        assertNoOrphans();
     }
 
     @Test

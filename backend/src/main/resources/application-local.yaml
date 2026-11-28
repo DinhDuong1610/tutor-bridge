@@ -14,6 +14,9 @@ tutorbridge:
   identity:
     # Trial terms with no legal effect, until Đính provides the text (Q8 of TB-8).
     terms-versions: ${TB_TERMS_VERSIONS:ban-thu-chua-hieu-luc}
+    # Under build/, which git ignores; ./gradlew clean empties it.
+    evidence:
+      dir: ${TB_EVIDENCE_DIR:build/local-evidence}
     mail:
       from: no-reply@tutorbridge.invalid
       # Opens the app on a developer phone. Release builds use an https domain (Q7 of TB-10).
@@ -24,3 +27,6 @@ tutorbridge:
   security:
     # Next.js dev server. Cookie writes from any other origin are rejected (ADR-0010).
     admin-origins: http://localhost:3000
+    # The Next.js dev server calls the API from this machine and sends the browser's address in
+    # X-TB-Client-IP, which only these addresses may do (#252). Empty, the default, believes nobody.
+    trusted-web-proxies: 127.0.0.1,::1

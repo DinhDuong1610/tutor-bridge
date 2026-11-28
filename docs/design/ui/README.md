@@ -53,7 +53,7 @@ Cập nhật khi đổi trạng thái. **Chưa vẽ** → **Nháp** → **Đã d
 | PH07 | Chi tiết gia sư công khai | Android | F02 | #71 | Đã duyệt v1 | [31:2731](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=31-2731) (section), [đặc tả](screens/PH07.md) |
 | PH08 | Xem lại và gửi đề nghị | Android | F02 | #72 | Đã duyệt v1 | [31:3916](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=31-3916) (section), [đặc tả](screens/PH08.md) |
 | PH09 | Danh sách và chi tiết đề nghị | Android | F02 | #72 | Đã duyệt v1, TBD còn mở | [34:4229](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=34-4229) (section), [đặc tả](screens/PH09.md) |
-| GS01 | Trang chủ gia sư | Android | F01, F02 | TB-14 | Đã duyệt v1 | [23:1043](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=23-1043) (section), [đặc tả](screens/GS01.md) |
+| GS01 | Trang chủ gia sư | Android | F01, F02 | TB-14 | Đã duyệt v2 (thêm Cần bổ sung, Chưa được duyệt, OP-23) | [23:1043](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=23-1043) (section), [đặc tả](screens/GS01.md) |
 | GS02 | Hồ sơ chuyên môn và học phí | Android | F01 | TB-14 | Đã duyệt v1, TBD còn mở | [16:1925](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=16-1925) (section), [đặc tả](screens/GS02.md) |
 | GS03 | Minh chứng và kết quả xác minh | Android | F01 | TB-14 | Đã duyệt v1, TBD còn mở | [17:2447](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=17-2447) (section), [đặc tả](screens/GS03.md) |
 | GS04 | Lịch rảnh và ngoại lệ | Android | F02 | #69 | Đã duyệt v1, TBD còn mở | [27:2228](https://www.figma.com/design/uuEo9SH3LxWcFbbHHFFBgl?node-id=27-2228) (section), [đặc tả](screens/GS04.md) |

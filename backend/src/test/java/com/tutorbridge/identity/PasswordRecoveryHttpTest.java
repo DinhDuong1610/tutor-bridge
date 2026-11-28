@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.tutorbridge.Concurrently;
 import com.tutorbridge.Contract;
 import com.tutorbridge.IntegrationTest;
+import com.tutorbridge.WebDebugLogging;
 import com.tutorbridge.identity.internal.AccountSecrets;
 import com.tutorbridge.identity.internal.PasswordHasher;
 import com.tutorbridge.identity.internal.PasswordRecovery;
@@ -245,6 +246,7 @@ class PasswordRecoveryHttpTest extends IntegrationTest {
     }
 
     @Test
+    @ExtendWith(WebDebugLogging.class)
     void AC_UC01_04_reset_codes_passwords_and_emails_do_not_reach_the_log(CapturedOutput output) throws Exception {
         Account account = account("ACTIVE");
         recover(account.email()).andExpect(status().isAccepted());

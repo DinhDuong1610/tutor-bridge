@@ -10,12 +10,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.tutorbridge.Contract;
 import com.tutorbridge.HttpTest;
+import com.tutorbridge.WebDebugLogging;
 import com.tutorbridge.platform.api.Actor;
 import com.tutorbridge.platform.api.IdempotencyKey;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
@@ -24,6 +28,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /** UC02 for the parent: listStudents, createStudent, getStudentProfile, patchStudent (TB-11). */
+@ExtendWith(OutputCaptureExtension.class)
 class StudentProfilesHttpTest extends HttpTest {
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
@@ -320,6 +325,27 @@ class StudentProfilesHttpTest extends HttpTest {
         perform(patch(STUDENTS + "/" + id).header(IdempotencyKey.HEADER, key()).header("If-Match", "\"1\""),
                 Map.of("displayName", "Lan"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    // INV-63
+
+    @Test
+    @ExtendWith(WebDebugLogging.class)
+    void INV_63_with_web_debug_on_no_child_name_or_goal_reaches_the_log(CapturedOutput output) throws Exception {
+        Actor parent = newActor(Actor.Role.PARENT);
+        // ASCII markers: a console that cannot print Vietnamese turns letters into '?', and a marker with
+        // diacritics would then never match, so the test would pass while the name leaks.
+        String name = "Zqnamelog";
+        String goal = "Zqgoallog first goal";
+        String newGoal = "Zqnewgoallog second goal";
+
+        String id = read(create(parent, key(), profile(name, goal)).andExpect(status().isCreated()))
+                .get("id").asString();
+        perform(get(STUDENTS).with(sessions().as(parent)), null).andExpect(status().isOk());
+        perform(get(STUDENTS + "/" + id).with(sessions().as(parent)), null).andExpect(status().isOk());
+        edit(parent, id, key(), "\"1\"", Map.of("shortGoal", newGoal)).andExpect(status().isOk());
+
+        assertThat(output.getAll()).doesNotContain(name).doesNotContain(goal).doesNotContain(newGoal);
     }
 
     private ResultActions create(Actor actor, String key, Map<String, ?> body) throws Exception {

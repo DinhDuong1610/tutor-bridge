@@ -2,6 +2,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useServerErrors } from "@/shared/form/serverErrors";
 import { useSession } from "@/shared/session/SessionProvider";
 import { Button } from "@/shared/ui/Button";
@@ -34,35 +35,38 @@ export function ChangePasswordScreen({ onCancel }: Props) {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-      <Text accessibilityRole="header" style={styles.title}>
-        Đổi mật khẩu
-      </Text>
-      <Text style={styles.body}>Sau khi đổi, mọi phiên đăng nhập, kể cả trên máy này, sẽ bị đăng xuất.</Text>
-      <AccountTextField
-        control={form.control}
-        name="currentPassword"
-        label="Mật khẩu hiện tại"
-        secureTextEntry
-        autoCapitalize="none"
-        autoComplete="current-password"
-      />
-      <AccountTextField
-        control={form.control}
-        name="newPassword"
-        label="Mật khẩu mới"
-        hint={`Từ ${PASSWORD_MIN} đến ${PASSWORD_MAX} ký tự. Có thể dùng một câu dễ nhớ.`}
-        secureTextEntry
-        autoCapitalize="none"
-        autoComplete="new-password"
-      />
-      {otherErrors.map((message) => (
-        <Notice key={message} tone="danger" message={message} />
-      ))}
-      <CommandStatus command={change} confirmedMessage="" />
-      <Button title="Đổi mật khẩu" busy={change.state === "sending"} onPress={form.handleSubmit((values) => change.submit(values))} />
-      <Button variant="secondary" title="Hủy" onPress={onCancel} />
-    </ScrollView>
+    <SafeAreaView style={styles.safe}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+        <Text accessibilityRole="header" style={styles.title}>
+          Đổi mật khẩu
+        </Text>
+        <Text style={styles.body}>Để bảo vệ tài khoản, nhập mật khẩu hiện tại trước khi đổi.</Text>
+        <Text style={styles.body}>Sau khi đổi, mọi thiết bị, kể cả máy này, sẽ bị đăng xuất.</Text>
+        <AccountTextField
+          control={form.control}
+          name="currentPassword"
+          label="Mật khẩu hiện tại"
+          secureTextEntry
+          autoCapitalize="none"
+          autoComplete="current-password"
+        />
+        <AccountTextField
+          control={form.control}
+          name="newPassword"
+          label="Mật khẩu mới"
+          hint={`${PASSWORD_MIN}–${PASSWORD_MAX} ký tự.`}
+          secureTextEntry
+          autoCapitalize="none"
+          autoComplete="new-password"
+        />
+        {otherErrors.map((message) => (
+          <Notice key={message} tone="danger" message={message} />
+        ))}
+        <CommandStatus command={change} confirmedMessage="" />
+        <Button title="Đổi mật khẩu" busy={change.state === "sending"} onPress={form.handleSubmit((values) => change.submit(values))} />
+        <Button variant="secondary" title="Hủy" onPress={onCancel} />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -72,17 +76,21 @@ export function ChangePasswordScreen({ onCancel }: Props) {
  */
 function PasswordChanged({ onSignIn }: { onSignIn: () => void }) {
   return (
-    <View style={styles.container}>
-      <Text accessibilityRole="header" style={styles.title}>
-        Đã đổi mật khẩu
-      </Text>
-      <Notice tone="success" message="Mọi phiên đăng nhập đã bị đăng xuất. Hãy đăng nhập lại bằng mật khẩu mới." />
-      <Button title="Đăng nhập lại" onPress={onSignIn} />
-    </View>
+    <SafeAreaView style={styles.safe}>
+      <View style={styles.container}>
+        <Text accessibilityRole="header" style={styles.title}>
+          Đã đổi mật khẩu
+        </Text>
+        <Notice tone="success" message="Đã đổi mật khẩu. Mọi thiết bị đã bị đăng xuất. Hãy đăng nhập lại bằng mật khẩu mới." />
+        <Button title="Đăng nhập lại" onPress={onSignIn} />
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  // Below the status bar and the notch, as the approved frames place the title.
+  safe: { flex: 1, backgroundColor: colors.background },
   container: { flexGrow: 1, gap: spacing.md, padding: spacing.md, backgroundColor: colors.background },
   title: { ...typography.title, color: colors.text },
   body: { ...typography.body, color: colors.text },

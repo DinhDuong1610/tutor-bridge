@@ -1,9 +1,10 @@
 package com.tutorbridge.identity.web;
 
+import com.tutorbridge.identity.internal.Masked;
 import com.tutorbridge.identity.internal.PasswordRecovery;
+import com.tutorbridge.platform.api.ClientAddress;
 import com.tutorbridge.platform.api.PublicEndpoints;
 import com.tutorbridge.platform.api.TraceContext;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
@@ -25,10 +26,22 @@ class RecoveryController {
     static final String RECOVERY_SENT =
             "Nếu email có tài khoản, chúng tôi đã gửi liên kết đặt lại mật khẩu. Vui lòng kiểm tra hộp thư.";
 
-    record RecoveryInput(@NotNull @Email @Size(max = 254) String email) {}
+    record RecoveryInput(@NotNull @Email @Size(max = 254) String email) {
+
+        @Override
+        public String toString() {
+            return "RecoveryInput[email=%s]".formatted(Masked.VALUE);
+        }
+    }
 
     // Length in code points is checked by the service; UTF-16 length bounds it from above.
-    record ResetInput(@NotNull @Size(min = 20, max = 512) String token, @NotNull @Size(max = 256) String newPassword) {}
+    record ResetInput(@NotNull @Size(min = 20, max = 512) String token, @NotNull @Size(max = 256) String newPassword) {
+
+        @Override
+        public String toString() {
+            return "ResetInput[token=%s, newPassword=%s]".formatted(Masked.VALUE, Masked.VALUE);
+        }
+    }
 
     record GenericAcknowledgment(String message, String traceId) {}
 
@@ -40,15 +53,15 @@ class RecoveryController {
 
     @PostMapping("/api/v1/auth/recovery")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    GenericAcknowledgment requestRecovery(@Valid @RequestBody RecoveryInput input, HttpServletRequest request) {
-        recovery.requestRecovery(input.email(), request.getRemoteAddr());
+    GenericAcknowledgment requestRecovery(@Valid @RequestBody RecoveryInput input, ClientAddress source) {
+        recovery.requestRecovery(input.email(), source.value());
         return new GenericAcknowledgment(RECOVERY_SENT, TraceContext.current());
     }
 
     @PostMapping("/api/v1/auth/reset")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    void resetPassword(@Valid @RequestBody ResetInput input, HttpServletRequest request) {
-        recovery.resetPassword(input.token(), input.newPassword(), request.getRemoteAddr());
+    void resetPassword(@Valid @RequestBody ResetInput input, ClientAddress source) {
+        recovery.resetPassword(input.token(), input.newPassword(), source.value());
     }
 
     @Configuration(proxyBeanMethods = false)

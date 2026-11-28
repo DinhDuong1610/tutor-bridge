@@ -1,9 +1,10 @@
 package com.tutorbridge.identity.web;
 
 import com.tutorbridge.identity.internal.AccountRegistration;
+import com.tutorbridge.identity.internal.Masked;
+import com.tutorbridge.platform.api.ClientAddress;
 import com.tutorbridge.platform.api.PublicEndpoints;
 import com.tutorbridge.platform.api.TraceContext;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
@@ -31,11 +32,30 @@ class RegistrationController {
             @NotNull @Size(max = 256) String password,
             @NotNull @Size(min = 1, max = 100) String displayName,
             @NotNull String role,
-            @NotNull @Size(min = 1, max = 100) String termsVersion) {}
+            @NotNull @Size(min = 1, max = 100) String termsVersion) {
 
-    record VerifyEmailInput(@NotNull @Size(min = 20, max = 512) String token) {}
+        @Override
+        public String toString() {
+            return "RegistrationInput[email=%s, password=%s, displayName=%s, role=%s, termsVersion=%s]"
+                    .formatted(Masked.VALUE, Masked.VALUE, Masked.VALUE, role, termsVersion);
+        }
+    }
 
-    record RecoveryInput(@NotNull @Email @Size(max = 254) String email) {}
+    record VerifyEmailInput(@NotNull @Size(min = 20, max = 512) String token) {
+
+        @Override
+        public String toString() {
+            return "VerifyEmailInput[token=%s]".formatted(Masked.VALUE);
+        }
+    }
+
+    record RecoveryInput(@NotNull @Email @Size(max = 254) String email) {
+
+        @Override
+        public String toString() {
+            return "RecoveryInput[email=%s]".formatted(Masked.VALUE);
+        }
+    }
 
     record GenericAcknowledgment(String message, String traceId) {}
 
@@ -47,9 +67,9 @@ class RegistrationController {
 
     @PostMapping("/api/v1/auth/register")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    GenericAcknowledgment register(@Valid @RequestBody RegistrationInput input, HttpServletRequest request) {
+    GenericAcknowledgment register(@Valid @RequestBody RegistrationInput input, ClientAddress source) {
         registration.register(new AccountRegistration.Registration(input.email(), input.password(),
-                input.displayName(), input.role(), input.termsVersion()), request.getRemoteAddr());
+                input.displayName(), input.role(), input.termsVersion()), source.value());
         return new GenericAcknowledgment(REGISTERED, TraceContext.current());
     }
 
@@ -61,8 +81,8 @@ class RegistrationController {
 
     @PostMapping("/api/v1/auth/verification-resend")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    GenericAcknowledgment resend(@Valid @RequestBody RecoveryInput input, HttpServletRequest request) {
-        registration.resendVerification(input.email(), request.getRemoteAddr());
+    GenericAcknowledgment resend(@Valid @RequestBody RecoveryInput input, ClientAddress source) {
+        registration.resendVerification(input.email(), source.value());
         return new GenericAcknowledgment(RESENT, TraceContext.current());
     }
 

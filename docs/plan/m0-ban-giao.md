@@ -37,7 +37,7 @@ Phần nền sau M0 cũng merge theo ngoại lệ OP-15 (06/11/2026). Theo OP-14
 | Thiếu `Idempotency-Key` | Đã chốt theo CR-014: trả 400 `IDEMPOTENCY_KEY_REQUIRED`; khóa sai độ dài vẫn 422 `IDEMPOTENCY_KEY_INVALID`; lệnh xác thực công khai không dùng khóa | Đính, Huy | Xong |
 | Quyền trên bảng chỉ thêm như `audit_events` | `tutorbridge_app` ghi đồng đều | Đính | Trước TB-23 |
 | Outbox thử tối đa bao nhiêu lần, xử lý sự kiện lỗi mãi | Thử lại không giới hạn | Đính | TB-21 |
-| Mục tiêu đầu của lớp | `EFFECTIVE`, vì gửi đề nghị là phụ huynh đã đồng ý (BR05) | Đính | Trước TB-19 |
+| Mục tiêu đầu của lớp | Đã chốt: `EFFECTIVE`, vì gửi đề nghị là phụ huynh đã đồng ý (BR05, AC-UC04-03); luồng đề xuất và đồng ý chỉ dành cho thay đổi mục tiêu sau khi đã có lớp (Đính, 26/11/2026, #19) | Đính | Xong |
 | `PREFERRED` có tính là rảnh không | Đã chốt: Có, rảnh khi lọc cứng và xếp buổi, chỉ cộng thêm khi tính điểm khớp lịch (Đính, 12/11/2026) | Đính | Xong |
 | Công cụ kiểm hợp đồng (`contract-check`) | Đã chốt: `oasdiff` trên CI chặn đổi hợp đồng phá vỡ (Huy, 04/11/2026, #40); kiểm phản hồi khớp hợp đồng bằng `Contract.matches()` trong test HTTP backend, dùng `com.networknt:json-schema-validator` vì hợp đồng là OpenAPI 3.1 (#47, Đính duyệt 06/11/2026) | Huy, Đính | Xong |
 | UUIDv7 | TBD, đang dùng UUIDv4 | Đính | Trước khi có dữ liệu thật |

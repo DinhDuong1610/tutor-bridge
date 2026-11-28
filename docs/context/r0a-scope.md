@@ -23,7 +23,7 @@ Trên môi trường thử, phụ huynh tạo được nhu cầu, nhận gợi �
 | FR-18 | Chỉ chuyển mục tiêu ban đầu vào lớp. Đề xuất đổi mục tiêu để sau |
 | FR-37, 41 | Lỗi, thử lại, thông báo trong hệ thống cho đề nghị và chốt lớp |
 
-## API: 53 trên 130 thao tác
+## API: 54 trên 131 thao tác
 | Nhóm | Số | operationId |
 |---|---|---|
 | Xác thực | 11 | `registerAccount`, `verifyEmail`, `resendVerification`, `loginAccount`, `logoutAccount`, `requestRecovery`, `resetPassword`, `listOwnSessions`, `revokeOwnSession`, `changePassword`, `reauthenticate` |
@@ -34,7 +34,7 @@ Trên môi trường thử, phụ huynh tạo được nhu cầu, nhận gợi �
 | Nhu cầu | 5 | `listNeeds`, `createNeedDraft`, `getNeed`, `updateNeedDraft`, `confirmNeed` |
 | Gợi ý | 3 | `createMatchingRun`, `getMatchingRun`, `getTutorPublic` |
 | Đề nghị | 6 | `sendOffer`, `listOffers`, `getOffer`, `acceptOffer`, `rejectOffer`, `cancelOffer` |
-| Lớp | 2 | `getClass`, `listSessions` |
+| Lớp | 3 | `listClasses`, `getClass`, `listSessions` (`listClasses`: OP-27, #97) |
 | Trạng thái lệnh | 2 | `getCommandStatus`, `findCommandStatus` |
 | Thông báo | 2 | `listOwnNotifications`, `markNotificationRead` |
 

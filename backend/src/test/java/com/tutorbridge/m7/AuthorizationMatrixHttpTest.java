@@ -116,7 +116,8 @@ class AuthorizationMatrixHttpTest extends HttpTest {
             "listStudents", "student",
             "getOwnTutorProfile", "profile",
             "getOwnTutorVerification", "verification",
-            "getTutorCalendar", "calendar");
+            "getTutorCalendar", "calendar",
+            "listClasses", "class");
 
     private List<Op> ops() {
         Set<Role> parent = EnumSet.of(Role.PARENT);
@@ -225,6 +226,10 @@ class AuthorizationMatrixHttpTest extends HttpTest {
                 "class", false));
         ops.add(new Op("listSessions", Access.ROLES, parties, this::classOf,
                 v -> get("/api/v1/classes/" + v.get("class") + "/sessions"), "class", false));
+        // listClasses (#97, OP-27; added by the agent of Dinh with the code): the owner's list names their class,
+        // another parent's holds none of the owner's ids.
+        ops.add(new Op("listClasses", Access.ROLES, parties, this::classOf, v -> get("/api/v1/me/classes"),
+                null, true));
 
         // Trạng thái lệnh: any role, only its own receipt. The key of findCommandStatus is in the query, so
         // the other-member case swaps the key, as it swaps a path id elsewhere.
@@ -334,7 +339,7 @@ class AuthorizationMatrixHttpTest extends HttpTest {
             assertThat(rows.add(op.id())).as("one row per operation: " + op.id()).isTrue();
         }
 
-        assertThat(scoped).as("Huy's groups as r0a-scope.md lists them").hasSize(38);
+        assertThat(scoped).as("Huy's groups as r0a-scope.md lists them").hasSize(39);
         assertThat(rows).isEqualTo(new TreeSet<>(scoped));
     }
 

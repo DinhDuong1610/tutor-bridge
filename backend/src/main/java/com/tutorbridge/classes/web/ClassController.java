@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** getClass and listSessions (UC07, TB-20). The service checks who may read the class. */
+/** getClass, listSessions (UC07, TB-20) and listClasses (OP-27, #97). The service checks who may read what. */
 @RestController
 class ClassController {
 
@@ -28,6 +28,15 @@ class ClassController {
     ResponseEntity<ClassService.ClassView> get(@AuthenticationPrincipal Actor actor, @PathVariable UUID classId) {
         ClassService.ClassView view = classes.get(actor, classId);
         return ResponseEntity.ok().header(HttpHeaders.ETAG, Etag.of(view.revision())).body(view);
+    }
+
+    /** No ETag, as the other lists (listOffers, listNeeds): the contract declares it but does not require it. */
+    @GetMapping("/api/v1/me/classes")
+    Page<ClassService.ClassListItem> list(@AuthenticationPrincipal Actor actor,
+            @RequestParam(required = false) UUID studentId,
+            @RequestParam(required = false) @Size(max = 500) String cursor,
+            @RequestParam(required = false) Integer limit) {
+        return classes.list(actor, studentId, cursor, limit);
     }
 
     /** No ETag, as the other lists (listOffers, listNeeds): the contract declares it but does not require it. */

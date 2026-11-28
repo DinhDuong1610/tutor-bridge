@@ -2,6 +2,7 @@ package com.tutorbridge.identity.api;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -52,6 +53,12 @@ public interface Parties {
      * only metadata, and reading its target checks access again. Empty for an unknown student.
      */
     Optional<UUID> parentOf(UUID studentId);
+
+    /**
+     * The display names of these students, for the parties of their classes (OP-25, #97): the classes module
+     * checks who may read the class before it asks. An unknown id has no entry.
+     */
+    Map<UUID, String> studentDisplayNames(Collection<UUID> studentIds);
 
     boolean isActiveTutor(UUID accountId);
 

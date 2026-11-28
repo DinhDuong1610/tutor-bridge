@@ -8,6 +8,10 @@ import Index from "@/app/index";
 import ParentLayout from "@/app/parent/_layout";
 import { ApiError } from "@/shared/api/errors";
 import { clearStore, fakeSession, storeSession, storedSession } from "@/shared/test/session";
+import { preloadRoutes } from "@/shared/test/preloadRoutes";
+
+// #123: compile the route tree before the first test, with its own timeout.
+beforeAll(preloadRoutes, 120_000);
 
 beforeEach(() => {
   clearStore();

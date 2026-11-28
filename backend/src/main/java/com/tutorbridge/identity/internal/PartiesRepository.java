@@ -2,7 +2,9 @@ package com.tutorbridge.identity.internal;
 
 import com.tutorbridge.identity.api.Parties;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -53,6 +55,19 @@ class PartiesRepository implements Parties {
     @Override
     public Optional<UUID> parentOf(UUID studentId) {
         return jdbc.sql("select parent_id from students where id = ?").param(studentId).query(UUID.class).optional();
+    }
+
+    @Override
+    public Map<UUID, String> studentDisplayNames(Collection<UUID> studentIds) {
+        if (studentIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<UUID, String> names = new HashMap<>();
+        jdbc.sql("select id, display_name from students where id = any(?)")
+                .param(studentIds.toArray(UUID[]::new))
+                .query((rs, n) -> names.put(rs.getObject("id", UUID.class), rs.getString("display_name")))
+                .list();
+        return names;
     }
 
     @Override

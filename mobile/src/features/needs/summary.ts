@@ -27,9 +27,8 @@ export type OfferFacts = {
   accepted?: { classId: string; tutorName?: string };
 };
 
-// Labels of PH04's fields, in its order (PH04.md "Ô"). The child's free time is left out: knowing it
-// needs the child's calendar and the slot count of #241, so PR 3 adds it (Huy, #70 PR 2 Q1, 27/11/2026).
-// TBD: add "giờ rảnh của con" once #241 is merged.
+// Labels of PH04's fields, in its order (PH04.md "Ô"). The child's free time is not a field of the need: it is
+// the child's calendar, so the screens that read it add its label (#70 PR 2 Q1, done in PR 5).
 const DRAFT_FIELDS = [
   ["goal", "mục tiêu"],
   ["budgetVndSession", "ngân sách"],
@@ -63,16 +62,42 @@ function termsOf(draft: Need["draft"]): string {
   return sentences.join(" ");
 }
 
-/** One PH03 card. A closed need is kept for reference only: no search, no offers (PH03 "Hành vi"). */
-export function needCard(need: Need, offers: OfferFacts): NeedCard {
+/**
+ * "Cần thêm: … Chưa thể tìm gia sư từ bản nháp." with the child's free time named as the screen's approved
+ * copy names it. `freeTime` is unknown (undefined) while the child's calendar is loading or failed: the
+ * sentence then names only the need's own fields, never claiming free time is missing without knowing.
+ */
+function draftBody(draft: Need["draft"], freeTime: boolean | undefined, freeTimeLabel: string): string {
+  const missing = [...missingFields(draft), ...(freeTime === false ? [freeTimeLabel] : [])];
+  const lead = missing.length > 0 ? `Cần thêm: ${missing.join(", ")}. ` : "";
+  return `${lead}Chưa thể tìm gia sư từ bản nháp.`;
+}
+
+/**
+ * PH01 "Việc đang chờ": the child's draft need, in PH01's words ("Nhu cầu học kèm Toán 8", "khung giờ rảnh").
+ * `freeTime`: whether the child's calendar holds free time, unknown while it loads.
+ */
+export function homeDraftCard(need: Need, freeTime: boolean | undefined): NeedCard {
+  return {
+    id: need.id,
+    status: need.status,
+    title: "Nhu cầu học kèm Toán 8",
+    body: draftBody(need.draft, freeTime, "khung giờ rảnh"),
+    actions: [{ kind: "edit", title: "Tiếp tục nhập", needId: need.id }],
+  };
+}
+
+/**
+ * One PH03 card. A closed need is kept for reference only: no search, no offers (PH03 "Hành vi").
+ * `freeTime`: whether the child's calendar holds free time, unknown while it loads.
+ */
+export function needCard(need: Need, offers: OfferFacts, freeTime?: boolean): NeedCard {
   const base = { id: need.id, status: need.status, title: titleOf(need.draft) };
   switch (need.status) {
     case "DRAFT": {
-      const missing = missingFields(need.draft);
-      const lead = missing.length > 0 ? `Cần thêm: ${missing.join(", ")}. ` : "";
       return {
         ...base,
-        body: `${lead}Chưa thể tìm gia sư từ bản nháp.`,
+        body: draftBody(need.draft, freeTime, "giờ rảnh của con"),
         actions: [{ kind: "edit", title: "Tiếp tục nhập", needId: need.id }],
       };
     }

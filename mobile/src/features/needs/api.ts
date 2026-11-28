@@ -93,6 +93,31 @@ export function useSaveNeedDraft() {
   return command;
 }
 
+/**
+ * confirmNeed (PH05) against the ETag of the version shown (AC-UC04-01: the parent confirms exactly what the
+ * server holds). The precondition travels in the input, so a retry after an unknown outcome resends the same
+ * key and precondition (INV-20). The confirmed need replaces the cached one, and PH03 lists it anew.
+ */
+export function useConfirmNeed() {
+  const queryClient = useQueryClient();
+  const command = useCommand(({ needId, etag }: { needId: string; etag: string }, key: string): Promise<NeedRevision> =>
+    callWithEtag(
+      api.POST("/needs/{needId}/confirm", {
+        params: { path: { needId }, header: { "Idempotency-Key": key, "If-Match": etag } },
+        body: { confirmed: true },
+      }),
+    ),
+  );
+  const confirmed = command.state === "confirmed" ? command.result : undefined;
+  useEffect(() => {
+    if (confirmed) {
+      queryClient.setQueryData(needKey(confirmed.data.id), confirmed);
+      void queryClient.invalidateQueries({ queryKey: needsKey(confirmed.data.studentId) });
+    }
+  }, [confirmed, queryClient]);
+  return command;
+}
+
 /** Public names of the tutors of accepted offers, by tutor id. A name that fails to load is left out. */
 export function useTutorNames(offers: readonly Offer[]): Map<string, string> {
   const tutorIds = [...new Set(offers.filter((offer) => offer.state === "ACCEPTED").map((offer) => offer.tutorId))];

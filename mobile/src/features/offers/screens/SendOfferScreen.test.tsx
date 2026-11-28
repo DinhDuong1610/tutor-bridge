@@ -84,10 +84,22 @@ const offer: Offer = {
   classId: null,
 };
 
+/** The need edited and confirmed again after the search: 120 minutes, a higher budget, a later cycle. */
+const MOVED: Need = {
+  ...need,
+  revision: 4,
+  versionId: "5f1a8d7c-6e95-4ecb-9e87-0b5d4a6f3c54",
+  draft: { ...need.draft, durationMinutes: 120, budgetVndSession: 500000, cycleStartDate: "2026-12-02" },
+};
+let storedNeed: Need = need;
 const needAnswer = () =>
-  new Response(JSON.stringify(need), { status: 200, headers: { "Content-Type": "application/json", ETag: '"2"' } });
+  new Response(JSON.stringify(storedNeed), {
+    status: 200,
+    headers: { "Content-Type": "application/json", ETag: `"${storedNeed.revision}"` },
+  });
 
 function server(sendAnswer?: () => Response, runAnswer = () => json(200, run())) {
+  storedNeed = need;
   return mockApi({
     "GET /matching-runs/{runId}": runAnswer,
     "GET /needs/{needId}": needAnswer,
@@ -114,13 +126,13 @@ async function renderSend() {
     onOtherChild: jest.fn(),
     onManageStudents: jest.fn(),
   };
-  await renderScreen(
+  const rendered = await renderScreen(
     <SelectedStudentProvider>
       <SendOfferScreen needId={NEED_ID} runId={RUN_ID} tutorId={TUTOR_ID} {...handlers} />
     </SelectedStudentProvider>,
     { session: fakeSession("PARENT") },
   );
-  return handlers;
+  return { ...handlers, queryClient: rendered.queryClient };
 }
 
 async function sendOnce() {
@@ -263,6 +275,55 @@ describe("PH08 Xem lại và gửi đề nghị", () => {
     expect(await screen.findByText("Đã gửi đề nghị cho Nguyễn Thị Lan.")).toBeTruthy();
     const [first, second] = sends(api);
     expect(second.headers.get("Idempotency-Key")).toBe(first.headers.get("Idempotency-Key"));
+  });
+
+  it("an unknown outcome keeps 'Thử lại' with the first key and terms even after the need moves on (Codex, #276)", async () => {
+    let calls = 0;
+    api = server(() => (++calls === 1 ? problem(503, "UNAVAILABLE", "Dịch vụ tạm gián đoạn.") : json(201, offer)));
+    const { queryClient } = await renderSend();
+    await sendOnce();
+    expect(await screen.findByRole("button", { name: "Thử lại" })).toBeTruthy();
+
+    // The need is read again (as on focus) and has moved on while the first send's outcome is unknown.
+    storedNeed = MOVED;
+    await act(async () => {
+      await queryClient.refetchQueries({ queryKey: ["needs", "one", NEED_ID] });
+    });
+    expect(api.requests.filter((r) => r.method === "GET" && new URL(r.url).pathname.endsWith(`/needs/${NEED_ID}`)).length).toBeGreaterThan(1);
+    expect(queryClient.getQueryData<{ data: Need }>(["needs", "one", NEED_ID])?.data.versionId).toBe(MOVED.versionId);
+    // TanStack Query tells observers on the next tick: let the screen draw the new version.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(screen.getByText("Chưa rõ kết quả. Yêu cầu có thể đã được ghi nhận. Thử lại sẽ không tạo bản trùng.")).toBeTruthy();
+    expect(screen.queryByText(/Nhu cầu đã có bản mới/)).toBeNull();
+    // The terms on screen stay those of the send in doubt, not the new version's.
+    expect(screen.getByText("375.000 ₫ / buổi 90 phút")).toBeTruthy();
+    expect(screen.queryByText(/buổi 120 phút/)).toBeNull();
+    await press("Thử lại");
+
+    expect(await screen.findByText("Đã gửi đề nghị cho Nguyễn Thị Lan.")).toBeTruthy();
+    const [first, second] = sends(api);
+    expect(second.headers.get("Idempotency-Key")).toBe(first.headers.get("Idempotency-Key"));
+    expect(second.headers.get("If-Match")).toBe('"2"');
+    expect(await second.json()).toMatchObject({ needVersionId: VERSION });
+  });
+
+  it("a run of an older version shows none of its terms beside the new version's (Codex, #276)", async () => {
+    api = server(undefined, () => json(200, run()));
+    storedNeed = MOVED;
+    await renderSend();
+
+    expect(
+      await screen.findByText(
+        "Nhu cầu đã có bản mới từ lúc bạn tìm. Đề nghị này dựa trên bản cũ nên không gửi được. Tìm lại từ bản đang hiệu lực.",
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByText(/375.000 ₫ \/ buổi/)).toBeNull();
+    expect(screen.queryByText(/buổi 120 phút/)).toBeNull();
+    expect(screen.queryByText(/buổi trong 28 ngày/)).toBeNull();
+    expect(screen.queryAllByText("Trong đề nghị, chưa chốt")).toHaveLength(0);
   });
 
   it("another refusal shows the server's sentence and keeps the terms", async () => {

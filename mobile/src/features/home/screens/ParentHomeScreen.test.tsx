@@ -14,21 +14,41 @@ const NGOC = { id: "1c8d5a4f-3b62-4b9f-8b54-7e2a1d3c0f21", displayName: "Bảo N
 
 const page = (items: unknown[]) => json(200, { items, nextCursor: null });
 
+/**
+ * PH01 reads the child's needs and calendar for its need block (#70, Đính 22/11/2026). By default the child has
+ * no need and no calendar; a test passes its own routes to change that.
+ */
+function serve(routes: Parameters<typeof mockApi>[0]) {
+  return mockApi({
+    "GET /students/{studentId}/needs": () => page([]),
+    "GET /students/{studentId}/calendar": () => problem(404, "CALENDAR_NOT_FOUND", "Chưa có lịch rảnh."),
+    ...routes,
+  });
+}
+
 async function renderHome() {
   const handlers = {
     onAddStudent: jest.fn(),
     onManageStudents: jest.fn(),
     onSecurity: jest.fn(),
     onNeeds: jest.fn(),
+    onCreateNeed: jest.fn(),
+    onContinueNeed: jest.fn(),
     onNotifications: jest.fn(),
   };
-  await renderScreen(
+  const { queryClient } = await renderScreen(
     <SelectedStudentProvider>
       <ParentHomeScreen {...handlers} />
     </SelectedStudentProvider>,
     { session: fakeSession("PARENT") },
   );
-  return handlers;
+  return { ...handlers, queryClient };
+}
+
+const NEED_ID = "3d9e6b5a-4c73-4caf-9c65-8f3b2e4d1a32";
+const COMPLETE = { goal: "Ôn tập phân thức đại số lớp 8.", durationMinutes: 90, frequencyPer7Days: 2, budgetVndSession: 400000, cycleStartDate: "2026-12-02" } as const;
+function need(status: "DRAFT" | "CONFIRMED" | "CLOSED", draft: Record<string, unknown>) {
+  return { id: NEED_ID, studentId: MINH.id, revision: 1, versionId: "4e0f7c6b-5d84-4dba-8d76-9a4c3f5e2b43", status, draft, studentCalendarId: null };
 }
 
 const switcher = (label: string) => screen.getByRole("button", { name: `Đổi con. Đang xem ${label}` });
@@ -38,7 +58,7 @@ describe("PH01 Trang chủ phụ huynh", () => {
   afterEach(() => server.restore());
 
   it("AC-UC02-02 shows the first child of the session's own list and no owner in the request", async () => {
-    server = mockApi({ "GET /students": () => page([MINH, NGOC]) });
+    server = serve({ "GET /students": () => page([MINH, NGOC]) });
 
     await renderHome();
 
@@ -55,21 +75,117 @@ describe("PH01 Trang chủ phụ huynh", () => {
     expect(server.unexpected).toEqual([]);
   });
 
-  it("hides every block whose API is not merged yet (Đính, #14 câu 1)", async () => {
-    server = mockApi({ "GET /students": () => page([MINH]) });
+  it("hides the blocks no Issue has turned on yet; only the need block reads its APIs (Đính, #14 câu 1; #70)", async () => {
+    // A confirmed need: nothing for the need block to show either.
+    server = serve({
+      "GET /students": () => page([MINH]),
+      "GET /students/{studentId}/needs": () => page([need("CONFIRMED", COMPLETE)]),
+    });
 
     await renderHome();
     await screen.findByText("Minh An, lớp 8");
 
-    for (const block of ["Buổi sắp tới", "Việc đang chờ", "Thông báo mới", "Chưa có buổi học nào."]) {
+    for (const block of ["Buổi sắp tới", "Việc đang chờ", "Thông báo mới", "Chưa có buổi học nào.", "chưa có nhu cầu"]) {
       expect(screen.queryByText(block, { exact: false })).toBeNull();
     }
-    // Only listStudents is called: nothing is read for the hidden blocks.
-    expect(server.requests.map((request) => new URL(request.url).pathname)).toEqual(["/api/v1/students"]);
+    // listStudents, then the need block's listNeeds and the child's calendar; nothing for offers, sessions or
+    // notifications.
+    expect(new Set(server.requests.map((request) => new URL(request.url).pathname))).toEqual(
+      new Set(["/api/v1/students", `/api/v1/students/${MINH.id}/needs`, `/api/v1/students/${MINH.id}/calendar`]),
+    );
+  });
+
+  it("#70 a child with no need gets PH01's frame 'Con chưa có nhu cầu' and its button to PH04", async () => {
+    server = serve({ "GET /students": () => page([NGOC]) });
+    const { onCreateNeed } = await renderHome();
+
+    expect(await screen.findByRole("header", { name: "Bảo Ngọc chưa có nhu cầu học kèm." })).toBeOnTheScreen();
+    expect(
+      screen.getByText("Nhập mục tiêu, ngân sách mỗi buổi và giờ rảnh của con. Hệ thống lọc gia sư đáp ứng đủ điều kiện để bạn chọn."),
+    ).toBeOnTheScreen();
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Tạo nhu cầu học kèm" })));
+    expect(onCreateNeed).toHaveBeenCalledTimes(1);
+  });
+
+  it("#70 a draft waits under 'Việc đang chờ' in PH01's words, naming the free time the calendar lacks", async () => {
+    server = serve({
+      "GET /students": () => page([MINH]),
+      "GET /students/{studentId}/needs": () => page([need("DRAFT", { goal: "Ôn tập phân thức đại số lớp 8.", durationMinutes: 90 })]),
+    });
+    const { onContinueNeed } = await renderHome();
+
+    expect(await screen.findByRole("header", { name: "Việc đang chờ" })).toBeOnTheScreen();
+    expect(screen.getByText("Nhu cầu học kèm Toán 8")).toBeOnTheScreen();
+    expect(
+      await screen.findByText(
+        "Cần thêm: ngân sách, số buổi mỗi tuần, ngày bắt đầu, khung giờ rảnh. Chưa thể tìm gia sư từ bản nháp.",
+      ),
+    ).toBeOnTheScreen();
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Tiếp tục nhập" })));
+    expect(onContinueNeed).toHaveBeenCalledWith(NEED_ID);
+  });
+
+  describe("#70 a calendar read that fails again leaves the free time unsaid, whatever is cached (Đính, #267)", () => {
+    const DRAFT = need("DRAFT", { goal: "Ôn tập phân thức đại số lớp 8.", durationMinutes: 90 });
+    const KNOWN = "Cần thêm: ngân sách, số buổi mỗi tuần, ngày bắt đầu, khung giờ rảnh. Chưa thể tìm gia sư từ bản nháp.";
+    const UNSAID = "Cần thêm: ngân sách, số buổi mỗi tuần, ngày bắt đầu. Chưa thể tìm gia sư từ bản nháp.";
+    /** Only a day off: a calendar with no free time. */
+    const blockedOnly = () =>
+      new Response(
+        JSON.stringify({
+          id: "6a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+          version: 1,
+          timezone: "Asia/Ho_Chi_Minh",
+          windows: [{ start: "2026-11-23T11:00:00Z", end: "2026-11-23T14:00:00Z", kind: "BLOCKED" }],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json", ETag: '"1"' } },
+      );
+
+    it.each([
+      ["no calendar (404)", () => problem(404, "CALENDAR_NOT_FOUND", "Chưa có lịch rảnh.")],
+      ["a calendar with no free time", blockedOnly],
+    ])("cached %s, then 503", async (_, first) => {
+      let reads = 0;
+      server = serve({
+        "GET /students": () => page([MINH]),
+        "GET /students/{studentId}/needs": () => page([DRAFT]),
+        "GET /students/{studentId}/calendar": () => {
+          reads += 1;
+          return reads === 1 ? first() : problem(503, "UNAVAILABLE", "Dịch vụ tạm thời không sẵn sàng.");
+        },
+      });
+      const { queryClient } = await renderHome();
+      expect(await screen.findByText(KNOWN)).toBeOnTheScreen();
+
+      // Reads retry twice on 5xx with the default backoff before the query fails.
+      await act(async () => {
+        await queryClient.refetchQueries({ queryKey: ["calendars"] });
+      });
+
+      expect(queryClient.getQueryState(["calendars", "student", MINH.id])?.status).toBe("error");
+      expect(await screen.findByText(UNSAID)).toBeOnTheScreen();
+      expect(screen.queryByText(KNOWN)).toBeNull();
+    }, 15_000);
+  });
+
+  it("AC-UC02-01 changing child reloads the need block for that child", async () => {
+    server = serve({
+      "GET /students": () => page([MINH, NGOC]),
+      "GET /students/{studentId}/needs": (request) =>
+        request.url.includes(MINH.id) ? page([need("DRAFT", { goal: "Ôn tập phân thức đại số lớp 8." })]) : page([]),
+    });
+    await renderHome();
+    expect(await screen.findByText("Nhu cầu học kèm Toán 8")).toBeOnTheScreen();
+
+    await act(async () => fireEvent.press(switcher("Minh An, lớp 8")));
+    await act(async () => fireEvent.press(screen.getByRole("radio", { name: /Bảo Ngọc/ })));
+
+    expect(await screen.findByRole("header", { name: "Bảo Ngọc chưa có nhu cầu học kèm." })).toBeOnTheScreen();
+    expect(screen.queryByText("Nhu cầu học kèm Toán 8")).toBeNull();
   });
 
   it("AC-UC02-01 switches the child from the sheet, which marks the child being viewed", async () => {
-    server = mockApi({ "GET /students": () => page([MINH, NGOC]) });
+    server = serve({ "GET /students": () => page([MINH, NGOC]) });
     await renderHome();
     await screen.findByText("Minh An, lớp 8");
 
@@ -87,7 +203,7 @@ describe("PH01 Trang chủ phụ huynh", () => {
   });
 
   it("opens PH02 from the sheet", async () => {
-    server = mockApi({ "GET /students": () => page([MINH]) });
+    server = serve({ "GET /students": () => page([MINH]) });
     const { onManageStudents } = await renderHome();
     await screen.findByText("Minh An, lớp 8");
 
@@ -99,7 +215,7 @@ describe("PH01 Trang chủ phụ huynh", () => {
   });
 
   it("shows the no-child state with a way to add the first child", async () => {
-    server = mockApi({ "GET /students": () => page([]) });
+    server = serve({ "GET /students": () => page([]) });
     const { onAddStudent } = await renderHome();
 
     expect(await screen.findByText("Chào bạn")).toBeOnTheScreen();
@@ -111,7 +227,7 @@ describe("PH01 Trang chủ phụ huynh", () => {
   });
 
   it("keeps the temporary way in to AUTH06 until the Account tab exists", async () => {
-    server = mockApi({ "GET /students": () => page([MINH]) });
+    server = serve({ "GET /students": () => page([MINH]) });
     const { onSecurity } = await renderHome();
     await screen.findByText("Minh An, lớp 8");
 
@@ -121,7 +237,7 @@ describe("PH01 Trang chủ phụ huynh", () => {
   });
 
   it("has a temporary way in to PH03 until the tab bar exists (#70 PR 2 Q4)", async () => {
-    server = mockApi({ "GET /students": () => page([MINH]) });
+    server = serve({ "GET /students": () => page([MINH]) });
     const { onNeeds } = await renderHome();
     await screen.findByText("Minh An, lớp 8");
 
@@ -131,7 +247,7 @@ describe("PH01 Trang chủ phụ huynh", () => {
   });
 
   it("has a temporary way in to COM01 until the tab bar exists (#74, #205)", async () => {
-    server = mockApi({ "GET /students": () => page([MINH]) });
+    server = serve({ "GET /students": () => page([MINH]) });
     const { onNotifications, onSecurity } = await renderHome();
     await screen.findByText("Minh An, lớp 8");
 
@@ -143,7 +259,7 @@ describe("PH01 Trang chủ phụ huynh", () => {
 
   it("keeps the way in to AUTH06 while the list is loading and after it fails (Codex, #192)", async () => {
     // Without it a parent whose first read fails could not change the password or sign out from PH01.
-    server = mockApi({ "GET /students": () => problem(503, "UNAVAILABLE", "Dịch vụ tạm thời không sẵn sàng.") });
+    server = serve({ "GET /students": () => problem(503, "UNAVAILABLE", "Dịch vụ tạm thời không sẵn sàng.") });
     const { onSecurity } = await renderHome();
     expect(screen.getByRole("button", { name: "Bảo mật" })).toBeOnTheScreen(); // still loading
 
@@ -156,7 +272,7 @@ describe("PH01 Trang chủ phụ huynh", () => {
   it("shows the load error with a retry that reads the list again", async () => {
     // Reads retry twice on 5xx with the default backoff before the error shows (same as PH02's test).
     let attempts = 0;
-    server = mockApi({
+    server = serve({
       "GET /students": () => {
         attempts += 1;
         return attempts <= 3 ? problem(503, "UNAVAILABLE", "Dịch vụ tạm thời không sẵn sàng.") : page([MINH]);
@@ -172,7 +288,7 @@ describe("PH01 Trang chủ phụ huynh", () => {
 
   it("lets a very long name wrap instead of cutting it (worst data, 200% text)", async () => {
     const long = { ...MINH, displayName: "Nguyễn Hoàng Gia Bảo Khôi Nguyên ".repeat(3).trim() };
-    server = mockApi({ "GET /students": () => page([long]) });
+    server = serve({ "GET /students": () => page([long]) });
     await renderHome();
 
     const name = await screen.findByText(`${long.displayName}, lớp 8`);
@@ -191,7 +307,7 @@ describe("PH01 Trang chủ phụ huynh", () => {
     });
 
     it("spans the bar edge to edge with a divider below, not an inset rounded card", async () => {
-      server = mockApi({ "GET /students": () => page([MINH]) });
+      server = serve({ "GET /students": () => page([MINH]) });
       await renderHome();
       await screen.findByText("Minh An, lớp 8");
 
@@ -205,7 +321,7 @@ describe("PH01 Trang chủ phụ huynh", () => {
     });
 
     it("keeps \"Đang xem\" on its own full-width line, apart from the name and \"Đổi con\"", async () => {
-      server = mockApi({ "GET /students": () => page([MINH]) });
+      server = serve({ "GET /students": () => page([MINH]) });
       await renderHome();
       await screen.findByText("Minh An, lớp 8");
 
@@ -216,7 +332,7 @@ describe("PH01 Trang chủ phụ huynh", () => {
     });
 
     it("draws a drag handle at the top of the child sheet, hidden from screen readers", async () => {
-      server = mockApi({ "GET /students": () => page([MINH]) });
+      server = serve({ "GET /students": () => page([MINH]) });
       await renderHome();
       await act(async () => fireEvent.press(await screen.findByRole("button", { name: "Đổi con. Đang xem Minh An, lớp 8" })));
 

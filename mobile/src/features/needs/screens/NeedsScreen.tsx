@@ -1,18 +1,19 @@
 // PH03 Danh sách và phiên bản nhu cầu (UC04, FR-04). Thiết kế: docs/design/ui/screens/PH03.md
 import type { ReactNode } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useStudents } from "@/features/students/api";
 import { studentChoices, useSelectedStudent } from "@/features/students/selection";
 import { Button } from "@/shared/ui/Button";
-import type { IconName } from "@/shared/ui/Icon";
 import { Notice } from "@/shared/ui/Notice";
 import { QueryBody, QueryScreen } from "@/shared/ui/QueryScreen";
-import { StatusLabel, type StatusTone } from "@/shared/ui/StatusLabel";
 import { StickyActionBar } from "@/shared/ui/StickyActionBar";
 import { StudentSwitcher } from "@/shared/ui/StudentSwitcher";
-import { colors, minTouchSize, radius, spacing, typography } from "@/shared/ui/theme";
+import { colors, spacing, typography } from "@/shared/ui/theme";
 import { useFirstOffers, useNeeds, useTutorNames } from "../api";
-import { hasOpenNeed, needCard, offerFactsByNeed, type Need, type NeedAction, type NeedCard } from "../summary";
+import { NeedCardView, TextAction } from "../components/NeedCardView";
+import { knownFreeTime } from "../freeTime";
+import { useStudentCalendar } from "@/features/calendar/api";
+import { hasOpenNeed, needCard, offerFactsByNeed, type Need, type NeedAction } from "../summary";
 
 type Props = {
   onAddStudent: () => void;
@@ -80,6 +81,11 @@ function ChildNeeds({
   onAction: (action: NeedAction) => void;
 }) {
   const needs = useNeeds(student.id);
+  // The child's free time is the child's calendar (#16 Q1): a draft card names it in "Cần thêm" once the
+  // calendar is known to hold none. Loading or failing leaves it unsaid, as the counts below, even with an
+  // older read cached.
+  const calendar = useStudentCalendar(student.id);
+  const freeTime = knownFreeTime(calendar);
   // Counts and names on the cards. Loading them is not needed to read the list, so a failure only
   // leaves those words out; the cards and their actions stay.
   const offers = useFirstOffers().data?.items ?? [];
@@ -111,7 +117,7 @@ function ChildNeeds({
                     Mỗi nhu cầu là một lần tìm gia sư. Sửa nhu cầu đã xác nhận sẽ tạo bản nháp mới; lớp đã chốt không đổi.
                   </Text>
                   {loaded.map((need) => (
-                    <Card key={need.id} card={needCard(need, facts.get(need.id) ?? { pending: 0 })} onAction={onAction} />
+                    <NeedCardView key={need.id} card={needCard(need, facts.get(need.id) ?? { pending: 0 }, freeTime)} onAction={onAction} />
                   ))}
                   {needs.hasNextPage ? (
                     <TextAction
@@ -136,40 +142,6 @@ function ChildNeeds({
   );
 }
 
-// `03` "Nhãn trạng thái theo hợp đồng": Nháp and Đã đóng neutral, Đã xác nhận info. Icons as in PH03 Figma.
-const LABELS: Record<Need["status"], { label: string; tone: StatusTone; icon: IconName }> = {
-  DRAFT: { label: "Nháp", tone: "neutral", icon: "edit" },
-  CONFIRMED: { label: "Đã xác nhận", tone: "info", icon: "schedule" },
-  CLOSED: { label: "Đã đóng", tone: "neutral", icon: "edit" },
-};
-
-function Card({ card, onAction }: { card: NeedCard; onAction: (action: NeedAction) => void }) {
-  return (
-    <View style={[styles.card, card.status === "CLOSED" && styles.closedCard]}>
-      <StatusLabel {...LABELS[card.status]} />
-      <Text style={styles.title}>{card.title}</Text>
-      <Text style={styles.body}>{card.body}</Text>
-      {card.actions.map((action) => (
-        <TextAction key={action.kind} title={action.title} onPress={() => onAction(action)} />
-      ))}
-    </View>
-  );
-}
-
-function TextAction({ title, onPress, disabled = false }: { title: string; onPress: () => void; disabled?: boolean }) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ disabled }}
-      disabled={disabled}
-      onPress={onPress}
-      style={({ pressed }) => [styles.action, pressed && styles.actionPressed]}
-    >
-      <Text style={styles.actionText}>{title}</Text>
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
   // Undoes QueryScreen's padding so the switcher bar and the sticky bar span the screen, as in Figma;
   // the rest keeps the padding.
@@ -179,13 +151,4 @@ const styles = StyleSheet.create({
   padded: { paddingHorizontal: spacing.md },
   list: { gap: spacing.md },
   lead: { ...typography.body, color: colors.textMuted },
-  card: { gap: spacing.xs, padding: spacing.md, borderRadius: radius.md, borderWidth: 1, borderColor: colors.divider, backgroundColor: colors.background },
-  // A closed need is for reference only; the frame sets it on the surface colour.
-  closedCard: { backgroundColor: colors.surface },
-  title: { ...typography.bodyStrong, color: colors.text },
-  body: { ...typography.body, color: colors.textMuted },
-  // A text button as in the frames; the pressable area stays at least 48 tall (minTouchSize).
-  action: { alignSelf: "flex-start", minHeight: minTouchSize, justifyContent: "center", borderRadius: radius.sm, marginLeft: -spacing.xs, paddingHorizontal: spacing.xs },
-  actionPressed: { backgroundColor: colors.infoSurface },
-  actionText: { ...typography.label, color: colors.primary },
 });

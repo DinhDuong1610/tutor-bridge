@@ -812,6 +812,43 @@ class EvidenceUploadsHttpTest extends HttpTest {
                 .andExpect(jsonPath("$.state").value("FAILED"));
     }
 
+    /**
+     * Đính on #262: a QUARANTINED upload completes after its ticket expired, and fails now. The failure time
+     * (V21) is now, which evidence cleanup counts its seven days from; the ticket stays as it was.
+     */
+    @Test
+    void a_quarantined_upload_failed_after_its_ticket_expired_records_when_it_failed() throws Exception {
+        Actor tutor = newActor(Actor.Role.TUTOR);
+        byte[] content = file("pdf", 300);
+        UUID id = uploaded(tutor, PDF, content);
+        moveTo(id, "QUARANTINED");
+        jdbc.sql("""
+                update tutor_evidence_uploads
+                set created_at = now() - interval '8 days 15 minutes', expires_at = now() - interval '8 days'
+                where id = ?""").param(id).update();
+        Files.delete(stored(id));
+        Instant before = Instant.now().minusSeconds(1);
+
+        complete(tutor, id, key(), completionFor(content)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.state").value("FAILED"));
+
+        Instant failedAt = jdbc.sql("select failed_at from tutor_evidence_uploads where id = ?").param(id)
+                .query(java.time.OffsetDateTime.class).single().toInstant();
+        assertThat(failedAt).isAfter(before).isBefore(Instant.now().plusSeconds(1));
+    }
+
+    @Test
+    void a_ready_upload_has_no_failure_time() throws Exception {
+        Actor tutor = newActor(Actor.Role.TUTOR);
+        byte[] content = file("pdf", 300);
+        UUID id = uploaded(tutor, PDF, content);
+
+        complete(tutor, id, key(), completionFor(content)).andExpect(jsonPath("$.state").value("READY"));
+
+        assertThat(jdbc.sql("select failed_at is null from tutor_evidence_uploads where id = ?").param(id)
+                .query(Boolean.class).single()).isTrue();
+    }
+
     @Test
     void bytes_changed_in_the_store_after_the_put_are_failed() throws Exception {
         Actor tutor = newActor(Actor.Role.TUTOR);

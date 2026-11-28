@@ -76,6 +76,14 @@ tutorbridge:
       batch-size: 500
       max-batches: 40
       outbox-keep: P7D
+    # Evidence cleanup (#182): defaults approved by Đính (24 h past ticket, 7 days FAILED, 24 h orphan/staged).
+    evidence-cleanup:
+      interval: PT1H
+      batch-size: 100
+      max-batches: 20
+      expired-keep: PT24H
+      failed-keep: P7D
+      orphan-keep: PT24H
 management:
   endpoints:
     web:

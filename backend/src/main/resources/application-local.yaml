@@ -27,3 +27,6 @@ tutorbridge:
   security:
     # Next.js dev server. Cookie writes from any other origin are rejected (ADR-0010).
     admin-origins: http://localhost:3000
+    # The Next.js dev server calls the API from this machine and sends the browser's address in
+    # X-TB-Client-IP, which only these addresses may do (#252). Empty, the default, believes nobody.
+    trusted-web-proxies: 127.0.0.1,::1

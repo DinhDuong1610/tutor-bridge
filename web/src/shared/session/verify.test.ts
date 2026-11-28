@@ -6,6 +6,8 @@ vi.mock("next/headers", () => ({
   cookies: async () => ({
     get: (name: string) => (cookieJar.has(name) ? { name, value: cookieJar.get(name) } : undefined),
   }),
+  // adminApi passes the browser's address on (#252); none here.
+  headers: async () => new Headers(),
 }));
 
 vi.mock("next/navigation", () => ({

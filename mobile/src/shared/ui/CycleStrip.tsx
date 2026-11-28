@@ -7,6 +7,8 @@ type Props = {
   /** Sessions needed in each of the 4 blocks of 7 days (BR04: the same number every week, at most 3). */
   perWeek: number;
   caption: string;
+  /** The sessions of a class that was confirmed (PH09 "Đã chốt lớp"): solid dots and a solid edge, not rings. */
+  booked?: boolean;
 };
 
 /**
@@ -15,17 +17,17 @@ type Props = {
  * marks for past or cancelled sessions are added by the screens that have them. Each week is read out as
  * "Tuần 1, 2 buổi", not left to the rings.
  */
-export function CycleStrip({ heading, perWeek, caption }: Props) {
+export function CycleStrip({ heading, perWeek, caption, booked = false }: Props) {
   return (
-    <View style={styles.strip}>
+    <View style={[styles.strip, booked && styles.stripBooked]}>
       <Text style={styles.heading}>{heading}</Text>
       <View style={styles.weeks}>
         {[1, 2, 3, 4].map((week) => (
-          <View key={week} accessible accessibilityLabel={`Tuần ${week}, ${perWeek} buổi`} style={styles.week}>
+          <View key={week} accessible accessibilityLabel={`Tuần ${week}, ${perWeek} buổi`} style={[styles.week, booked && styles.weekBooked]}>
             <Text style={styles.weekLabel}>{`Tuần ${week}`}</Text>
             <View style={styles.rings}>
               {Array.from({ length: perWeek }, (_, index) => (
-                <View key={index} style={styles.ring} />
+                <View key={index} style={booked ? styles.dot : styles.ring} />
               ))}
             </View>
           </View>
@@ -46,6 +48,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     backgroundColor: colors.surface,
   },
+  stripBooked: { borderStyle: "solid", borderColor: colors.divider, backgroundColor: colors.background },
   heading: { ...typography.label, color: colors.text },
   weeks: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   week: {
@@ -59,5 +62,7 @@ const styles = StyleSheet.create({
   weekLabel: { ...typography.caption, color: colors.text },
   rings: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
   ring: { width: 12, height: 12, borderRadius: radius.full, borderWidth: 1, borderStyle: "dashed", borderColor: colors.primary },
+  weekBooked: { backgroundColor: colors.surface },
+  dot: { width: 12, height: 12, borderRadius: radius.full, backgroundColor: colors.primary },
   caption: { ...typography.caption, color: colors.textMuted },
 });

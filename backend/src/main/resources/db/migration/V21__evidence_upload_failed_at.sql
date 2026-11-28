@@ -1,4 +1,4 @@
--- TutorBridge / TB-182. Number V21: TBD, to be confirmed by Đính (V20 is #258's).
+-- TutorBridge / TB-182. Number V21 assigned by Đính (28/11/2026, #268), merged after #258 (V20).
 -- Additive only: code running on V20 keeps working, it never reads or writes this column. Owned by the
 -- identity module.
 SET search_path = tutorbridge, public;

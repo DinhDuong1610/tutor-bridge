@@ -5,7 +5,7 @@ Mỗi component trong Figma có **cùng tên và cùng variant** với component
 ## Đã có trong code
 | Figma | Mobile `shared/ui/` | Web `shared/ui/` | Variant và thuộc tính |
 |---|---|---|---|
-| `Button` | `Button.tsx` | `button.tsx` (shadcn) | `variant`: primary, secondary (web thêm destructive, outline, ghost); `busy`; `disabled`. Nhãn là động từ nói đúng kết quả: "Gửi đề nghị", không "Xác nhận" |
+| `Button` | `Button.tsx` | `button.tsx` (shadcn) | `variant`: primary, secondary (web thêm destructive, outline, ghost); `busy`; `disabled`. Vô hiệu hoặc đang gửi (Figma State=Disabled 6:143, 6:148; Đính, 22/11/2026, #95): nền `surface`, viền `border`, chữ `textMuted`, không độ mờ, cho mọi variant, mobile và web. Nhãn là động từ nói đúng kết quả: "Gửi đề nghị", không "Xác nhận" |
 | `TextField` | `TextField.tsx`, `FormTextField` | `input.tsx`, `form-field.tsx` | Nhãn luôn hiện phía trên (không dùng placeholder làm nhãn); gợi ý; lỗi cạnh trường; bộ đếm ký tự khi có giới hạn |
 | `Notice` | `Notice.tsx` | `notice.tsx` | `tone`: info, success, warning, danger; `action` tùy chọn, giữ bề rộng của nó. Mobile (#95 phần 1b): icon theo tone bên trái câu, nhãn trợ năng "Thông tin", "Đã xong", "Lưu ý", "Lỗi"; không viền một bên, không dòng nhãn; bo `md`. Web còn viền một bên và dòng nhãn, chờ gói icon web ([10](10-ra-soat-nen-08-11.md)) |
 | `NavigationBar` | `NavigationBar.tsx` | | Danh sách tab (nhãn, icon, số chưa đọc); tab đang chọn nền `infoSurface` sau icon; số trên 99 hiện "99+"; nhãn tab phóng tối đa 1,3 lần (OP-22). Tab nào của vai trò nào do màn hình dùng nó quyết định |

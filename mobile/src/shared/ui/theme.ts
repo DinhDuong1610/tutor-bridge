@@ -57,6 +57,8 @@ export const typography = {
   bodyStrong: { fontFamily: fonts.medium, fontSize: 16, lineHeight: 24 },
   label: { fontFamily: fonts.medium, fontSize: 14, lineHeight: 20 },
   caption: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 18 },
+  /** Only the count in a `NavigationBar` badge, Figma 8:232 (Đính, 22/11/2026, #95); 16/11 is 1.45. */
+  badge: { fontFamily: fonts.regular, fontSize: 11, lineHeight: 16 },
   dateNumeral: { fontFamily: fonts.semiBold, fontSize: 28, lineHeight: 32, fontVariant: ["tabular-nums"] },
 } as const;
 

@@ -14,17 +14,24 @@ type Props = {
   onOpen: (target: TaskTarget) => void;
   /** Temporary way in to AUTH06 until the Account tab exists (#205), as on PH01. */
   onSecurity: () => void;
+  /** Temporary way in to COM01 until the tab bar exists (#205), as on PH01. */
+  onNotifications: () => void;
   /** For tests; the screen uses the device clock otherwise. */
   now?: () => Date;
 };
 
-export function TutorHomeScreen({ onOpen, onSecurity, now = () => new Date() }: Props) {
+export function TutorHomeScreen({ onOpen, onSecurity, onNotifications, now = () => new Date() }: Props) {
   const home = useTutorHome();
   return (
     <QueryScreen
       title="Tổng quan"
       query={home}
-      footer={<Button variant="secondary" title="Bảo mật" onPress={onSecurity} />}
+      footer={
+        <View style={styles.footer}>
+          <Button variant="secondary" title="Thông báo" onPress={onNotifications} />
+          <Button variant="secondary" title="Bảo mật" onPress={onSecurity} />
+        </View>
+      }
     >
       {(data) => {
         const { tasks, visibility, visibilityFirst } = deriveTutorHome(data, now());
@@ -73,6 +80,7 @@ function Listing({ visibility }: { visibility: Visibility }) {
 
 const styles = StyleSheet.create({
   content: { gap: spacing.lg, paddingBottom: spacing.md },
+  footer: { gap: spacing.sm },
   greeting: { ...typography.heading, color: colors.text },
   section: { gap: spacing.sm },
   heading: { ...typography.bodyStrong, color: colors.text },

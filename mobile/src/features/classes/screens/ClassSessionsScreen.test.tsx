@@ -54,7 +54,7 @@ describe("CL02 Lịch lớp", () => {
     });
 
   async function renderParent(now = BEFORE_START) {
-    const handlers = { onBack: jest.fn(), onOtherChild: jest.fn() };
+    const handlers = { onBack: jest.fn(), onOtherChild: jest.fn(), onManageStudents: jest.fn() };
     await renderScreen(
       <SelectedStudentProvider>
         <ClassSessionsScreen classId={CLASS_ID} role="PARENT" now={now} {...handlers} />
@@ -149,6 +149,19 @@ describe("CL02 Lịch lớp", () => {
     await act(async () => fireEvent.press(screen.getByRole("radio", { name: "Bảo Ngọc. Lớp 8." })));
 
     expect(onOtherChild).toHaveBeenCalledTimes(1);
+  });
+
+  it("'Quản lý hồ sơ các con' opens PH02 and does not leave as choosing another child does (Đính, #260 review)", async () => {
+    server = parentServer();
+    const { onOtherChild, onManageStudents, onBack } = await renderParent();
+    await screen.findByText("Toán 8 với Nguyễn Thị Lan, 8 buổi từ 18/11 đến 14/12/2026");
+
+    await press("Đổi con. Đang xem Minh An, lớp 8");
+    await press("Quản lý hồ sơ các con");
+
+    expect(onManageStudents).toHaveBeenCalledTimes(1);
+    expect(onOtherChild).not.toHaveBeenCalled();
+    expect(onBack).not.toHaveBeenCalled();
   });
 
   it("still shows the week when the tutor's name fails to load, without the name", async () => {

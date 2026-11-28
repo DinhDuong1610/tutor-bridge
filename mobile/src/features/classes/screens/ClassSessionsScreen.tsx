@@ -34,10 +34,13 @@ type Props = {
   role: "PARENT" | "TUTOR";
   onBack: () => void;
   /**
-   * The parent chose another child in the switcher. The class belongs to one child, so the screen
-   * leaves (Huy, #73 Q3, 27/11/2026). TBD: go to that child's class list once listClasses exists (#97).
+   * The parent chose another child in the switcher: the choice is kept and the screen leaves, since the class
+   * belongs to one child (Đính, #260 review, 28/11/2026). TBD: that child's class list once listClasses
+   * exists (#97).
    */
   onOtherChild?: () => void;
+  /** "Quản lý hồ sơ các con" in the switcher: PH02. Not a way back (Đính, #260 review). */
+  onManageStudents?: () => void;
   /** For tests; the clock decides the opening week and which sessions are past. */
   now?: Date;
 };
@@ -61,7 +64,7 @@ export function ClassSessionsScreen(props: Props) {
   return props.role === "PARENT" ? <ParentSessions {...props} /> : <TutorSessions {...props} />;
 }
 
-function ParentSessions({ classId, onBack, onOtherChild, now = new Date() }: Props) {
+function ParentSessions({ classId, onBack, onOtherChild, onManageStudents, now = new Date() }: Props) {
   const cls = useClass(classId);
   const sessions = useSessions(classId);
   const students = useStudents();
@@ -73,7 +76,15 @@ function ParentSessions({ classId, onBack, onOtherChild, now = new Date() }: Pro
   return (
     <QueryScreen title="Lịch lớp" onBack={onBack} query={combine([cls, sessions, students], data)} placesStaleNotice>
       {(loaded, staleNotice) => (
-        <Week loaded={loaded} parent tutorName={tutorName} now={now} staleNotice={staleNotice} onOtherChild={onOtherChild} />
+        <Week
+          loaded={loaded}
+          parent
+          tutorName={tutorName}
+          now={now}
+          staleNotice={staleNotice}
+          onOtherChild={onOtherChild}
+          onManageStudents={onManageStudents}
+        />
       )}
     </QueryScreen>
   );
@@ -97,6 +108,7 @@ function Week({
   now,
   staleNotice,
   onOtherChild,
+  onManageStudents,
 }: {
   loaded: Loaded;
   parent: boolean;
@@ -104,6 +116,7 @@ function Week({
   now: Date;
   staleNotice: ReactNode;
   onOtherChild?: () => void;
+  onManageStudents?: () => void;
 }) {
   const weeks = classWeeks(loaded.sessions);
   const [week, setWeek] = useState(() => (weeks ? openingWeek(weeks, now) : 0));
@@ -119,7 +132,7 @@ function Week({
   return (
     <ScrollView style={styles.edgeToEdge} contentContainerStyle={styles.content}>
       {parent && child ? (
-        <ClassChild students={loaded.students} childId={child.id} onOtherChild={onOtherChild} />
+        <ClassChild students={loaded.students} childId={child.id} onOtherChild={onOtherChild} onManageStudents={onManageStudents} />
       ) : null}
       <View style={styles.padded}>
         {staleNotice}
@@ -166,8 +179,18 @@ const choiceOf = (student: Student): StudentChoice => ({
   detail: `Lớp ${student.grade}.`,
 });
 
-/** The class's child in the switcher. Choosing another child leaves the class (#73 Q3). */
-function ClassChild({ students, childId, onOtherChild }: { students: Student[]; childId: string; onOtherChild?: () => void }) {
+/** The class's child in the switcher. Choosing another child leaves the class; "Quản lý" opens PH02. */
+function ClassChild({
+  students,
+  childId,
+  onOtherChild,
+  onManageStudents,
+}: {
+  students: Student[];
+  childId: string;
+  onOtherChild?: () => void;
+  onManageStudents?: () => void;
+}) {
   const { select } = useSelectedStudent(students);
   return (
     <StudentSwitcher
@@ -178,7 +201,7 @@ function ClassChild({ students, childId, onOtherChild }: { students: Student[]; 
         select(studentId);
         onOtherChild?.();
       }}
-      onManage={() => onOtherChild?.()}
+      onManage={() => onManageStudents?.()}
     />
   );
 }

@@ -37,8 +37,8 @@ class EvidenceUploadFailedAtMigrationTest extends IntegrationTest {
             admin.createStatement().execute("create extension if not exists vector");
         }
 
-        // The last version before V21 on dev. V20 (#258) is not merged yet.
-        migrate(url, "19");
+        // The last version before V21 on dev: V20 (#258).
+        migrate(url, "20");
         Map<UUID, String> states = new HashMap<>();
         try (Connection migrator = migrator(url)) {
             Statement statement = migrator.createStatement();

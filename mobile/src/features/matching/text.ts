@@ -1,0 +1,58 @@
+import { formatTime } from "@tutorbridge/shared";
+
+/** A session the run proposes, as `Window` of the contract: start and end instants. */
+export type Window = { start: string; end: string };
+
+const VIETNAM_OFFSET_MS = 7 * 60 * 60 * 1000;
+/** Monday first, as the approved frames list days. */
+const DAY_NAMES = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"] as const;
+
+/** 0 for Monday .. 6 for Sunday, in Vietnam time. */
+function vietnamWeekday(instant: string): number {
+  const day = new Date(new Date(instant).getTime() + VIETNAM_OFFSET_MS).getUTCDay();
+  return (day + 6) % 7;
+}
+
+/** "Thứ 2", "Thứ 2 và Thứ 4", "Thứ 2, Thứ 4 và Thứ 6". */
+function joinDays(days: readonly number[]): string {
+  const names = days.map((day) => DAY_NAMES[day]);
+  return names.length <= 1 ? (names[0] ?? "") : `${names.slice(0, -1).join(", ")} và ${names[names.length - 1]}`;
+}
+
+/**
+ * The card's common time, as the approved frame writes it: "Giờ chung: đủ 8 buổi, Thứ 2 và Thứ 4,
+ * 18:00–19:30". Sessions that share a time are grouped by weekday; groups of different times are joined
+ * by "; ", earliest weekday first.
+ */
+export function commonScheduleText(windows: readonly Window[]): string {
+  const days = new Map<string, Set<number>>();
+  for (const w of windows) {
+    const time = `${formatTime(w.start)}–${formatTime(w.end)}`;
+    const set = days.get(time) ?? new Set<number>();
+    set.add(vietnamWeekday(w.start));
+    days.set(time, set);
+  }
+  const groups = [...days.entries()]
+    .map(([time, set]) => ({ time, days: [...set].sort((a, b) => a - b) }))
+    .sort((a, b) => a.days[0] - b.days[0] || a.time.localeCompare(b.time))
+    .map((group) => `${joinDays(group.days)}, ${group.time}`);
+  return `Giờ chung: đủ ${windows.length} buổi, ${groups.join("; ")}`;
+}
+
+/** Scope codes the server sends in `verificationScopes`, by the name the approved frame shows. */
+const SCOPE_NAMES: Record<string, string> = { MATH8_ALGEBRA: "Toán 8, đại số" };
+
+/** "Đã xác minh: Toán 8, đại số" for the scopes the app knows; a scope it does not know shows nothing. */
+export function verifiedText(scopes: readonly string[]): string | null {
+  const names = scopes.map((scope) => SCOPE_NAMES[scope]).filter((name): name is string => name !== undefined);
+  return names.length === 0 ? null : `Đã xác minh: ${names.join("; ")}`;
+}
+
+export const MAX_REASONS = 3;
+
+/** The reasons the card lists: the first three, then "và n lý do khác" (PH06.md, Hành vi). */
+export function shownReasons(reasons: readonly string[]): { lines: string[]; more: string | null } {
+  const lines = reasons.slice(0, MAX_REASONS);
+  const rest = reasons.length - lines.length;
+  return { lines, more: rest > 0 ? `và ${rest} lý do khác` : null };
+}

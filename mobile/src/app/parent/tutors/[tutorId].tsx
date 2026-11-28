@@ -13,6 +13,7 @@ export default function PH07Route() {
       runId={runId}
       needId={needId}
       onBack={leave}
+      onSendOffer={() => router.push({ pathname: "/parent/needs/[needId]/offer", params: { needId, runId, tutorId } })}
       onOtherChild={() => (router.canGoBack() ? router.back() : router.replace("/parent"))}
       onManageStudents={() => router.push("/parent/account/students")}
     />

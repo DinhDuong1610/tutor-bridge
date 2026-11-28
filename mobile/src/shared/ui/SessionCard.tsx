@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Icon } from "./Icon";
 import { colors, radius, spacing, typography } from "./theme";
 
-/** Variants of `03` "Thẻ lịch buổi học" that a class shows. `proposed` and `compact` come with PH08 and later screens. */
+/** Variants of `03` "Thẻ lịch buổi học" that a class shows. An offer's sessions use `ProposedSessionCard` (PH08). */
 export type SessionCardVariant = "scheduled" | "past" | "cancelled";
 
 type Props = {
@@ -56,7 +56,57 @@ export function SessionCard({ variant, date, time, detail, onPress }: Props) {
   );
 }
 
+/**
+ * Figma `SessionCard` Compact Proposed (4:71): a session in an offer that is not booked yet (PH08). Dashed
+ * edges and the words "Trong đề nghị, chưa chốt", so it never looks like a scheduled session (`03`).
+ */
+export function ProposedSessionCard({ date, time }: { date: { weekday: string; day: string }; time: string }) {
+  return (
+    <View
+      accessible
+      accessibilityLabel={`${date.weekday} ${date.day}, ${time}. Trong đề nghị, chưa chốt`}
+      style={styles.proposed}
+    >
+      <View style={styles.proposedBlock}>
+        <Text style={styles.proposedSmall}>{date.weekday}</Text>
+        <Text style={styles.proposedDay}>{date.day}</Text>
+      </View>
+      <View style={styles.body}>
+        <Text style={styles.proposedTime}>{time}</Text>
+        <View style={styles.label}>
+          <Icon name="schedule" color={colors.primary} size={20} />
+          <Text style={[styles.labelText, { color: colors.primary }]}>Trong đề nghị, chưa chốt</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  proposed: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    padding: spacing.sm,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  proposedBlock: {
+    alignItems: "center",
+    minWidth: 48,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.sm,
+    borderWidth: 1.5,
+    borderStyle: "dashed",
+    borderColor: colors.primary,
+    backgroundColor: colors.background,
+  },
+  proposedSmall: { ...typography.caption, color: colors.primary },
+  proposedDay: { ...typography.heading, color: colors.primary, fontVariant: ["tabular-nums"] },
+  proposedTime: { ...typography.heading, color: colors.text, fontVariant: ["tabular-nums"] },
   card: {
     flexDirection: "row",
     gap: spacing.md,

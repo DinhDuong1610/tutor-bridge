@@ -56,6 +56,19 @@ function scheduleGroups(windows: readonly Window[]): string {
   return groups.join("; ");
 }
 
+const SHORT_DAYS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"] as const;
+
+/** The date block of a session card, Vietnam time: { weekday: "T4", day: "18" }. */
+export function sessionDate(instant: string): { weekday: string; day: string } {
+  const local = new Date(new Date(instant).getTime() + VIETNAM_OFFSET_MS);
+  return { weekday: SHORT_DAYS[(local.getUTCDay() + 6) % 7], day: String(local.getUTCDate()) };
+}
+
+/** "18:00–19:30", Vietnam time. */
+export function sessionTime(window: Window): string {
+  return `${formatTime(window.start)}–${formatTime(window.end)}`;
+}
+
 /** Scope codes the server sends in `verificationScopes`, by the name the approved frame shows. */
 const SCOPE_NAMES: Record<string, string> = { MATH8_ALGEBRA: "Toán 8, đại số" };
 

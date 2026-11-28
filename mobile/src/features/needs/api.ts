@@ -1,7 +1,15 @@
-import { useInfiniteQuery, useQueries, useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { components } from "@tutorbridge/api-client";
+import { useEffect } from "react";
 import { api } from "@/shared/api/client";
-import { call } from "@/shared/api/errors";
+import { useCommand } from "@/shared/api/command";
+import { call, callWithEtag } from "@/shared/api/errors";
+import type { NeedDraftInput } from "./draftForm";
 import type { Offer } from "./summary";
+
+export type Need = components["schemas"]["Need"];
+/** A need version with the ETag of its revision, for the If-Match of the next save (INV-23). */
+export type NeedRevision = { data: Need; etag: string };
 
 const PAGE_LIMIT = 50; // maxItems of NeedPage and OfferPage
 
@@ -35,6 +43,54 @@ export function useFirstOffers() {
     queryKey: [...OFFERS_KEY, "first-page"],
     queryFn: () => call(api.GET("/me/offers", { params: { query: { limit: PAGE_LIMIT } } })),
   });
+}
+
+export const needKey = (needId: string) => ["needs", "one", needId] as const;
+
+/** getNeed with its ETag, the revision PH04 edits. The server checks the owner (INV-06). */
+export function useNeed(needId: string) {
+  return useQuery({
+    queryKey: needKey(needId),
+    queryFn: () => callWithEtag(api.GET("/needs/{needId}", { params: { path: { needId } } })),
+  });
+}
+
+/** A save from PH04: a new draft for the child, or the whole draft of an existing need against its ETag. */
+export type NeedSave =
+  | { kind: "create"; studentId: string; draft: NeedDraftInput }
+  | { kind: "update"; needId: string; etag: string; draft: NeedDraftInput };
+
+/**
+ * createNeedDraft or updateNeedDraft. The body is the whole draft (#16 Q3). An update sends If-Match with the
+ * ETag the form was filled from, never one guessed from the cache (INV-23). Everything travels in the input,
+ * so a retry after an unknown outcome resends the same key, body and precondition (INV-20).
+ */
+export function useSaveNeedDraft() {
+  const queryClient = useQueryClient();
+  const command = useCommand((save: NeedSave, key: string): Promise<NeedRevision> =>
+    save.kind === "create"
+      ? callWithEtag(
+          api.POST("/students/{studentId}/needs", {
+            params: { path: { studentId: save.studentId }, header: { "Idempotency-Key": key } },
+            body: save.draft,
+          }),
+        )
+      : callWithEtag(
+          api.PATCH("/needs/{needId}", {
+            params: { path: { needId: save.needId }, header: { "Idempotency-Key": key, "If-Match": save.etag } },
+            body: save.draft,
+          }),
+        ),
+  );
+  const saved = command.state === "confirmed" ? command.result : undefined;
+  useEffect(() => {
+    if (saved) {
+      queryClient.setQueryData(needKey(saved.data.id), saved);
+      // PH03 lists the child's needs: the new draft or its new summary shows there next time.
+      void queryClient.invalidateQueries({ queryKey: needsKey(saved.data.studentId) });
+    }
+  }, [saved, queryClient]);
+  return command;
 }
 
 /** Public names of the tutors of accepted offers, by tutor id. A name that fails to load is left out. */

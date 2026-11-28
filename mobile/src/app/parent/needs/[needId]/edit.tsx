@@ -1,6 +1,14 @@
-// PH04 Nhập nhu cầu học kèm, editing a need. Route of #70 Q1 (Đính, 26/11/2026); the screen comes with #70 PR 3.
-import { ComingSoon } from "@/shared/ui/ComingSoon";
+// PH04 Nhập nhu cầu học kèm, editing a need (#70 PR 3a). Route of #70 Q1 (Đính, 26/11/2026).
+import { router, useLocalSearchParams } from "expo-router";
+import { EditNeedScreen } from "@/features/needs/screens/NeedFormScreen";
 
 export default function PH04EditRoute() {
-  return <ComingSoon title="Nhập nhu cầu học kèm" />;
+  const { needId } = useLocalSearchParams<{ needId: string }>();
+  return (
+    <EditNeedScreen
+      needId={needId}
+      onBack={() => (router.canGoBack() ? router.back() : router.replace("/parent/needs"))}
+      onReview={(id) => router.push({ pathname: "/parent/needs/[needId]/review", params: { needId: id } })}
+    />
+  );
 }

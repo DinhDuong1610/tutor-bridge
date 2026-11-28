@@ -16,11 +16,13 @@ type Props = {
   onManageStudents: () => void;
   /** Temporary way in to AUTH06 until the Account tab exists (#119); goes with the tab bar. */
   onSecurity: () => void;
+  /** Temporary way in to COM01 until the tab bar exists (#205); goes with the tab bar. */
+  onNotifications: () => void;
 };
 
 type StudentItem = { id: string; displayName: string; grade: number };
 
-export function ParentHomeScreen({ onAddStudent, onManageStudents, onSecurity }: Props) {
+export function ParentHomeScreen({ onAddStudent, onManageStudents, onSecurity, onNotifications }: Props) {
   const students = useStudents();
   return (
     // The approved "Dữ liệu cũ" frame puts the warning below the child switcher, not above it.
@@ -30,7 +32,12 @@ export function ParentHomeScreen({ onAddStudent, onManageStudents, onSecurity }:
       placesStaleNotice
       // Outside the data so it stays while the list loads or fails (Codex review of #192): the
       // parent can still change the password or sign out.
-      footer={<Button variant="secondary" title="Bảo mật" onPress={onSecurity} />}
+      footer={
+        <View style={styles.footer}>
+          <Button variant="secondary" title="Thông báo" onPress={onNotifications} />
+          <Button variant="secondary" title="Bảo mật" onPress={onSecurity} />
+        </View>
+      }
     >
       {(data, staleNotice) => (
         <Home
@@ -52,7 +59,7 @@ function Home({
   staleNotice,
   onAddStudent,
   onManageStudents,
-}: Omit<Props, "onSecurity"> & { items: StudentItem[]; staleNotice: ReactNode }) {
+}: Omit<Props, "onSecurity" | "onNotifications"> & { items: StudentItem[]; staleNotice: ReactNode }) {
   const { selected, select } = useSelectedStudent(items);
 
   if (!selected) {
@@ -86,6 +93,7 @@ function Home({
 
 const styles = StyleSheet.create({
   content: { gap: spacing.lg, paddingBottom: spacing.md },
+  footer: { gap: spacing.sm },
   // Undoes the horizontal padding of QueryScreen for this scroll view only.
   edgeToEdge: { marginHorizontal: -spacing.md },
   padded: { paddingHorizontal: spacing.md },

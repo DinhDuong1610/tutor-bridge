@@ -278,7 +278,9 @@ class OfferRespondHttpTest extends HttpTest {
             hold.commit();
         }
 
-        assertThat(answer.get(10, TimeUnit.SECONDS)).isEqualTo(404);
+        // #246: a party locked while waiting gets 403 ACCESS_UNAVAILABLE, as in TX05 (Q2 of #19); only a
+        // non-party gets 404 (INV-06).
+        assertThat(answer.get(10, TimeUnit.SECONDS)).isEqualTo(403);
         assertThat(stateOf(offer)).isEqualTo("PENDING/-/1");
         assertThat(events("OFFER_CANCELLED", offer) + events("OFFER_REJECTED", offer)).isZero();
         assertThat(fx.count("select count(*) from command_receipts where actor_id = ? and command_type in "
@@ -296,7 +298,7 @@ class OfferRespondHttpTest extends HttpTest {
     }
 
     @Test
-    void INV_22_a_replay_by_a_parent_locked_since_the_cancel_is_404() throws Exception {
+    void INV_22_a_replay_by_a_parent_locked_since_the_cancel_is_403() throws Exception {
         Scenario s = fx.scenario();
         UUID offer = sent(s);
         String key = UUID.randomUUID().toString();
@@ -308,7 +310,7 @@ class OfferRespondHttpTest extends HttpTest {
         jdbc.sql("update accounts set status = 'LOCKED' where id = ?").param(s.parent().accountId()).update();
 
         fx.respond(s.parent(), "cancel", offer, key, "\"1\"", reason("OTHER"))
-                .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("OFFER_NOT_FOUND"));
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("ACCESS_UNAVAILABLE"));
     }
 
     @Test
@@ -343,7 +345,7 @@ class OfferRespondHttpTest extends HttpTest {
             hold.commit();
         }
 
-        assertThat(replay.get(10, TimeUnit.SECONDS)).isEqualTo(404);
+        assertThat(replay.get(10, TimeUnit.SECONDS)).isEqualTo(403);
         assertThat(stateOf(offer)).isEqualTo("REJECTED/DECLINED/2");
     }
 

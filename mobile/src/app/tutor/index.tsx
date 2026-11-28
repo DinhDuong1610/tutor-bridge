@@ -7,5 +7,11 @@ const ROUTES = { profile: "/tutor/profile", evidence: "/tutor/evidence", calenda
 
 export default function TutorHomeRoute() {
   const router = useRouter();
-  return <TutorHomeScreen onOpen={(target) => router.push(ROUTES[target])} onSecurity={() => router.push("/tutor/security")} />;
+  return (
+    <TutorHomeScreen
+      onOpen={(target) => router.push(ROUTES[target])}
+      onSecurity={() => router.push("/tutor/security")}
+      onNotifications={() => router.push("/tutor/notifications")}
+    />
+  );
 }

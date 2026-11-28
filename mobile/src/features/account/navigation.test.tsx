@@ -1,6 +1,10 @@
 import { act, fireEvent, renderRouter, screen, waitFor } from "expo-router/testing-library";
 import { json, mockApi, problem } from "@/shared/test/mockApi";
 import { clearStore, fakeSession, storedSession, storeSession } from "@/shared/test/session";
+import { preloadRoutes } from "@/shared/test/preloadRoutes";
+
+// #123: compile the route tree before the first test, with its own timeout.
+beforeAll(preloadRoutes, 120_000);
 
 beforeEach(() => {
   clearStore();

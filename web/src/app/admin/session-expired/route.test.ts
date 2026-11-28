@@ -1,6 +1,13 @@
 import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { GET } from "./route";
+
+// adminApi passes the browser's address on (#252); this route is called here outside a Next request.
+vi.mock("next/headers", async (original) => ({
+  ...(await original<typeof import("next/headers")>()),
+  headers: async () => new Headers(),
+}));
+
+const { GET } = await import("./route");
 
 const ROUTE = "http://localhost:3000/admin/session-expired";
 

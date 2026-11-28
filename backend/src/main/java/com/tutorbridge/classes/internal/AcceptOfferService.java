@@ -186,8 +186,8 @@ public class AcceptOfferService implements AcceptOffer {
         }
         receipts.succeed(receipt.id(), RESULT_TYPE, classId);
 
-        return new AcceptedClass(classId, need.studentId(), offer.tutorId(), 1, "WAITING", offer.priceVndSession(),
-                offer.durationMinutes(), goalId, offer.goalSnapshot(), receipt.id());
+        return new AcceptedClass(classId, need.studentId(), studentName(need.studentId()), offer.tutorId(), 1,
+                "WAITING", offer.priceVndSession(), offer.durationMinutes(), goalId, offer.goalSnapshot(), receipt.id());
     }
 
     /** ADR-0007: shared with calendar replacement, ascending hash order, 5 second lock_timeout. */
@@ -242,11 +242,27 @@ public class AcceptOfferService implements AcceptOffer {
     private AcceptedClass load(UUID classId, UUID operationId) {
         return jdbc.sql("""
                 select c.id, c.student_id, c.tutor_id, c.revision, c.status as state, c.price_vnd_session,
-                       c.duration_minutes, g.id as effective_goal_version_id, g.goal, ?::uuid as operation_id
+                       c.duration_minutes, g.id as effective_goal_version_id, g.goal
                 from classes c
                 join class_goal_versions g on g.class_id = c.id and g.status = 'EFFECTIVE'
                 where c.id = ?
-                """).params(operationId, classId).query(AcceptedClass.class).single();
+                """).param(classId).query((rs, n) -> {
+                    UUID student = rs.getObject("student_id", UUID.class);
+                    return new AcceptedClass(rs.getObject("id", UUID.class), student, studentName(student),
+                            rs.getObject("tutor_id", UUID.class), rs.getLong("revision"), rs.getString("state"),
+                            rs.getInt("price_vnd_session"), rs.getInt("duration_minutes"),
+                            rs.getObject("effective_goal_version_id", UUID.class), rs.getString("goal"), operationId);
+                }).single();
+    }
+
+    /** OP-25 (#97): the student's display name, read through the identity module. */
+    private String studentName(UUID studentId) {
+        String name = parties.studentDisplayNames(List.of(studentId)).get(studentId);
+        if (name == null) {
+            // classes.student_id references students: a class always has its student, and so a name.
+            throw new IllegalStateException("Student " + studentId + " has no display name");
+        }
+        return name;
     }
 
     private static String sqlState(Throwable failure) {

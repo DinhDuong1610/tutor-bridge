@@ -152,6 +152,8 @@ class At01TwoFamiliesHttpTest extends HttpTest {
         UUID classId = UUID.fromString(JsonPath.read(f.accepted, "$.id"));
         assertThat((String) JsonPath.read(f.accepted, "$.goal")).as(f.name).isEqualTo(f.goal);
         assertThat((String) JsonPath.read(f.accepted, "$.studentId")).as(f.name).isEqualTo(f.student.toString());
+        // OP-25 (#97): the tutor's answer names the child.
+        assertThat((String) JsonPath.read(f.accepted, "$.studentDisplayName")).as(f.name).isEqualTo("Hoc sinh " + f.name);
         assertThat((String) JsonPath.read(f.accepted, "$.tutorId")).as(f.name)
                 .isEqualTo(f.tutor.actor().accountId().toString());
         assertThat((Integer) JsonPath.read(f.accepted, "$.durationMinutes")).isEqualTo(DURATION);

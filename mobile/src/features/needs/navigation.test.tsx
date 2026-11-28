@@ -67,7 +67,7 @@ describe("PH03 routes", () => {
 
   it.each([
     ["Tìm gia sư", `/parent/needs/${CONFIRMED.id}/matches`, "Gia sư phù hợp"],
-    ["Xem đề nghị", `/parent/needs/${CONFIRMED.id}/offers`, "Danh sách và chi tiết đề nghị"],
+    ["Xem đề nghị", `/parent/needs/${CONFIRMED.id}/offers`, "Đề nghị đã gửi"],
   ])("a confirmed need's %s opens %s", async (action, path, title) => {
     serve([CONFIRMED]);
     await renderRouter("./src/app", { initialUrl: "/parent/needs" });

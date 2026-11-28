@@ -33,11 +33,20 @@ export function commonScheduleText(windows: readonly Window[]): string {
  * chưa giữ chỗ." The first day drops its year when the last one is in the same year.
  */
 export function detailScheduleText(windows: readonly Window[]): string {
+  return `Đủ ${windows.length} buổi: ${scheduleGroups(windows)}, ${dayRange(windows)}. Giờ này chưa giữ chỗ.`;
+}
+
+/** PH09 CycleStrip heading of an offer: "8 buổi, Thứ 2 và Thứ 4, 18:00–19:30, từ 18/11 đến 14/12/2026". */
+export function cycleScheduleText(windows: readonly Window[]): string {
+  return `${windows.length} buổi, ${scheduleGroups(windows)}, ${dayRange(windows)}`;
+}
+
+/** "từ 18/11 đến 14/12/2026": the first day drops its year when the last one is in the same year. */
+function dayRange(windows: readonly Window[]): string {
   const starts = windows.map((w) => w.start).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
   const first = formatDate(starts[0]);
   const last = formatDate(starts[starts.length - 1]);
-  const from = first.slice(6) === last.slice(6) ? first.slice(0, 5) : first;
-  return `Đủ ${windows.length} buổi: ${scheduleGroups(windows)}, từ ${from} đến ${last}. Giờ này chưa giữ chỗ.`;
+  return `từ ${first.slice(6) === last.slice(6) ? first.slice(0, 5) : first} đến ${last}`;
 }
 
 /** "Thứ 2 và Thứ 4, 18:00–19:30; Thứ 6, 19:30–21:00": days grouped by time, earliest weekday first. */

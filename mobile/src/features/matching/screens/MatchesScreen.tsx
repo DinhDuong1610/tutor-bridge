@@ -4,17 +4,16 @@ import { useEffect, useState, type ReactNode } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useNeed, type NeedRevision } from "@/features/needs/api";
 import { useStudents } from "@/features/students/api";
-import { studentChoices, useSelectedStudent } from "@/features/students/selection";
 import { Button } from "@/shared/ui/Button";
 import { CommandStatus } from "@/shared/ui/CommandStatus";
 import { Notice } from "@/shared/ui/Notice";
 import { PriceBlock } from "@/shared/ui/PriceBlock";
 import { QueryScreen, type QueryState } from "@/shared/ui/QueryScreen";
 import { StickyActionBar } from "@/shared/ui/StickyActionBar";
-import { StudentSwitcher } from "@/shared/ui/StudentSwitcher";
 import { VerificationLabel } from "@/shared/ui/VerificationLabel";
 import { colors, minTouchSize, radius, spacing, typography } from "@/shared/ui/theme";
 import { useCreateMatchingRun, type Candidate } from "../api";
+import { ChildOfNeed } from "../components/ChildOfNeed";
 import { commonScheduleText, shownReasons, verifiedText } from "../text";
 
 type Child = { id: string; displayName: string; grade: number };
@@ -238,33 +237,6 @@ function Body({ header, bar, children }: { header: ReactNode; bar?: ReactNode; c
       <ScrollView contentContainerStyle={styles.content}>{children}</ScrollView>
       {bar}
     </View>
-  );
-}
-
-/** The need's child in the switcher. Choosing another child leaves the need; "Quản lý" opens PH02. */
-function ChildOfNeed({
-  students,
-  childId,
-  onOtherChild,
-  onManageStudents,
-}: {
-  students: Child[];
-  childId: string;
-  onOtherChild: () => void;
-  onManageStudents: () => void;
-}) {
-  const { select } = useSelectedStudent(students);
-  return (
-    <StudentSwitcher
-      choices={studentChoices(students)}
-      selectedId={childId}
-      onSelect={(studentId) => {
-        if (studentId === childId) return;
-        select(studentId);
-        onOtherChild();
-      }}
-      onManage={onManageStudents}
-    />
   );
 }
 

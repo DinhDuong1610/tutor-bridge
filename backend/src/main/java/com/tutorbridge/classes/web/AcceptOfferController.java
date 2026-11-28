@@ -32,12 +32,12 @@ class AcceptOfferController {
     record AcceptInput(@NotNull @AssertTrue Boolean acceptUnchangedTerms) {}
 
     /** {@code Class}; the receipt id goes in {@code X-Operation-Id}, not in the body. */
-    record ClassBody(UUID id, UUID studentId, UUID tutorId, long revision, String state, int priceVndSession,
-            int durationMinutes, UUID effectiveGoalVersionId, String goal) {
+    record ClassBody(UUID id, UUID studentId, String studentDisplayName, UUID tutorId, long revision, String state,
+            int priceVndSession, int durationMinutes, UUID effectiveGoalVersionId, String goal) {
 
         static ClassBody of(AcceptedClass c) {
-            return new ClassBody(c.id(), c.studentId(), c.tutorId(), c.revision(), c.state(), c.priceVndSession(),
-                    c.durationMinutes(), c.effectiveGoalVersionId(), c.goal());
+            return new ClassBody(c.id(), c.studentId(), c.studentDisplayName(), c.tutorId(), c.revision(), c.state(),
+                    c.priceVndSession(), c.durationMinutes(), c.effectiveGoalVersionId(), c.goal());
         }
     }
 

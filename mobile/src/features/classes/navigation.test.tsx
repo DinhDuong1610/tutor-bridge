@@ -1,6 +1,7 @@
 import { act, fireEvent, renderRouter, screen } from "expo-router/testing-library";
 import { json, mockApi } from "@/shared/test/mockApi";
 import { clearStore, fakeSession, storeSession } from "@/shared/test/session";
+import { preloadRoutes } from "@/shared/test/preloadRoutes";
 
 // Fake data only (AGENTS.md). Uses the real route tree in src/app.
 const CLASS_ID = "3e0f7c61-5d84-4dba-8d76-903c3f5e2143";
@@ -25,6 +26,9 @@ const SESSION = {
   state: "SCHEDULED",
   during: { start: "2030-11-20T11:00:00Z", end: "2030-11-20T12:30:00Z" },
 };
+
+// #123: compile the route tree before the first test, with its own timeout.
+beforeAll(preloadRoutes, 120_000);
 
 let server: ReturnType<typeof mockApi>;
 beforeEach(() => clearStore());

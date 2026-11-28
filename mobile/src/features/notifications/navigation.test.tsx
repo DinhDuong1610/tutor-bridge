@@ -1,6 +1,7 @@
 import { act, fireEvent, renderRouter, screen, waitFor } from "expo-router/testing-library";
 import { json, mockApi, problem } from "@/shared/test/mockApi";
 import { clearStore, fakeSession, storeSession, storedSession } from "@/shared/test/session";
+import { preloadRoutes } from "@/shared/test/preloadRoutes";
 
 // COM01 on the real route tree: the role areas, the temporary way in from PH01 and the session.
 const INBOX = {
@@ -17,6 +18,9 @@ const INBOX = {
   ],
   nextCursor: null,
 };
+
+// #123: compile the route tree before the first test, with its own timeout.
+beforeAll(preloadRoutes, 120_000);
 
 describe("COM01 routes", () => {
   let server: ReturnType<typeof mockApi>;

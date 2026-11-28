@@ -134,6 +134,10 @@ function CalendarEditor({
           </Text>
           <Text style={styles.body}>{weeklySummary(value)}</Text>
           <Text style={styles.muted}>{`Tổng ${freeCount(windows)} khoảng rảnh trong 8 tuần (tối đa 200).`}</Text>
+          {freeCount(windows) === 0 ? (
+            // TBD #69 (Đính): no approved copy for confirming a calendar with no free time; this is the proposal.
+            <Notice tone="warning" message="Sau khi xác nhận, phụ huynh sẽ không tìm thấy bạn cho tới khi bạn thêm lịch rảnh." />
+          ) : null}
           <Notice tone="info" message="Buổi đã đặt giữ nguyên. Lịch rảnh mới chỉ dùng cho đề nghị mới." />
         </ScrollView>
         <StickyActionBar>
@@ -150,12 +154,15 @@ function CalendarEditor({
     );
   }
 
-  const empty = base === null && !hasChanges;
+  // No free time stored: the first visit, or a calendar whose free time was all removed. Either way parents do
+  // not find the tutor, as the approved empty notice says.
+  const noFreeTime = freeCount(stored) === 0;
+  const empty = noFreeTime && !hasChanges;
   return (
     <KeyboardAvoidingView style={styles.fill} behavior="padding">
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {staleNotice}
-        {save.state === "confirmed" && !hasChanges ? (
+        {save.state === "confirmed" && !hasChanges && !noFreeTime ? (
           <Notice tone="success" message="Đã xác nhận lịch rảnh. Phụ huynh tìm gia sư sẽ thấy các giờ này." />
         ) : null}
         {empty ? (
@@ -183,12 +190,14 @@ function CalendarEditor({
         {empty ? null : <Legend />}
         <WeekAvailability value={value} onChange={setValue} saved={read.available} />
       </ScrollView>
-      {base === null || hasChanges ? (
+      {noFreeTime || hasChanges ? (
         <StickyActionBar>
           <Button
             variant={hasChanges ? "primary" : "secondary"}
             title="Xem lại"
-            disabled={!hasChanges || freeCount(windows) === 0 || limit?.blocks === true}
+            // Removing every slot of a stored calendar is a change to save (Đính, #263 review): the calendar is
+            // replaced with no free time, so parents stop finding the tutor in the old hours.
+            disabled={!hasChanges || limit?.blocks === true}
             onPress={() => {
               save.reset();
               onStep("review");

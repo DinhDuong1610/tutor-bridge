@@ -41,7 +41,8 @@ export function weeklySummary(week: WeekPattern): string {
   const days = DAY_NAMES.flatMap((name, day) =>
     week[day].length === 0 ? [] : [`${name} ${week[day].map(label).join(" và ")}`],
   );
-  return `Mỗi tuần: ${days.join("; ")}.`;
+  // TBD #69 (Đính): no approved copy for a week with no free time; this is the proposal.
+  return days.length === 0 ? "Mỗi tuần: không có giờ rảnh." : `Mỗi tuần: ${days.join("; ")}.`;
 }
 
 /** Slots on the screen the server does not hold yet: the draft chips ("Bạn có {n} khung giờ chưa xác nhận"). */

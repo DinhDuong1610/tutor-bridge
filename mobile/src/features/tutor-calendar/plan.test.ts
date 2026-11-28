@@ -33,6 +33,10 @@ describe("GS04 plan", () => {
     );
   });
 
+  it("says a week with no slot has no free time (TBD #69, proposed wording)", () => {
+    expect(weeklySummary(week({}))).toBe("Mỗi tuần: không có giờ rảnh.");
+  });
+
   it("counts the slots not yet confirmed and tells a changed pattern from the saved one", () => {
     const saved = week({ 0: [["18:00", "21:00"]] });
     const edited = week({ 0: [["18:00", "21:00"]], 1: [["18:00", "20:00"]], 6: [["08:00", "10:00"]] });

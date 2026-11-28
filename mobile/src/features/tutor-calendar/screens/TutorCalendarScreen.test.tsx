@@ -127,9 +127,41 @@ describe("GS04 Lịch rảnh", () => {
     await press("Bỏ khung Thứ 2 18:00–21:00");
 
     expect(screen.queryByText(/khung giờ chưa xác nhận/)).toBeNull();
-    // An empty pattern sends no free time: nothing to review.
-    expect(screen.getByRole("button", { name: "Xem lại" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Xem lại" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Bỏ thay đổi" })).toBeEnabled();
+  });
+
+  it("Đính, #263 review: removing the last slot saves a calendar with no free time against its ETag", async () => {
+    let stored: { version: number; windows: CalendarWindow[] } = { version: 3, windows: MONDAY_EVENING };
+    server = mockApi({
+      "GET /me/tutor-calendar": () => calendar(stored.version, stored.windows),
+      "PUT /me/tutor-calendar": async (request) => {
+        stored = { version: 4, windows: (await request.clone().json()).windows };
+        return calendar(4, stored.windows);
+      },
+    });
+    await renderCalendar();
+    await screen.findByText(/Lịch rảnh lặp theo tuần/);
+
+    await press("Bỏ khung Thứ 2 18:00–21:00");
+    await press("Xem lại");
+    expect(screen.getByText("Mỗi tuần: không có giờ rảnh.")).toBeTruthy();
+    expect(screen.getByText("Tổng 0 khoảng rảnh trong 8 tuần (tối đa 200).")).toBeTruthy();
+    expect(screen.getByText("Sau khi xác nhận, phụ huynh sẽ không tìm thấy bạn cho tới khi bạn thêm lịch rảnh.")).toBeTruthy();
+    await press("Xác nhận lịch rảnh");
+
+    const [put] = puts(server);
+    expect(put.headers.get("If-Match")).toBe('"3"');
+    expect(await put.json()).toEqual({ timezone: "Asia/Ho_Chi_Minh", windows: [] });
+    // The screen shows the calendar as the server now holds it: no free time, so parents do not find the tutor.
+    expect(
+      await screen.findByText(
+        "Bạn chưa có lịch rảnh. Phụ huynh chỉ thấy bạn khi có lịch rảnh đã xác nhận, đủ cho chu kỳ 28 ngày của họ.",
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByText("Đã xác nhận lịch rảnh. Phụ huynh tìm gia sư sẽ thấy các giờ này.")).toBeNull();
+    expect(screen.getAllByText("Không rảnh")).toHaveLength(7);
+    expect(screen.getByRole("button", { name: "Xem lại" })).toBeDisabled();
   });
 
   it("INV-23 a stale ETag (412) is reloaded, keeping the slots being added, and saved against the new ETag", async () => {

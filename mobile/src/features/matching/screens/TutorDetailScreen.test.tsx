@@ -81,15 +81,15 @@ function server(routes: { run?: () => Response; current?: () => Response } = {})
   });
 }
 
-async function renderDetail() {
+async function renderDetail(needId = NEED_ID) {
   const handlers = { onBack: jest.fn(), onOtherChild: jest.fn(), onManageStudents: jest.fn() };
-  await renderScreen(
+  const rendered = await renderScreen(
     <SelectedStudentProvider>
-      <TutorDetailScreen tutorId={TUTOR_ID} runId={RUN_ID} needId={NEED_ID} {...handlers} />
+      <TutorDetailScreen tutorId={TUTOR_ID} runId={RUN_ID} needId={needId} {...handlers} />
     </SelectedStudentProvider>,
     { session: fakeSession("PARENT") },
   );
-  return handlers;
+  return { ...handlers, queryClient: rendered.queryClient };
 }
 
 describe("PH07 Chi tiết gia sư công khai", () => {
@@ -160,6 +160,36 @@ describe("PH07 Chi tiết gia sư công khai", () => {
 
     expect(await screen.findByText("Hồ sơ có thể đã ẩn hoặc thay đổi. Quay lại danh sách và tìm lại để có kết quả mới.")).toBeTruthy();
     expect(screen.queryByText(/375.000 ₫ \/ buổi/)).toBeNull();
+  });
+
+  it("a profile hidden while the screen is open (200, then 404 on a reread) drops the terms (Codex, #275)", async () => {
+    let gone = false;
+    api = server({ current: () => (gone ? problem(404, "TUTOR_NOT_FOUND", "Không tìm thấy gia sư.") : json(200, tutor())) });
+    const { queryClient } = await renderDetail();
+    expect(await screen.findByText("375.000 ₫ / buổi 90 phút")).toBeTruthy();
+
+    gone = true;
+    await act(async () => {
+      await queryClient.refetchQueries({ queryKey: ["tutors", "public", TUTOR_ID] });
+    });
+
+    expect(await screen.findByText("Hồ sơ có thể đã ẩn hoặc thay đổi. Quay lại danh sách và tìm lại để có kết quả mới.")).toBeTruthy();
+    expect(screen.queryByText("375.000 ₫ / buổi 90 phút")).toBeNull();
+  });
+
+  it("a run paired with another need in the route is not shown with that need's terms (Codex, #275)", async () => {
+    const other = { ...need, id: "2a7c6b5d-4e3f-4d2c-9b1a-0f9e8d7c6b5a", versionId: "3b8d7c6e-5f4a-4e3d-8c2b-1a0f9e8d7c6b" };
+    api = mockApi({
+      "GET /matching-runs/{runId}": () => json(200, run()),
+      "GET /tutors/{tutorId}/public-profile": () => json(200, tutor()),
+      "GET /needs/{needId}": () =>
+        new Response(JSON.stringify(other), { status: 200, headers: { "Content-Type": "application/json", ETag: '"2"' } }),
+      "GET /students": students,
+    });
+    await renderDetail(other.id);
+
+    expect(await screen.findByText("Hồ sơ có thể đã ẩn hoặc thay đổi. Quay lại danh sách và tìm lại để có kết quả mới.")).toBeTruthy();
+    expect(screen.queryByText("375.000 ₫ / buổi 90 phút")).toBeNull();
   });
 
   it("a tutor who is not a candidate of this run is not shown with the run's terms", async () => {

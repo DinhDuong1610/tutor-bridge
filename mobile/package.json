@@ -48,6 +48,10 @@
   "private": true,
   "jest": {
     "preset": "jest-expo",
+    "maxWorkers": "50%",
+    "setupFilesAfterEnv": [
+      "<rootDir>/jest.setup.ts"
+    ],
     "moduleNameMapper": {
       "^@/(.*)$": "<rootDir>/src/$1"
     }

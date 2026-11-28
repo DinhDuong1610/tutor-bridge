@@ -84,6 +84,26 @@ public final class Contract {
         return INSTANCE::check;
     }
 
+    /**
+     * For an answer that came over a real socket, not through MockMvc (AT04 sends HTTP to two running
+     * instances): copied into a mock response, then checked like {@link #matches()}.
+     */
+    public static void assertMatches(String method, String requestPath, java.net.http.HttpResponse<String> answer) {
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        response.setStatus(answer.statusCode());
+        answer.headers().map().forEach((name, values) -> values.forEach(value -> response.addHeader(name, value)));
+        answer.headers().firstValue("Content-Type").ifPresent(response::setContentType);
+        try {
+            response.getOutputStream().write(answer.body().getBytes(StandardCharsets.UTF_8));
+        } catch (java.io.IOException e) {
+            throw new java.io.UncheckedIOException(e);
+        }
+        List<String> violations = INSTANCE.violations(method, requestPath, response);
+        if (!violations.isEmpty()) {
+            throw new AssertionError("Response breaks contracts/openapi.yaml:\n  " + String.join("\n  ", violations));
+        }
+    }
+
     /** The violations of one response; empty when it follows the contract. */
     List<String> violations(String method, String requestPath, MockHttpServletResponse response) {
         if (!requestPath.startsWith(PREFIX + "/")) {

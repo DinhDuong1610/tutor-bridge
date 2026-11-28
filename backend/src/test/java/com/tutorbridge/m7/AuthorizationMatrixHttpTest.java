@@ -53,7 +53,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  * where a confirmed decision hides the object from that role too ({@link #WRONG_ROLE_404});
  * <li>another member of the owner's role with the owner's id answers exactly as with an unknown id (404,
  * same code), so nothing tells them the id exists (INV-06, AC-UC02-02);
- * <li>an own-data read ({@code /me}, a list) shown to another member holds no id of the owner's.
+ * <li>an own-data read ({@code /me}, a list): with data on both sides, the owner and another member each get
+ * 200 with their own data, and the other member's answer holds no id of the owner's.
  * </ul>
  * The answers recorded here are what the contract and the earlier decisions say. A row that answers
  * otherwise is reported, not bent to fit (`docs/handoff/TB-23.md`).
@@ -108,6 +109,14 @@ class AuthorizationMatrixHttpTest extends HttpTest {
             boolean leak) {}
 
     // ---------------------------------------------------------------- the matrix
+
+    /** For each own-data read, the fixture id its answer names, so a member's answer is shown to be theirs. */
+    private static final Map<String, String> SHOWN = Map.of(
+            "listOwnSessions", "session",
+            "listStudents", "student",
+            "getOwnTutorProfile", "profile",
+            "getOwnTutorVerification", "verification",
+            "getTutorCalendar", "calendar");
 
     private List<Op> ops() {
         Set<Role> parent = EnumSet.of(Role.PARENT);
@@ -288,13 +297,27 @@ class AuthorizationMatrixHttpTest extends HttpTest {
             }));
         }
         if (op.leak()) {
-            cases.add(DynamicTest.dynamicTest("another member's own-data answer holds none of the owner's ids", () -> {
+            // Đính, #242 review: an answer that names no one's data (a 403, an empty list) would also hold none
+            // of the owner's ids. Both members have data; each must read their own, with a success.
+            cases.add(DynamicTest.dynamicTest("another member reads their own data and none of the owner's", () -> {
+                String shown = SHOWN.get(op.id());
+                assertThat(shown).as(op.id() + ": the id its answer names").isNotNull();
                 Actor owner = owner(op);
                 Map<String, String> vars = op.setup().make(owner);
-                MockHttpServletResponse answer = send(op.request().build(vars), newActor(owner.role()));
+                Actor other = newActor(owner.role());
+                Map<String, String> theirs = op.setup().make(other);
+
+                MockHttpServletResponse own = send(op.request().build(vars), owner);
+                assertThat(own.getStatus()).as(op.id() + ": the owner").isEqualTo(200);
+                assertThat(own.getContentAsString()).as(op.id() + ": the owner reads the fixture")
+                        .contains(vars.get(shown));
+
+                MockHttpServletResponse answer = send(op.request().build(theirs), other);
+                assertThat(answer.getStatus()).as(op.id() + ": the other member").isEqualTo(200);
                 String body = answer.getContentAsString();
+                assertThat(body).as(op.id() + ": the other member reads their own").contains(theirs.get(shown));
                 for (String value : vars.values()) {
-                    assertThat(body).as(op.id()).doesNotContain(value);
+                    assertThat(body).as(op.id() + ": none of the owner's").doesNotContain(value);
                 }
             }));
         }

@@ -14,6 +14,7 @@ import com.tutorbridge.platform.api.AuditEvents;
 import com.tutorbridge.platform.api.CommandReceipts;
 import com.tutorbridge.platform.api.CommandReceipts.Receipt;
 import com.tutorbridge.platform.api.IdempotencyKey;
+import com.tutorbridge.platform.api.Receipted;
 import com.tutorbridge.platform.api.WritePrecondition;
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -109,8 +110,8 @@ public class MatchingRunService {
         this.ids = ids;
     }
 
-    public MatchingRun create(Actor actor, UUID needId, IdempotencyKey key, WritePrecondition.Expected expected,
-            Input input) {
+    public Receipted<MatchingRun> create(Actor actor, UUID needId, IdempotencyKey key,
+            WritePrecondition.Expected expected, Input input) {
         requireParentRole(actor);
         validate(input);
         Map<String, Object> payload = new LinkedHashMap<>();
@@ -131,7 +132,7 @@ public class MatchingRunService {
         }
     }
 
-    private MatchingRun createInTransaction(Actor actor, UUID needId, IdempotencyKey key,
+    private Receipted<MatchingRun> createInTransaction(Actor actor, UUID needId, IdempotencyKey key,
             WritePrecondition.Expected expected, Input input, Map<String, Object> payload) {
         // Bounds the waits below, the receipt's and the need row's, as every TX of classes (ADR-0007).
         locks.limitWait();
@@ -142,7 +143,7 @@ public class MatchingRunService {
         }
         if (receipt.replay()) {
             // INV-22: the owner is checked again above; the answer is the stored run.
-            return read(runs.findRun(receipt.resultId()).orElseThrow());
+            return new Receipted<>(read(runs.findRun(receipt.resultId()).orElseThrow()), receipt.id());
         }
         if (need.revision() != expected.version()) {
             throw WritePrecondition.stale();
@@ -173,7 +174,7 @@ public class MatchingRunService {
         }
         receipts.succeed(receipt.id(), RESULT_TYPE, runId);
         // The answer is read back as getMatchingRun reads it, so both always say the same.
-        return read(runs.findRun(runId).orElseThrow());
+        return new Receipted<>(read(runs.findRun(runId).orElseThrow()), receipt.id());
     }
 
     public MatchingRun get(Actor actor, UUID runId) {

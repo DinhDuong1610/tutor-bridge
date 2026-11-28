@@ -6,6 +6,7 @@ import com.tutorbridge.platform.api.Actor;
 import com.tutorbridge.platform.api.Etag;
 import com.tutorbridge.platform.api.IdempotencyKey;
 import com.tutorbridge.platform.api.Page;
+import com.tutorbridge.platform.api.Receipted;
 import com.tutorbridge.platform.api.WritePrecondition;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
@@ -63,7 +64,7 @@ class OfferController {
     @PostMapping("/api/v1/needs/{needId}/offers")
     ResponseEntity<OfferService.Offer> send(@AuthenticationPrincipal Actor actor, @PathVariable UUID needId,
             IdempotencyKey key, WritePrecondition.Expected expected, @Valid @RequestBody OfferInput input) {
-        return withEtag(HttpStatus.CREATED, offers.send(actor, needId, key, expected, input.input()));
+        return written(HttpStatus.CREATED, offers.send(actor, needId, key, expected, input.input()));
     }
 
     @GetMapping("/api/v1/me/offers")
@@ -92,11 +93,19 @@ class OfferController {
 
     private ResponseEntity<OfferService.Offer> respond(Actor actor, OfferService.Response response, UUID offerId,
             IdempotencyKey key, WritePrecondition.Expected expected, ReasonInput input) {
-        return withEtag(HttpStatus.OK,
+        return written(HttpStatus.OK,
                 offers.respond(actor, response, offerId, key, expected, input.reasonCode(), input.reason() != null));
     }
 
     private static ResponseEntity<OfferService.Offer> withEtag(HttpStatus status, OfferService.Offer offer) {
         return ResponseEntity.status(status).header(HttpHeaders.ETAG, Etag.of(offer.revision())).body(offer);
+    }
+
+    /** A write's answer: the offer with its ETag and the receipt id in X-Operation-Id (#221). */
+    private static ResponseEntity<OfferService.Offer> written(HttpStatus status,
+            Receipted<OfferService.Offer> written) {
+        OfferService.Offer offer = written.value();
+        return ResponseEntity.status(status).header(HttpHeaders.ETAG, Etag.of(offer.revision()))
+                .header(Receipted.HEADER, written.operationId().toString()).body(offer);
     }
 }

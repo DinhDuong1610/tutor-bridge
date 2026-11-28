@@ -10,6 +10,7 @@ import com.tutorbridge.platform.api.CommandReceipts.Receipt;
 import com.tutorbridge.platform.api.Cursor;
 import com.tutorbridge.platform.api.IdempotencyKey;
 import com.tutorbridge.platform.api.Page;
+import com.tutorbridge.platform.api.Receipted;
 import com.tutorbridge.platform.api.WritePrecondition;
 import java.time.Clock;
 import java.time.Duration;
@@ -116,7 +117,8 @@ public class NeedService {
         return need(row);
     }
 
-    public Need create(Actor actor, UUID studentId, IdempotencyKey key, Draft draft, boolean hasWindows) {
+    public Receipted<Need> create(Actor actor, UUID studentId, IdempotencyKey key, Draft draft,
+            boolean hasWindows) {
         requireParentRole(actor);
         validate(draft, hasWindows);
         Map<String, Object> payload = payload(draft);
@@ -129,7 +131,8 @@ public class NeedService {
             }
             if (receipt.replay()) {
                 // INV-22: the owner is checked again above; the answer is that need as it is now.
-                return needs.find(receipt.resultId()).map(NeedService::need).orElseThrow(NeedService::notFound);
+                return new Receipted<>(needs.find(receipt.resultId()).map(NeedService::need)
+                        .orElseThrow(NeedService::notFound), receipt.id());
             }
             if (needs.hasOpenNeed(studentId)) {
                 throw alreadyOpen();
@@ -138,11 +141,11 @@ public class NeedService {
             UUID versionId = ids.generateId();
             needs.insert(needId, versionId, studentId, row(draft), clock.instant());
             receipts.succeed(receipt.id(), RESULT_TYPE, needId);
-            return new Need(needId, studentId, 1, versionId, "DRAFT", draft, null);
+            return new Receipted<>(new Need(needId, studentId, 1, versionId, "DRAFT", draft, null), receipt.id());
         });
     }
 
-    public Need update(Actor actor, UUID needId, IdempotencyKey key, WritePrecondition.Expected expected,
+    public Receipted<Need> update(Actor actor, UUID needId, IdempotencyKey key, WritePrecondition.Expected expected,
             Draft draft, boolean hasWindows) {
         requireParentRole(actor);
         validate(draft, hasWindows);
@@ -157,7 +160,7 @@ public class NeedService {
             }
             if (receipt.replay()) {
                 // INV-22: the owner is checked again above; the answer is that need as it is now.
-                return need(current);
+                return new Receipted<>(need(current), receipt.id());
             }
             if (current.revision() != expected.version()) {
                 throw WritePrecondition.stale();
@@ -175,7 +178,8 @@ public class NeedService {
             }
             needs.markDraft(needId, versionId, revision);
             receipts.succeed(receipt.id(), RESULT_TYPE, needId);
-            return new Need(needId, current.studentId(), revision, versionId, "DRAFT", draft, null);
+            return new Receipted<>(new Need(needId, current.studentId(), revision, versionId, "DRAFT", draft, null),
+                    receipt.id());
         });
     }
 
@@ -185,7 +189,8 @@ public class NeedService {
      * child's resource lock, taken after the need row as TX05 does (INV-16), so the calendar cannot be
      * replaced between this check and the commit; then the effective calendar and every 7-day block.
      */
-    public Need confirm(Actor actor, UUID needId, IdempotencyKey key, WritePrecondition.Expected expected) {
+    public Receipted<Need> confirm(Actor actor, UUID needId, IdempotencyKey key,
+            WritePrecondition.Expected expected) {
         requireParentRole(actor);
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("needId", needId.toString());
@@ -198,7 +203,7 @@ public class NeedService {
             }
             if (receipt.replay()) {
                 // INV-22: the owner is checked again above; the answer is that need as it is now.
-                return need(current);
+                return new Receipted<>(need(current), receipt.id());
             }
             if (current.revision() != expected.version()) {
                 throw WritePrecondition.stale();
@@ -221,8 +226,8 @@ public class NeedService {
             long revision = current.revision() + 1;
             needs.confirm(needId, current.versionId(), calendarId, clock.instant(), revision);
             receipts.succeed(receipt.id(), RESULT_TYPE, needId);
-            return new Need(needId, current.studentId(), revision, current.versionId(), "CONFIRMED",
-                    need(current).draft(), calendarId);
+            return new Receipted<>(new Need(needId, current.studentId(), revision, current.versionId(), "CONFIRMED",
+                    need(current).draft(), calendarId), receipt.id());
         });
     }
 

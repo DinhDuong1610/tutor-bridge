@@ -23,8 +23,8 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Checks a response against {@code contracts/openapi.yaml}: the operation exists, the status is
- * declared, the content type is declared and the body matches the schema (OpenAPI 3.1 schemas are
- * JSON Schema 2020-12). Use it on every HTTP test:
+ * declared, a declared {@code X-Operation-Id} is sent, the content type is declared and the body matches
+ * the schema (OpenAPI 3.1 schemas are JSON Schema 2020-12). Use it on every HTTP test:
  *
  * <pre>{@code
  * mvc.perform(get("/api/v1/students").with(sessions.as(parent)))
@@ -38,6 +38,9 @@ public final class Contract {
     private static final String PREFIX = "/api/v1";
     private static final String IRI = "https://contract.tutorbridge.invalid/openapi.json";
     private static final JsonMapper JSON = JsonMapper.builder().build();
+    private static final String OPERATION_ID = "X-Operation-Id";
+    private static final Pattern UUID_TEXT =
+            Pattern.compile("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
 
     private static final Contract INSTANCE = load(FILE);
 
@@ -128,6 +131,16 @@ public final class Contract {
         if (declared.has("$ref")) {
             responsePointer = declared.get("$ref").asString().substring(1);
             declared = root.at(responsePointer);
+        }
+
+        // #221 (Đính, 28/11/2026): a declared X-Operation-Id is the receipt id the app resolves an unknown
+        // outcome with (INV-24), so its absence is a violation. No other header is checked here.
+        if (declared.path("headers").has(OPERATION_ID)) {
+            String sent = response.getHeader(OPERATION_ID);
+            if (sent == null || !UUID_TEXT.matcher(sent).matches()) {
+                return List.of(operation.template() + " " + statusKey + " declares " + OPERATION_ID
+                        + " but the answer sent " + (sent == null ? "none" : "'" + sent + "', not a uuid"));
+            }
         }
 
         byte[] body = response.getContentAsByteArray();

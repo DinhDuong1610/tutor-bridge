@@ -4,6 +4,7 @@ import com.tutorbridge.classes.internal.MatchingRunService;
 import com.tutorbridge.platform.api.Actor;
 import com.tutorbridge.platform.api.Etag;
 import com.tutorbridge.platform.api.IdempotencyKey;
+import com.tutorbridge.platform.api.Receipted;
 import com.tutorbridge.platform.api.WritePrecondition;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -48,8 +49,9 @@ class MatchingRunController {
     ResponseEntity<MatchingRunService.MatchingRun> create(@AuthenticationPrincipal Actor actor,
             @PathVariable UUID needId, IdempotencyKey key, WritePrecondition.Expected expected,
             @Valid @RequestBody MatchInput input) {
+        Receipted<MatchingRunService.MatchingRun> created = runs.create(actor, needId, key, expected, input.input());
         return ResponseEntity.status(HttpStatus.ACCEPTED).header(HttpHeaders.ETAG, RUN_ETAG)
-                .body(runs.create(actor, needId, key, expected, input.input()));
+                .header(Receipted.HEADER, created.operationId().toString()).body(created.value());
     }
 
     @GetMapping("/api/v1/matching-runs/{runId}")

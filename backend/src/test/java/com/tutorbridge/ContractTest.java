@@ -78,6 +78,27 @@ class ContractTest {
                 .singleElement().asString().contains("does not declare content type");
     }
 
+    /** #221: a declared X-Operation-Id must be sent, as a uuid; one that is not declared is not asked for. */
+    @Test
+    void a_declared_operation_id_that_is_missing_or_not_a_uuid_is_a_violation() throws IOException {
+        String confirm = "/api/v1/needs/" + STUDENT_ID + "/confirm";
+        assertThat(check("POST", confirm, 200, null, null))
+                .singleElement().asString().contains("X-Operation-Id");
+
+        var notUuid = response(200, null, null);
+        notUuid.setHeader("X-Operation-Id", "receipt-1");
+        assertThat(contract.violations("POST", confirm, notUuid)).singleElement().asString().contains("X-Operation-Id");
+
+        var sent = response(200, null, null);
+        sent.setHeader("X-Operation-Id", STUDENT_ID);
+        assertThat(contract.violations("POST", confirm, sent)).isEmpty();
+
+        // An error answer and an operation that declares no such header need none.
+        assertThat(check("POST", confirm, 404, "application/problem+json", PROBLEM)).isEmpty();
+        assertThat(check("GET", "/api/v1/students/" + STUDENT_ID, 404, "application/problem+json", PROBLEM))
+                .isEmpty();
+    }
+
     @Test
     void an_operation_outside_the_contract_is_a_violation() throws IOException {
         assertThat(check("GET", "/api/v1/students/" + STUDENT_ID + "/secrets", 200, "application/json", "{}"))

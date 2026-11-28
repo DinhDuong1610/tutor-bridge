@@ -68,7 +68,7 @@ describe("PH04 draft form", () => {
     }
   });
 
-  it("refuses a goal past 2000 characters and a start date outside today..today+28 (TBD copy)", () => {
+  it("refuses a goal past 2000 characters and a start date outside today..today+28 (copy approved on #264)", () => {
     expect(errorsOf({ goal: "a".repeat(2001) }).goal).toBeDefined();
     expect(errorsOf({ cycleStartDate: "17/11/2026" }).cycleStartDate).toBe("Chọn ngày từ 18/11/2026 đến 16/12/2026.");
     expect(errorsOf({ cycleStartDate: "17/12/2026" }).cycleStartDate).toBe("Chọn ngày từ 18/11/2026 đến 16/12/2026.");

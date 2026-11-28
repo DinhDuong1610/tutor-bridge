@@ -49,16 +49,20 @@ export function QueryScreen<T>({ title, onBack, query, empty, placesStaleNotice,
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
         <TopAppBar title={title} onBack={onBack} />
-        <Body query={query} empty={empty} placesStaleNotice={placesStaleNotice}>
+        <QueryBody query={query} empty={empty} placesStaleNotice={placesStaleNotice}>
           {children}
-        </Body>
+        </QueryBody>
         {footer}
       </View>
     </SafeAreaView>
   );
 }
 
-function Body<T>({ query, empty, placesStaleNotice, children }: Omit<Props<T>, "title" | "onBack" | "footer">) {
+/**
+ * The states of `QueryScreen` without its frame, for a second query inside a screen, such as PH03's
+ * needs below the child switcher, whose approved frames keep the switcher while the needs load or fail.
+ */
+export function QueryBody<T>({ query, empty, placesStaleNotice, children }: Omit<Props<T>, "title" | "onBack" | "footer">) {
   if (query.isPending) {
     return (
       <View style={styles.center} accessibilityLiveRegion="polite">

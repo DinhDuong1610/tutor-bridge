@@ -112,20 +112,29 @@ function Review({
   onEdit: () => void;
 }) {
   const [asking, setAsking] = useState(false);
-  const need = revision.data;
+  // The need version a send was made from, kept with it: while its outcome is in doubt, the screen shows
+  // those terms and keeps "Thử lại", whatever a reread of the need says since (Codex, #276).
+  const [sentFrom, setSentFrom] = useState<NeedRevision["data"] | null>(null);
+  const inDoubt = (send.state === "sending" || send.state === "unknown") && sentFrom !== null;
+  const need = inDoubt ? sentFrom : revision.data;
   const draft = need.draft;
   const code = send.state === "failed" ? send.error?.code : undefined;
-  // The run is of another version than the need on screen, or the server says the need moved on (412, 409).
+  // The run is of another version than the need on screen: its price and sessions are not of this version.
+  const otherVersion = run.needVersionId !== need.versionId;
+  // ...or the server says the need moved on (412, 409). A send in doubt is never blocked: only "Thử lại"
+  // with the same key and body tells whether the first send made an offer (the server replays it first).
   const oldVersion =
-    run.needVersionId !== need.versionId ||
-    (send.state === "failed" && (send.error?.kind === "stale" || code === "NEED_VERSION_CHANGED"));
+    !inDoubt && (otherVersion || (send.state === "failed" && (send.error?.kind === "stale" || code === "NEED_VERSION_CHANGED")));
   const termsChanged = code !== undefined && TERMS_CHANGED.has(code);
   // A candidate the run does not have cannot be offered: the same way out as an old version.
   const blocked = oldVersion || candidate === undefined;
+  // Never the terms of one version beside the price and sessions of another (Codex, #276), as on PH07.
+  const shown = otherVersion ? undefined : candidate;
 
   const submit = () => {
     setAsking(false);
     if (!candidate) return;
+    setSentFrom(revision.data);
     void send.submit({
       needId: need.id,
       etag: revision.etag,
@@ -172,18 +181,18 @@ function Review({
         ) : termsChanged ? (
           <Notice tone="warning" message="Giá hoặc lịch của gia sư đã thay đổi. Hãy xem lại trước khi gửi." />
         ) : null}
-        {candidate ? (
+        {shown ? (
           <>
             <View style={styles.terms}>
               <Text style={styles.label}>Gia sư</Text>
-              <Text style={styles.body}>{candidate.tutor.displayName}</Text>
+              <Text style={styles.body}>{shown.tutor.displayName}</Text>
               <Text style={styles.label}>Mục tiêu</Text>
               <Text style={styles.body}>{draft.goal ?? ""}</Text>
               <Text style={styles.label}>Học phí</Text>
               <PriceBlock
-                priceVndSession={candidate.priceVndSession}
+                priceVndSession={shown.priceVndSession}
                 durationMinutes={draft.durationMinutes ?? 0}
-                rateVnd60={candidate.tutor.rateVnd60}
+                rateVnd60={shown.tutor.rateVnd60}
               />
             </View>
             {draft.frequencyPer7Days && draft.cycleStartDate ? (
@@ -194,8 +203,8 @@ function Review({
               />
             ) : null}
             <View style={styles.sessions}>
-              <Text style={styles.heading}>{`Đủ ${candidate.commonSchedule.length} buổi trong đề nghị`}</Text>
-              {candidate.commonSchedule.map((window) => (
+              <Text style={styles.heading}>{`Đủ ${shown.commonSchedule.length} buổi trong đề nghị`}</Text>
+              {shown.commonSchedule.map((window) => (
                 <ProposedSessionCard key={window.start} date={sessionDate(window.start)} time={sessionTime(window)} />
               ))}
             </View>

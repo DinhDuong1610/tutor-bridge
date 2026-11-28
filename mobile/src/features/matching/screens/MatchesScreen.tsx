@@ -2,7 +2,7 @@
 import { formatVnd } from "@tutorbridge/shared";
 import { useEffect, useState, type ReactNode } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useNeed, type NeedRevision } from "@/features/needs/api";
+import { useNeed, type Need, type NeedRevision } from "@/features/needs/api";
 import { useStudents } from "@/features/students/api";
 import { studentChoices, useSelectedStudent } from "@/features/students/selection";
 import { Button } from "@/shared/ui/Button";
@@ -86,10 +86,14 @@ function Matches({
 } & Omit<Props, "needId" | "now"> & { now: () => Date }) {
   const run = useCreateMatchingRun();
   const need = revision.data;
+  // The terms of the version searched, kept with its run: a later version of the need (read again on focus)
+  // must not change the duration or the conditions shown next to the old run's prices (Codex, #274).
+  const [searched, setSearched] = useState<Need["draft"] | null>(null);
   const result = run.state === "confirmed" ? run.result : undefined;
   const expired = useExpired(result?.expiresAt, now);
   const search = () => {
     run.reset();
+    setSearched(need.draft);
     void run.submit({ needId: need.id, needVersionId: need.versionId, etag: revision.etag });
   };
   // 412 (another revision) or 409 NEED_VERSION_CHANGED: the need changed since it loaded (INV-23).
@@ -132,51 +136,53 @@ function Matches({
       </Body>
     );
   }
-  if (result && result.candidates.length === 0) {
-    const draft = need.draft;
-    return (
-      <Body
-        header={header}
-        bar={
-          <StickyActionBar>
-            <Button title="Sửa nhu cầu" onPress={() => onEdit(need.id)} />
-            <Button variant="secondary" title="Tìm lại sau" onPress={onBack} />
-          </StickyActionBar>
-        }
-      >
-        <Text style={styles.heading}>Chưa có gia sư đáp ứng đủ điều kiện.</Text>
-        <Text style={styles.body}>Đã kiểm các điều kiện sau với mọi gia sư đang nhận lớp:</Text>
-        <Text style={styles.bodyMuted}>• Phạm vi Toán 8, đại số, học trực tuyến</Text>
-        <Text style={styles.bodyMuted}>{`• Giá một buổi ${draft.durationMinutes} phút không vượt ${vnd(draft.budgetVndSession)}`}</Text>
-        <Text style={styles.bodyMuted}>{`• Rảnh đủ ${draft.frequencyPer7Days} buổi mỗi tuần trong cả 28 ngày, trùng giờ rảnh của con`}</Text>
-        <Text style={styles.bodyMuted}>• Hồ sơ đã được xác minh</Text>
-        <Text style={styles.body}>Bạn có thể nới ngân sách, thêm giờ rảnh hoặc giảm số buổi. Sửa sẽ tạo bản nhu cầu mới.</Text>
-      </Body>
-    );
-  }
   if (result) {
-    // The need moved on (edited and confirmed again) after this run: its results are kept for reference only.
+    const terms = searched ?? need.draft;
+    // The need moved on (edited and confirmed again) after this run, or the run expired: its results are kept
+    // for reference only, with or without tutors, and the one action is a new search (Codex, #274).
     const oldVersion = result.needVersionId !== need.versionId;
     const muted = oldVersion || expired;
+    const mutedNotice = oldVersion ? (
+      <Notice
+        tone="warning"
+        message="Đây là kết quả của bản nhu cầu cũ, chỉ để đối chiếu. Tìm lại từ bản đang hiệu lực để gửi đề nghị."
+      />
+    ) : expired ? (
+      <Notice tone="warning" message="Kết quả này đã cũ. Tìm lại để có danh sách theo giá và lịch hiện tại." />
+    ) : null;
+    const searchAgain = muted ? (
+      <StickyActionBar>
+        <Button title={oldVersion ? "Tìm từ bản mới" : "Tìm lại"} onPress={search} />
+      </StickyActionBar>
+    ) : null;
+    if (result.candidates.length === 0) {
+      return (
+        <Body
+          header={header}
+          bar={
+            searchAgain ?? (
+              <StickyActionBar>
+                <Button title="Sửa nhu cầu" onPress={() => onEdit(need.id)} />
+                <Button variant="secondary" title="Tìm lại sau" onPress={onBack} />
+              </StickyActionBar>
+            )
+          }
+        >
+          {mutedNotice ?? <Text style={styles.heading}>Chưa có gia sư đáp ứng đủ điều kiện.</Text>}
+          <Text style={styles.body}>Đã kiểm các điều kiện sau với mọi gia sư đang nhận lớp:</Text>
+          <Text style={styles.bodyMuted}>• Phạm vi Toán 8, đại số, học trực tuyến</Text>
+          <Text style={styles.bodyMuted}>{`• Giá một buổi ${terms.durationMinutes} phút không vượt ${vnd(terms.budgetVndSession)}`}</Text>
+          <Text style={styles.bodyMuted}>{`• Rảnh đủ ${terms.frequencyPer7Days} buổi mỗi tuần trong cả 28 ngày, trùng giờ rảnh của con`}</Text>
+          <Text style={styles.bodyMuted}>• Hồ sơ đã được xác minh</Text>
+          {muted ? null : (
+            <Text style={styles.body}>Bạn có thể nới ngân sách, thêm giờ rảnh hoặc giảm số buổi. Sửa sẽ tạo bản nhu cầu mới.</Text>
+          )}
+        </Body>
+      );
+    }
     return (
-      <Body
-        header={header}
-        bar={
-          muted ? (
-            <StickyActionBar>
-              <Button title={oldVersion ? "Tìm từ bản mới" : "Tìm lại"} onPress={search} />
-            </StickyActionBar>
-          ) : null
-        }
-      >
-        {oldVersion ? (
-          <Notice
-            tone="warning"
-            message="Đây là kết quả của bản nhu cầu cũ, chỉ để đối chiếu. Tìm lại từ bản đang hiệu lực để gửi đề nghị."
-          />
-        ) : expired ? (
-          <Notice tone="warning" message="Kết quả này đã cũ. Tìm lại để có danh sách theo giá và lịch hiện tại." />
-        ) : (
+      <Body header={header} bar={searchAgain}>
+        {mutedNotice ?? (
           <>
             <Notice
               tone="info"
@@ -189,7 +195,7 @@ function Matches({
           <TutorCard
             key={candidate.tutor.tutorId}
             candidate={candidate}
-            durationMinutes={need.draft.durationMinutes ?? 0}
+            durationMinutes={terms.durationMinutes ?? 0}
             muted={muted}
             onOpen={() => onOpenTutor(candidate.tutor.tutorId, result.id)}
           />

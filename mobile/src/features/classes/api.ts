@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/shared/api/client";
 import { call } from "@/shared/api/errors";
+import type { QueryState } from "@/shared/ui/QueryScreen";
 import type { Session } from "./weeks";
 
 const PAGE_LIMIT = 50; // maxItems of SessionPage
@@ -49,4 +50,17 @@ export function useTutorName(tutorId: string | undefined) {
     enabled: tutorId !== undefined,
     select: (tutor) => tutor.displayName,
   });
+}
+
+type Part = { isPending: boolean; isError: boolean; error: Error | null; refetch: () => unknown };
+
+/** One frame state for the reads a class screen needs, so a failure of any shows the load error. */
+export function combine<T>(parts: Part[], data: T | undefined): QueryState<T> {
+  return {
+    isPending: parts.some((part) => part.isPending),
+    isError: parts.some((part) => part.isError),
+    error: parts.find((part) => part.error)?.error ?? null,
+    data,
+    refetch: () => parts.forEach((part) => void part.refetch()),
+  };
 }

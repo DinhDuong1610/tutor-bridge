@@ -9,6 +9,7 @@ const NGOC = { id: "7c2e9a14-3b6d-4f8e-a1c5-2d4b6e8f0a13", displayName: "Bảo N
 const CLASS = {
   id: CLASS_ID,
   studentId: MINH.id,
+  studentDisplayName: MINH.displayName,
   tutorId: "2d9e6b50-4c73-4caf-9c65-8f3b2e4d1032",
   revision: 1,
   state: "WAITING",
@@ -79,6 +80,60 @@ describe("CL02 routes", () => {
     });
     await renderRouter("./src/app", { initialUrl: `/tutor/classes/${CLASS_ID}/sessions` });
 
+    expect(await screen.findByText("Lớp Toán 8 đại số, 1 buổi từ 20/11 đến 20/11/2030")).toBeOnTheScreen();
+    expect(screen).toHavePathname(`/tutor/classes/${CLASS_ID}/sessions`);
+    expect(server.unexpected).toEqual([]);
+  });
+});
+
+describe("CL01 routes", () => {
+  it("opens a class for the parent and goes on to its sessions", async () => {
+    storeSession(fakeSession("PARENT"));
+    server = mockApi({
+      "GET /classes/{classId}": () => json(200, CLASS),
+      "GET /classes/{classId}/sessions": () => json(200, { items: [SESSION], nextCursor: null }),
+      "GET /students": () => json(200, { items: [MINH], nextCursor: null }),
+      "GET /tutors/{tutorId}/public-profile": () => json(404, {}),
+    });
+    await renderRouter("./src/app", { initialUrl: `/parent/classes/${CLASS_ID}` });
+
+    expect(await screen.findByText("Củng cố hằng đẳng thức.")).toBeOnTheScreen();
+    expect(screen.getByRole("header", { name: "Chi tiết lớp" })).toBeOnTheScreen();
+
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Xem lịch lớp" })));
+    expect(await screen.findByText("Toán 8, 1 buổi từ 20/11 đến 20/11/2030")).toBeOnTheScreen();
+    expect(screen).toHavePathname(`/parent/classes/${CLASS_ID}/sessions`);
+
+    // Back from CL02 returns to the class it came from.
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Quay lại" })));
+    expect(screen).toHavePathname(`/parent/classes/${CLASS_ID}`);
+  });
+
+  it("opened from a link, back lands on the parent home", async () => {
+    storeSession(fakeSession("PARENT"));
+    server = mockApi({
+      "GET /classes/{classId}": () => json(200, CLASS),
+      "GET /classes/{classId}/sessions": () => json(200, { items: [SESSION], nextCursor: null }),
+      "GET /students": () => json(200, { items: [MINH], nextCursor: null }),
+      "GET /tutors/{tutorId}/public-profile": () => json(404, {}),
+    });
+    await renderRouter("./src/app", { initialUrl: `/parent/classes/${CLASS_ID}` });
+    await screen.findByText("Củng cố hằng đẳng thức.");
+
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Quay lại" })));
+    expect(screen).toHavePathname("/parent");
+  });
+
+  it("opens a class for the tutor, named by the student, and goes on to its sessions", async () => {
+    storeSession(fakeSession("TUTOR"));
+    server = mockApi({
+      "GET /classes/{classId}": () => json(200, CLASS),
+      "GET /classes/{classId}/sessions": () => json(200, { items: [SESSION], nextCursor: null }),
+    });
+    await renderRouter("./src/app", { initialUrl: `/tutor/classes/${CLASS_ID}` });
+
+    expect(await screen.findByText("Minh An")).toBeOnTheScreen();
+    await act(async () => fireEvent.press(screen.getByRole("button", { name: "Xem lịch lớp" })));
     expect(await screen.findByText("Lớp Toán 8 đại số, 1 buổi từ 20/11 đến 20/11/2030")).toBeOnTheScreen();
     expect(screen).toHavePathname(`/tutor/classes/${CLASS_ID}/sessions`);
     expect(server.unexpected).toEqual([]);

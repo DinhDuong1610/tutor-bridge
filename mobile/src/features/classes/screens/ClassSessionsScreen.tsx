@@ -4,14 +4,13 @@ import { useState, type ReactNode } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useStudents } from "@/features/students/api";
-import { useSelectedStudent } from "@/features/students/selection";
 import { Button } from "@/shared/ui/Button";
-import { QueryScreen, type QueryState } from "@/shared/ui/QueryScreen";
+import { QueryScreen } from "@/shared/ui/QueryScreen";
 import { SessionCard } from "@/shared/ui/SessionCard";
 import { StatusLabel } from "@/shared/ui/StatusLabel";
-import { StudentSwitcher, type StudentChoice } from "@/shared/ui/StudentSwitcher";
 import { colors, minTouchSize, radius, spacing, typography } from "@/shared/ui/theme";
-import { useClass, useSessions, useTutorName } from "../api";
+import { combine, useClass, useSessions, useTutorName } from "../api";
+import { ClassChild } from "../components/ClassChild";
 import {
   classWeeks,
   dateBlock,
@@ -47,17 +46,6 @@ type Props = {
 
 type Student = { id: string; displayName: string; grade: number };
 type Loaded = { cls: { studentId: string; tutorId: string; durationMinutes: number }; sessions: Session[]; students: Student[] };
-
-/** One frame state for the reads this screen needs, so a failure of any shows the load error. */
-function combine(parts: { isPending: boolean; isError: boolean; error: Error | null; refetch: () => unknown }[], data: Loaded | undefined): QueryState<Loaded> {
-  return {
-    isPending: parts.some((part) => part.isPending),
-    isError: parts.some((part) => part.isError),
-    error: parts.find((part) => part.error)?.error ?? null,
-    data,
-    refetch: () => parts.forEach((part) => void part.refetch()),
-  };
-}
 
 export function ClassSessionsScreen(props: Props) {
   // Two components so a tutor never reads listStudents, which is the parent's own list.
@@ -167,42 +155,6 @@ function Week({
         />
       ) : null}
     </ScrollView>
-  );
-}
-
-// As PH01 builds them (TB-14a). #259 moves this into features/students/selection.tsx as studentChoices;
-// use it here once both are merged.
-const choiceOf = (student: Student): StudentChoice => ({
-  id: student.id,
-  name: student.displayName,
-  label: `${student.displayName}, lớp ${student.grade}`,
-  detail: `Lớp ${student.grade}.`,
-});
-
-/** The class's child in the switcher. Choosing another child leaves the class; "Quản lý" opens PH02. */
-function ClassChild({
-  students,
-  childId,
-  onOtherChild,
-  onManageStudents,
-}: {
-  students: Student[];
-  childId: string;
-  onOtherChild?: () => void;
-  onManageStudents?: () => void;
-}) {
-  const { select } = useSelectedStudent(students);
-  return (
-    <StudentSwitcher
-      choices={students.map(choiceOf)}
-      selectedId={childId}
-      onSelect={(studentId) => {
-        if (studentId === childId) return;
-        select(studentId);
-        onOtherChild?.();
-      }}
-      onManage={() => onManageStudents?.()}
-    />
   );
 }
 

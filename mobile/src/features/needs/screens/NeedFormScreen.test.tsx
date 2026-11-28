@@ -280,6 +280,56 @@ describe("PH04 Nhập nhu cầu học kèm", () => {
     ).toBeTruthy();
   });
 
+  // Đính, #265 review: the free time is checked on the calendar the server will hold, never on a spread that is
+  // not saved. A stored calendar short of the cycle is written as the pattern spread from today, then PH05.
+  it.each([
+    // Only the first Monday is left: the cycle from 02/12/2026 has no free time at all.
+    ["ends before the cycle", MONDAY.slice(0, 1)],
+    // Thứ 2 07/12/2026 off: the first week of the cycle has no free time.
+    ["has a day off in the cycle", [...MONDAY, { start: "2026-12-06T17:00:00Z", end: "2026-12-07T17:00:00Z", kind: "BLOCKED" } as CalendarWindow]],
+  ])("a stored calendar that %s is saved as the weekly pattern before 'Xem lại' goes on", async (_, stored) => {
+    server = mockApi({
+      "GET /students": students,
+      "GET /needs/{needId}": () => withEtag(need(2, COMPLETE)),
+      "GET /students/{studentId}/calendar": () => calendar(4, stored),
+      "PUT /students/{studentId}/calendar": async (request) => calendar(5, (await request.clone().json()).windows),
+    });
+    const { onReview } = await renderEdit();
+    await screen.findByDisplayValue(GOAL);
+    expect(screen.getByRole("button", { name: "Bỏ khung Thứ 2 18:00–21:00" })).toBeTruthy();
+
+    await press("Xem lại");
+
+    const [put, ...others] = writes(server);
+    expect(others).toHaveLength(0);
+    expect(put.method).toBe("PUT");
+    expect(put.headers.get("If-Match")).toBe('"4"');
+    expect(await put.json()).toEqual({ timezone: "Asia/Ho_Chi_Minh", windows: MONDAY });
+    expect(onReview).toHaveBeenCalledWith(NEED_ID);
+  });
+
+  it("a stored calendar that is enough as it is, though its weekly pattern alone is not, is not replaced", async () => {
+    // Monday every week plus Thứ 4 in each week of the cycle: three 90-minute sessions a week fit only as stored.
+    const wednesdays = [2, 9, 16, 23].map((day): CalendarWindow => ({
+      start: `2026-12-${String(day).padStart(2, "0")}T11:00:00Z`,
+      end: `2026-12-${String(day).padStart(2, "0")}T12:30:00Z`,
+      kind: "AVAILABLE",
+    }));
+    server = mockApi({
+      "GET /students": students,
+      "GET /needs/{needId}": () => withEtag(need(2, { ...COMPLETE, frequencyPer7Days: 3 })),
+      "GET /students/{studentId}/calendar": () => calendar(4, [...MONDAY, ...wednesdays]),
+    });
+    const { onReview } = await renderEdit();
+    await screen.findByDisplayValue(GOAL);
+
+    expect(screen.queryByText(/Giờ rảnh chưa đủ/)).toBeNull();
+    await press("Xem lại");
+
+    expect(writes(server)).toHaveLength(0);
+    expect(onReview).toHaveBeenCalledWith(NEED_ID);
+  });
+
   it("INV-23 a stale calendar (412) is reloaded, keeping the slots added, and saved against the new ETag", async () => {
     let version = 4;
     server = mockApi({

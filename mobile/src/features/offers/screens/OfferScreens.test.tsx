@@ -133,6 +133,8 @@ describe("PH09 Danh sách đề nghị", () => {
     const { onOpenOffer } = await renderList();
 
     expect(await screen.findByText(`Nhu cầu: ${GOAL}`)).toBeTruthy();
+    // Names come from the public profiles, read after the list.
+    expect(await screen.findByText("Trần Văn Minh")).toBeTruthy();
     expect(screen.getByRole("header", { name: "Đề nghị đã gửi" })).toBeTruthy();
     expect(
       screen.getByText("Bạn có thể gửi đề nghị cho nhiều gia sư. Khi một gia sư chấp nhận, lớp được chốt và các đề nghị còn lại tự kết thúc."),
@@ -165,6 +167,7 @@ describe("PH09 Danh sách đề nghị", () => {
     const { onOpenClass } = await renderList();
 
     expect(await screen.findByText("Đã chốt lớp")).toBeTruthy();
+    expect(await screen.findByText("Nguyễn Thị Lan")).toBeTruthy();
     expect(screen.getByText("Lớp và đủ 8 buổi đã được đặt.")).toBeTruthy();
     expect(screen.getByText("Đã kết thúc")).toBeTruthy();
     expect(screen.getByText("Đã kết thúc vì nhu cầu này đã chốt lớp với gia sư khác.")).toBeTruthy();

@@ -37,9 +37,9 @@ Không cần làm ấm cache trước. `npm test` chạy được ngay sau `npm 
 Ba chỗ trong `mobile/` giữ việc này:
 - `jest.setup.ts` (`setupFilesAfterEnv`) chạm sẵn các component `react-native` app dùng. `react-native` nạp chúng lười, nên trước đây Babel biên dịch chúng bên trong ca test đầu của mỗi file, vượt giới hạn 5 giây khi cache trống.
 - `src/shared/test/preloadRoutes.ts`: các file test dùng `renderRouter` gọi `beforeAll(preloadRoutes, 120_000)`. Hàm này nạp cả cây `src/app` theo cách `renderRouter` đọc nó, nên phần biên dịch nằm trong `beforeAll` có hạn riêng, không nằm trong ca test. File test route mới cũng cần dòng này.
-- `maxWorkers: "50%"` trong cấu hình Jest. Với mặc định (số luồng trừ một), các worker tranh CPU tới mức ca vẫn hết giờ khi cache đã ấm, và thỉnh thoảng gặp `EPERM` khi cùng ghi cache trên Windows.
+- `maxWorkers: 4` trong cấu hình Jest. Với mặc định (số luồng trừ một), các worker tranh CPU tới mức ca vẫn hết giờ khi cache đã ấm, và thỉnh thoảng gặp `EPERM` khi cùng ghi cache trên Windows. `"50%"` (#261) đủ khi suite có 323 ca, nhưng với 482 ca thì 10 worker lại hết giờ ở các file test route (Huy chọn 4, #269, 28/11/2026).
 
-Trước đây (15/11/2026) chỉ nạp sẵn trong `setupFilesAfterEnv` đã gặp `EPERM` và bị bỏ. `EPERM` đó đến từ số worker mặc định cùng ghi cache: trong bảng dưới nó còn xuất hiện ở 19 worker, và không xuất hiện ở `maxWorkers: "50%"`. Vì vậy ba chỗ trên phải đi cùng nhau.
+Trước đây (15/11/2026) chỉ nạp sẵn trong `setupFilesAfterEnv` đã gặp `EPERM` và bị bỏ. `EPERM` đó đến từ số worker mặc định cùng ghi cache: trong bảng dưới nó còn xuất hiện ở 19 worker, và không xuất hiện ở `maxWorkers: "50%"` hay `4`. Vì vậy ba chỗ trên phải đi cùng nhau.
 
 Không tăng `testTimeout` toàn cục.
 
@@ -55,7 +55,14 @@ Số đo trên máy Huy (Windows, 20 luồng, 323 ca, 27/11/2026), mỗi lần s
 | Cả hai, `maxWorkers: "50%"` (`npx jest --ci`) | Qua 323/323 ba lần liền (53–77 giây); cache ấm 13 giây |
 | Cả hai, `--runInBand` | Qua 323/323 (63 giây) |
 
-Hỏng kiểu hết giờ sau thay đổi này là lỗi thật, không phải lỗi cache.
+Số đo lại trên cùng máy với 482 ca (28/11/2026, còn khoảng 2,4 GB RAM trống), cả ba chỗ đã có:
+
+| Cấu hình | Kết quả |
+|---|---|
+| `maxWorkers: "50%"` (10 worker), 5 lượt | Qua 1 lượt; các lượt khác hỏng 14–29 ca (một lượt 15 ca và 1 suite lỗi khi chạy). Lượt đã xem từng ca (24 ca hỏng): đều hết giờ ở 7 file test route |
+| `maxWorkers: 4`, 6 lượt | Qua 5 lượt (74–134 giây); một lượt hỏng 2 ca, là ca đầu của `TutorProfileScreen` và `NeedFormScreen`, không phải file route |
+
+Với 482 ca, ca đầu của vài file màn hình nặng (GS02, PH04, GS03) vẫn có lúc hết giờ khi cache trống, trên máy Huy và trên CI (#265). Chạy lại thì qua. Phần này chưa sửa: các file đó chưa có bước nạp trước như `preloadRoutes`. Hỏng kiểu hết giờ ở chỗ khác là lỗi thật, không phải lỗi cache.
 
 ## Quy tắc
 - Action pin theo commit SHA, image pin theo digest. Dependabot đề xuất bản mới qua PR.

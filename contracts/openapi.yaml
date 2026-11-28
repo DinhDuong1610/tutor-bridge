@@ -1075,6 +1075,67 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ReasonInput'
+  /me/classes:
+    get:
+      operationId: listClasses
+      summary: List own classes, each with its next session
+      description: 'OP-27 (#97): a PARENT lists the classes of their children, one child with
+        studentId (another family''s child answers the same 404 as an unknown id); a TUTOR
+        lists their own classes and sends no studentId. Newest class first by the keyset
+        (createdAt, id). nextSession is the class''s earliest SCHEDULED session that has not
+        ended, or null.'
+      tags:
+      - TX15
+      x-authorization: PARENT own children or TUTOR own classes
+      x-transaction: TX15
+      parameters:
+      - name: studentId
+        in: query
+        required: false
+        description: PARENT only, one of their own children
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/Cursor'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Successful response
+          headers:
+            ETag:
+              description: Strong version ETag
+              schema:
+                type: string
+            Cache-Control:
+              schema:
+                const: private, no-store
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassPage'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
   /classes/{classId}:
     get:
       operationId: getClass
@@ -9791,6 +9852,12 @@ components:
         studentId:
           type: string
           format: uuid
+        studentDisplayName:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: OP-25, to the parent and the tutor of the class; a pending offer carries no
+            student name.
         tutorId:
           type: string
           format: uuid
@@ -9829,6 +9896,38 @@ components:
       - durationMinutes
       - effectiveGoalVersionId
       - goal
+      - studentDisplayName
+    ClassListItem:
+      type: object
+      additionalProperties: false
+      properties:
+        class:
+          $ref: '#/components/schemas/Class'
+        nextSession:
+          description: The earliest SCHEDULED session that has not ended, or null (OP-27).
+          anyOf:
+          - $ref: '#/components/schemas/Session'
+          - type: 'null'
+      required:
+      - class
+      - nextSession
+    ClassPage:
+      type: object
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClassListItem'
+          maxItems: 50
+        nextCursor:
+          type:
+          - string
+          - 'null'
+          maxLength: 500
+      required:
+      - items
+      - nextCursor
     Session:
       type: object
       additionalProperties: false
